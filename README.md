@@ -67,7 +67,7 @@ The input file is in JSON format and contains several fields to define the probl
 
 ## Example
 
-To run a linear elastic mechanical homogenization problem for a single load step on microstructure image of size `256 x 256 x 256` with a single spherical inclusion,
+To run a linear elastic mechanical homogenization problem for a single load case on a microstructure image of size `256 x 256 x 256` with a single spherical inclusion,
 
 ```sh
 mpiexec -n 1 ./FANS input_files/sphere_mech.json
