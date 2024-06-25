@@ -59,3 +59,7 @@ Thumbs.db
 
 # Ignore package manager directories
 pip-wheel-metadata/
+
+# Extra
+*.xdmf
+FANS
