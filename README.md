@@ -57,9 +57,9 @@ The input file is in JSON format and contains several fields to define the probl
 - `ms_filename`: Path to the microstructure file (HDF5 format).
 - `ms_datasetname`: Path to the dataset inside the HDF5 file.
 - `ms_L`: List defining the domain size.
-- `matmodel`: Material model (e.g., ThermalLinear, MechLinear, HyperElastic).
+- `matmodel`: Material model (e.g., `ThermalLinear`, `MechLinear`, `HyperElastic`).
 - `material_properties`: Material properties relevant to the chosen material model.
-- `problem_type`: Type of the problem (thermal or mechanical).
+- `problem_type`: Type of the problem (`thermal` or `mechanical`).
 - `method`: Solution method (`fp` for fixed point or `cg` for conjugate gradient).
 - `TOL`: Tolerance for the solver.
 - `n_it`: Maximum number of iterations.
