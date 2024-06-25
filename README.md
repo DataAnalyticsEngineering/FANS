@@ -15,7 +15,7 @@ Fourier Accelerated Nodal Solvers (FANS) is an FFT-based homogenization solver d
 
 ### Prerequisites
 
-Ensure you have the following dependencies installed on your system:
+Please ensure you have the following dependencies installed on your system:
 
 - CMake (version 3.0 or higher)
 - MPI (mpicc and mpic++)
