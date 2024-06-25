@@ -60,7 +60,7 @@ The input file is in JSON format and contains several fields to define the probl
 - `matmodel`: Material model (e.g., ThermalLinear, MechLinear, HyperElastic).
 - `material_properties`: Material properties relevant to the chosen material model.
 - `problem_type`: Type of the problem (thermal or mechanical).
-- `method`: Solution method (fp for fixed point or cg for conjugate gradient).
+- `method`: Solution method (`fp` for fixed point or `cg` for conjugate gradient).
 - `TOL`: Tolerance for the solver.
 - `n_it`: Maximum number of iterations.
 - `g0`: Macroscale loading vector.
