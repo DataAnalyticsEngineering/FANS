@@ -394,14 +394,14 @@ void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], i
             sprintf(name,"%s/ms", reader.ms_datasetname);
             reader.WriteSlab<unsigned char>(ms, 1, resultsFileName, name);
 
-//            sprintf(name,"%s/u_load%i", reader.ms_datasetname, suffix);
-//            reader.WriteSlab<double>(v_u, howmany, resultsFileName, name);
-//
-//            sprintf(name,"%s/r_load%i", reader.ms_datasetname, suffix);
-//            reader.WriteSlab<double>(v_r, howmany, resultsFileName, name);
-//
-//            sprintf(name,"%s/strain_load%i", reader.ms_datasetname, suffix);
-//            reader.WriteSlab<double>(strain, n_str, resultsFileName, name);
+           sprintf(name,"%s/u_load%i", reader.ms_datasetname, suffix);
+           reader.WriteSlab<double>(v_u, howmany, resultsFileName, name);
+
+           sprintf(name,"%s/r_load%i", reader.ms_datasetname, suffix);
+           reader.WriteSlab<double>(v_r, howmany, resultsFileName, name);
+
+           sprintf(name,"%s/strain_load%i", reader.ms_datasetname, suffix);
+           reader.WriteSlab<double>(strain, n_str, resultsFileName, name);
 
             sprintf(name,"%s/stress_load%i", reader.ms_datasetname, suffix);
             reader.WriteSlab<double>(stress, n_str, resultsFileName, name);

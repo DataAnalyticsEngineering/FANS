@@ -2,6 +2,8 @@
 
 Fourier Accelerated Nodal Solvers (FANS) is an FFT-based homogenization solver designed to handle microscale multiphysics problems. This repository contains a C++ implementation of FANS, built using CMake and MPI for parallel computations.
 
+<img src="test/FANS_example.png" alt="Example Image" width="400" height="300">
+
 ## Table of Contents
 
 - [Installation](#installation)
