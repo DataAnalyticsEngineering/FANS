@@ -87,7 +87,7 @@ void Reader :: ReadInputFile(char fn[]){
 //    printf(")\n");
 
     }catch(const std::exception& e){
-        fprintf(stderr, "ERROR trying to read input file '%s' for FANS_HOM3D\n", fn );
+        fprintf(stderr, "ERROR trying to read input file '%s' for FANS\n", fn );
         exit(10);
     }
 }
