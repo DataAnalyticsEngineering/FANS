@@ -1,0 +1,61 @@
+# Ignore build directories
+build/
+bin/
+lib/
+lib64/
+*/build*/
+
+# Ignore CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+CMakeLists.txt.user*
+*.cmake
+
+# Ignore compiled binaries and executables
+*.exe
+*.out
+*.app
+*.so
+*.dylib
+
+# Ignore object files and libraries
+*.o
+*.a
+*.lib
+
+# Ignore editor-specific files
+.vscode/
+.idea/
+*.vs/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.suo
+*.swp
+*.sln.docstates
+*.user
+*.userosscache
+*.suo
+*.tsserver.log.*
+*.dbmdl
+*.dbproj
+*.jfm
+*.pfx
+*.publishsettings
+node_modules/
+bower_components/
+
+# Ignore OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Ignore package manager directories
+pip-wheel-metadata/
