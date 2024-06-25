@@ -1,0 +1,19 @@
+{
+    "comment": "This field is ignored and can be used to describe the format. 'problem_type' can be 'thermal' or 'mechanical'. 'method' can be 'fp' or 'cg'. 'matmodel' can be 'ThermalLinear', 'MechLinear' or 'HyperElastic'.",
+
+    "ms_filename": "/home/keshav/Downloads/FANS_parallel/test/microstructures/3d0_MFL_0.h5",
+    "ms_datasetname": "/microstructure",
+    "ms_L": [2.0, 1.0, 1.0],
+
+    "matmodel": "MechLinear",
+    "material_properties":{
+        "young_modulus": [1, 10],
+        "poisson_ratio": [0, 0.3]
+    },
+
+    "problem_type": "mechanical",
+    "method": "cg",
+    "TOL": 1e-10,
+    "n_it": 1,
+    "g0": [0.0, 0.0, 0.0, 1.0, 0.0, 0.0]
+}
