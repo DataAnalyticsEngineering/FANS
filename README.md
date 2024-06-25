@@ -63,7 +63,7 @@ The input file is in JSON format and contains several fields to define the probl
 - `method`: Solution method (fp for fixed point or cg for conjugate gradient).
 - `TOL`: Tolerance for the solver.
 - `n_it`: Maximum number of iterations.
-- `g0`: Macroscale loading vector.
+- `g0`: Macroscale loading vector
 
 ## Example
 
