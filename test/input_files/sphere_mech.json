@@ -5,13 +5,13 @@
     "ms_datasetname": "/sphere/256x256x256/ms",
     "ms_L": [1.0, 1.0, 1.0],
 
+    "problem_type": "mechanical",
     "matmodel": "MechLinear",
     "material_properties":{
         "young_modulus": [1, 10],
         "poisson_ratio": [0, 0.3]
     },
 
-    "problem_type": "mechanical",
     "method": "cg",
     "TOL": 1e-6,
     "n_it": 100,

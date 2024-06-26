@@ -333,18 +333,18 @@ double Solver<howmany>::compute_error(RealArray& r){
     double err_rel = (iter == 0 ? 100 : err/err0);
 
     if(world_rank == 0){
-        ofstream os("error.out");
-        os << fixed << setprecision(16);
+        // ofstream os("error.out");
+        // os << fixed << setprecision(16);
         if (iter == 0){
             printf("Before 1st iteration: %16.8e\n", err0);
         }else if(iter == 1){
             printf( "it %3lu .... err %16.8e  / %8.4e, ratio: ------------- , FFT time: %2.6f sec\n", iter, err, err/err0, double(buftime)/CLOCKS_PER_SEC  );
-            os << iter << "\t" << err << "\t" << err/err0 << "\t" << err/err0 << "\n";
+            // os << iter << "\t" << err << "\t" << err/err0 << "\t" << err/err0 << "\n";
         }else{
             printf( "it %3lu .... err %16.8e  / %8.4e, ratio: %4.8e, FFT time: %2.6f sec\n", iter, err, err/err0, err/err_all[iter-1], double(buftime)/CLOCKS_PER_SEC  );
-            os << iter << "\t" << err << "\t" << err/err0 << "\t" << err/err_all[iter-1] << "\n";
+            // os << iter << "\t" << err << "\t" << err/err0 << "\t" << err/err_all[iter-1] << "\n";
         }
-        os.close();
+        // os.close();
     }
     return err_rel;
 }

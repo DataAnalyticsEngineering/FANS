@@ -135,6 +135,6 @@ void SolverCG<howmany> :: LineSearchSecant() {
     }
     v_u_real += d_real * (alpha_new - alpha_old);
     v_r_real = rnew_real;
-    if(this->world_rank == 0) printf("line search iter %i, alpha %f - error %e - \n", _iter, alpha_new, err);
+    if(this->world_rank == 0) printf("line search iter %i, alpha %f - error %e - ", _iter, alpha_new, err);
 }
 #endif
