@@ -1,0 +1,73 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "base",
+      "displayName": "Base",
+      "binaryDir": "${sourceDir}/build/default",
+      "generator": "Unix Makefiles",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      },
+      "hidden": true
+    },
+    {
+      "name": "avx2",
+      "displayName": "AVX2 Optimization",
+      "inherits": [
+        "base"
+      ],
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS": "-mavx2"
+      }
+    },
+    {
+      "name": "ci-linux",
+      "displayName": "CI Linux",
+      "inherits": [
+        "base",
+        "avx2"
+      ],
+      "binaryDir": "build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_SHARED_LIBS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "ci-linux",
+      "displayName": "CI Linux",
+      "configurePreset": "ci-linux"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "ci-linux",
+      "displayName": "CI Linux",
+      "configurePreset": "ci-linux"
+    }
+  ]
+  // ],
+  // "workflowPresets": [
+  //   {
+  //     "name": "ci-linux",
+  //     "steps": [
+  //       {
+  //         "type": "configure",
+  //         "name": "ci-linux"
+  //       },
+  //       {
+  //         "type": "build",
+  //         "name": "ci-linux"
+  //       },
+  //       {
+  //         "type": "test",
+  //         "name": "ci-linux"
+  //       }
+  //     ]
+  //   }
+  // ]
+}
