@@ -91,8 +91,10 @@ Solver<howmany> :: Solver(Reader reader, Matmodel<howmany>* mat) :
 
     rhat((std::complex<double>*) v_r, local_n1 * n_x * (n_z / 2 + 1) * howmany),   //actual initialization is below
     buffer_padding(fftw_alloc_real(n_y * (n_z + 2) * howmany))
-{
-    printf ("\n# Start creating Fundamental Solution(s) \n");
+{   
+    if (world_rank == 0){
+        printf ("\n# Start creating Fundamental Solution(s) \n");
+    }
     clock_t tot_time = clock();
 
     Matrix<double, howmany*8, howmany*8> Ker0 = matmodel->Compute_Reference_ElementStiffness();
@@ -144,7 +146,9 @@ Solver<howmany> :: Solver(Reader reader, Matmodel<howmany>* mat) :
     fundamentalSolution /= (double) (n_x * n_y * n_z);
 
     tot_time = clock() - tot_time;
+    if (world_rank == 0){
     printf("# Complete; Time for construction of Fundamental Solution(s): %f seconds\n", double(tot_time)/CLOCKS_PER_SEC);
+    }
 }
 
 template<int howmany>
@@ -233,11 +237,13 @@ void Solver<howmany> :: solve(){
     internalSolve();
     tot_time = clock() - tot_time;
     // if( VERBOSITY > 5 ){
+    if (world_rank == 0){
         printf("# FFT Time per iteration .......   %2.6f sec\n", double(fft_time)/CLOCKS_PER_SEC/iter);
         printf("# Total FFT Time ...............   %2.6f sec\n", double(fft_time)/CLOCKS_PER_SEC);
         printf("# Total Time per iteration .....   %2.6f sec\n", double(tot_time)/CLOCKS_PER_SEC/iter);
         printf("# Total Time ...................   %2.6f sec\n", double(tot_time)/CLOCKS_PER_SEC);
         printf("# FFT contribution to total time   %2.6f %% \n", 100.*double(fft_time)/double(tot_time));
+    }
 }
 
 
@@ -379,14 +385,15 @@ void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], i
         }
     });
 
-    printf("# Effective Stress .. (");
-    for(int i = 0; i < n_str; i++){
-        double avg;
-        MPI_Allreduce(&(stress_average[i]), &avg, n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        stress_average[i] = avg / (n_x * n_y * n_z);
-        printf("%f ", stress_average[i]);
-    }
-    printf(") \n");
+    MPI_Allreduce(MPI_IN_PLACE, stress_average, n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    if (world_rank == 0){
+        printf("# Effective Stress .. (");
+        for(int i = 0; i < n_str; i++){
+            stress_average[i] /= (n_x * n_y * n_z);
+            printf("%f ", stress_average[i]);
+        }
+    printf(") \n\n");
+    }    
 
     for (int i = 0; i < world_size; i++){
     	if(i == world_rank){

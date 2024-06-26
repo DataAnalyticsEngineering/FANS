@@ -74,13 +74,19 @@ void Reader :: ReadInputFile(char fn[]){
         materialProperties[it.key()] = it.value().get<vector<double>>();
         n_mat = materialProperties[it.key()].size();
 
+        if (world_rank == 0){
         cout << "# " << it.key() << " .... ";
         for(double d : materialProperties[it.key()]){
             printf("   %10.5f ", d);
         }
+        }
     }
-    printf("\n# microstructure: '%s'\n", ms_filename);
-    printf("# TOL ............. %10.5e\n# n_it ............ %6i\n", TOL, n_it);
+    printf("world_rank is %d\n", world_rank);
+    if (world_rank == 0){
+        printf("\n# microstructure: '%s'\n", ms_filename);
+        printf("# TOL ............. %10.5e\n# n_it ............ %6i\n", TOL, n_it);
+    }
+    
 //    printf("# Macro-scale Gradient - (");
 //    for (const auto& number : g0) {
 //        printf("%10.5f ", number);}
@@ -190,13 +196,13 @@ void Reader :: ReadMS(int hm){
     l_e[1] = L[1] / double(dims[1]);
     l_e[2] = L[2] / double(dims[2]);
 
-    printf("# grid size set to %i x %i x %i --> %i voxel (%10.5f x %10.5f x %10.5f)\n", dims[0], dims[1], dims[2], dims[0]*dims[1]*dims[2], L[0], L[1], L[2] );
-
-    if(dims[0] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_x is not a multiple of 2\n");
-    if(dims[1] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_y is not a multiple of 2\n");
-    if(dims[2] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_z is not a multiple of 2\n");
-    printf("Element length %f, %f, %f\n", l_e[0], l_e[1],l_e[2]);
-
+    if (world_rank == 0){
+        printf("# grid size set to %i x %i x %i --> %i voxel (%10.5f x %10.5f x %10.5f)\n", dims[0], dims[1], dims[2], dims[0]*dims[1]*dims[2], L[0], L[1], L[2] );
+        if(dims[0] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_x is not a multiple of 2\n");
+        if(dims[1] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_y is not a multiple of 2\n");
+        if(dims[2] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_z is not a multiple of 2\n");
+        printf("Element length %f, %f, %f\n", l_e[0], l_e[1],l_e[2]);
+    }
 
     const ptrdiff_t n[3]  = {dims[0], dims[1], dims[2] / 2 + 1};
     ptrdiff_t block0 = FFTW_MPI_DEFAULT_BLOCK;
