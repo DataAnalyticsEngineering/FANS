@@ -18,7 +18,7 @@ set(CMAKE_CXX_COMPILER mpic++)
 
 # with -fno-implicit-templates I get linker errors when using std:: stuff
 # TODO: should be developer specific, by using e.g. CMake Presets
-set(CMAKE_CXX_FLAGS "-O3 -mavx2 -mfma -DH5_HAVE_PARALLEL -fmax-errors=1")
+set(CMAKE_CXX_FLAGS "-fmax-errors=1")
 
 # handle rpath weirdness
 if (NOT APPLE)
@@ -54,6 +54,10 @@ else ()
     add_library(FANS_FANS SHARED)
 endif ()
 add_library(FANS::FANS ALIAS FANS_FANS)
+target_compile_definitions(FANS_FANS PUBLIC H5_HAVE_PARALLEL)
+
+# TODO: move optimization options into presets
+target_compile_options(FANS_FANS PUBLIC -O3 -mavx2 -mfma)
 
 add_executable(FANS_main)
 
