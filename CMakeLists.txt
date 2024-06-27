@@ -18,7 +18,7 @@ set(CMAKE_CXX_COMPILER mpic++)
 
 # with -fno-implicit-templates I get linker errors when using std:: stuff
 # TODO: should be developer specific, by using e.g. CMake Presets
-set(CMAKE_CXX_FLAGS "-O3 -mavx2 -mfma -fopenmp -DH5_HAVE_PARALLEL -fmax-errors=1")
+set(CMAKE_CXX_FLAGS "-O3 -mavx2 -mfma -DH5_HAVE_PARALLEL -fmax-errors=1")
 
 # handle rpath weirdness
 if (NOT APPLE)
@@ -40,6 +40,8 @@ set(HDF5_ENABLE_PARALLEL ON)
 find_package(HDF5 REQUIRED COMPONENTS CXX)
 
 find_package(Eigen3 REQUIRED)
+
+find_package(OpenMP REQUIRED)
 
 # ##############################################################################
 # TARGETS
@@ -108,6 +110,8 @@ target_link_libraries(FANS_FANS PUBLIC ${HDF5_CXX_LIBRARIES})
 target_link_libraries(FANS_FANS PUBLIC fftw3 fftw3_mpi)
 
 target_link_libraries(FANS_FANS PUBLIC Eigen3::Eigen)
+
+target_link_libraries(FANS_FANS PRIVATE OpenMP::OpenMP_CXX)
 
 target_link_libraries(FANS_main PRIVATE FANS::FANS)
 
