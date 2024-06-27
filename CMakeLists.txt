@@ -18,7 +18,7 @@ set(CMAKE_CXX_COMPILER mpic++)
 
 # with -fno-implicit-templates I get linker errors when using std:: stuff
 # TODO: should be developer specific, by using e.g. CMake Presets
-set(CMAKE_CXX_FLAGS "-O3 -mavx2 -mfma -fopenmp -lm -DH5_HAVE_PARALLEL -fmax-errors=1")
+set(CMAKE_CXX_FLAGS "-O3 -mavx2 -mfma -fopenmp -DH5_HAVE_PARALLEL -fmax-errors=1")
 
 # handle rpath weirdness
 if (NOT APPLE)
@@ -37,7 +37,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY test/)
 # ##############################################################################
 
 set(HDF5_ENABLE_PARALLEL ON)
-find_package(HDF5 REQUIRED COMPONENTS C CXX)
+find_package(HDF5 REQUIRED COMPONENTS CXX)
 
 find_package(Eigen3 REQUIRED)
 
@@ -74,18 +74,12 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
 
 )
 
-# TODO: workaround for not available find_package calls and stuff
-# target_include_directories(FANS PRIVATE
-#         ${HDF5_INCLUDE_DIRS}
-# )
-target_include_directories(FANS_FANS PRIVATE
-        /usr/local/include
+# TODO: when switching to a newer CMake version this will all be done by one
+# call to target_link_libraries(FANS_FANS PUBLIC HDF5::HDF5). But CMake 3.16
+## does not yet support this.
+target_include_directories(FANS_FANS PUBLIC
+        ${HDF5_INCLUDE_DIRS}
 )
-target_include_directories(FANS_FANS PRIVATE
-        /usr/include
-)
-
-target_link_directories(FANS_FANS PRIVATE /usr/lib/x86_64-linux-gnu/)
 
 # ##############################################################################
 # SOURCES
@@ -104,8 +98,12 @@ target_sources(FANS_main PRIVATE
 # LINKING
 # ##############################################################################
 
-# target_link_libraries(FANS PRIVATE ${HDF5_LIBRARIES} ${HDF5_CXX_LIBRARIES} ${HDF5_HL_LIBRARIES})
-target_link_libraries(FANS_FANS PUBLIC HDF5::HDF5)
+target_link_libraries(FANS_FANS PRIVATE m)
+
+# TODO: when switching to a newer CMake version this can all be done by one
+# call to target_link_libraries(FANS_FANS PUBLIC HDF5::HDF5). But CMake 3.16
+# does not yet support this.
+target_link_libraries(FANS_FANS PUBLIC ${HDF5_CXX_LIBRARIES})
 
 target_link_libraries(FANS_FANS PUBLIC fftw3 fftw3_mpi)
 
