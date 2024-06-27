@@ -59,9 +59,8 @@ double SolverCG<howmany> :: dotProduct(RealArray& a, RealArray& b){
 
 template<int howmany>
 void SolverCG<howmany> :: internalSolve (){
-    if(this->world_rank == 0){
+    if(this->world_rank == 0)
         printf("\n# Start FANS - Conjugate Gradient Solver \n");
-    }
 
     LinearModel<howmany>* linearModel = dynamic_cast<LinearModel<howmany>*>(this->matmodel);
     bool islinear = (linearModel == NULL) ? false : true;
@@ -111,7 +110,8 @@ void SolverCG<howmany> :: internalSolve (){
         iter ++;
         err_rel = this->compute_error(v_r_real);
     }
-    if(this->world_rank == 0) printf("# Complete FANS - Conjugate Gradient Solver \n");
+    if(this->world_rank == 0)
+        printf("# Complete FANS - Conjugate Gradient Solver \n");
 }
 
 template<int howmany>

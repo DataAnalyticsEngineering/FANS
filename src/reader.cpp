@@ -19,7 +19,9 @@ using namespace nlohmann;
 
 void Reader::ComputeVolumeFractions(){
 
-    printf("# volume fractions\n");
+    if (world_rank == 0)
+        printf("# Volume fractions\n");
+
     long vol_frac[n_mat];
     double v_frac[n_mat];
     for(int i=0; i < n_mat; i++){
@@ -32,24 +34,27 @@ void Reader::ComputeVolumeFractions(){
         long vf;
         MPI_Allreduce(&(vol_frac[i]), &vf, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
         v_frac[i] = double(vf) / double(dims[0] * dims[1] * dims[2]);
-        printf("# material %4i    vol. frac. %10.4f%%  \n", i, 100.*v_frac[i]);
+        if (world_rank == 0)
+            printf("# material %4i    vol. frac. %10.4f%%  \n", i, 100.*v_frac[i]);
     }
-
-    for(auto it = materialProperties.begin(); it != materialProperties.end(); it++){
-        vector<double> prop = materialProperties[it->first];
-        double vol_av = 0.;
-        for(int i=0; i < n_mat; i++){
-            vol_av += v_frac[i] * prop[i];
-        }
-        cout << "# " << it->first << ":    ";  //printf only works for c-strings
-        printf("minimum : %f, maximum: %f, mean: %f\n", 
-            *min_element(prop.begin(), prop.end()), *max_element(prop.begin(), prop.end()), vol_av);
-    }
+    // for(auto it = materialProperties.begin(); it != materialProperties.end(); it++){
+    //     vector<double> prop = materialProperties[it->first];
+    //     double vol_av = 0.;
+    //     for(int i=0; i < n_mat; i++){
+    //         vol_av += v_frac[i] * prop[i];
+    //     }
+    //     cout << "# " << it->first << ":    ";  //printf only works for c-strings
+    //     printf("minimum : %f, maximum: %f, mean: %f\n", 
+    //         *min_element(prop.begin(), prop.end()), *max_element(prop.begin(), prop.end()), vol_av);
+    // }
 }
 
 
 void Reader :: ReadInputFile(char fn[]){
     try{
+    
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
     ifstream i(fn);
     json j;
@@ -75,16 +80,16 @@ void Reader :: ReadInputFile(char fn[]){
         n_mat = materialProperties[it.key()].size();
 
         if (world_rank == 0){
-        cout << "# " << it.key() << " .... ";
+        cout << "# " << it.key() << ":\t ";
         for(double d : materialProperties[it.key()]){
-            printf("   %10.5f ", d);
+            printf("   %10.5f", d);
         }
+        printf("\n");
         }
     }
-    printf("world_rank is %d\n", world_rank);
     if (world_rank == 0){
-        printf("\n# microstructure: '%s'\n", ms_filename);
-        printf("# TOL ............. %10.5e\n# n_it ............ %6i\n", TOL, n_it);
+        printf("# microstructure: \t '%s'\n", ms_filename);
+        printf("# FANS Tolerance: \t %10.5e\n# Max iterations: \t %6i\n", TOL, n_it);
     }
     
 //    printf("# Macro-scale Gradient - (");
@@ -197,11 +202,11 @@ void Reader :: ReadMS(int hm){
     l_e[2] = L[2] / double(dims[2]);
 
     if (world_rank == 0){
-        printf("# grid size set to %i x %i x %i --> %i voxel (%10.5f x %10.5f x %10.5f)\n", dims[0], dims[1], dims[2], dims[0]*dims[1]*dims[2], L[0], L[1], L[2] );
+        printf("# grid size set to [%i x %i x %i] --> %i voxels \nMicrostructure length: [%3.6f x %3.6f x %3.6f]\n", dims[0], dims[1], dims[2], dims[0]*dims[1]*dims[2], L[0], L[1], L[2] );
         if(dims[0] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_x is not a multiple of 2\n");
         if(dims[1] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_y is not a multiple of 2\n");
         if(dims[2] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_z is not a multiple of 2\n");
-        printf("Element length %f, %f, %f\n", l_e[0], l_e[1],l_e[2]);
+        printf("Voxel length: [%1.8f, %1.8f, %1.8f]\n", l_e[0], l_e[1],l_e[2]);
     }
 
     const ptrdiff_t n[3]  = {dims[0], dims[1], dims[2] / 2 + 1};

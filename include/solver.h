@@ -362,8 +362,10 @@ void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], i
     double* strain = FANS_malloc<double>(local_n0 * n_y * n_z * n_str);
     double* stress = FANS_malloc<double>(local_n0 * n_y * n_z * n_str);
     double* stress_average = FANS_malloc<double>(n_str);
+    double* strain_average = FANS_malloc<double>(n_str);
     for(int i = 0; i < n_str; i++){
         stress_average[i] = 0;
+        strain_average[i] = 0;
     }
 
     MPI_Sendrecv(v_u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
@@ -382,18 +384,26 @@ void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], i
 
         for(int i = 0; i < n_str; i++){
             stress_average[i] += stress[n_str * idx[0] + i];
+            strain_average[i] += strain[n_str * idx[0] + i];
         }
     });
 
     MPI_Allreduce(MPI_IN_PLACE, stress_average, n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, strain_average, n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     if (world_rank == 0){
         printf("# Effective Stress .. (");
         for(int i = 0; i < n_str; i++){
             stress_average[i] /= (n_x * n_y * n_z);
             printf("%f ", stress_average[i]);
         }
-    printf(") \n\n");
-    }    
+        printf(") \n");
+        printf("# Effective Strain .. (");
+        for(int i = 0; i < n_str; i++){
+            strain_average[i] /= (n_x * n_y * n_z);
+            printf("%f ", strain_average[i]);
+        }
+        printf(") \n\n");
+    }
 
     for (int i = 0; i < world_size; i++){
     	if(i == world_rank){
@@ -404,8 +414,8 @@ void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], i
            sprintf(name,"%s/u_load%i", reader.ms_datasetname, suffix);
            reader.WriteSlab<double>(v_u, howmany, resultsFileName, name);
 
-           sprintf(name,"%s/r_load%i", reader.ms_datasetname, suffix);
-           reader.WriteSlab<double>(v_r, howmany, resultsFileName, name);
+        //    sprintf(name,"%s/r_load%i", reader.ms_datasetname, suffix);
+        //    reader.WriteSlab<double>(v_r, howmany, resultsFileName, name);
 
            sprintf(name,"%s/strain_load%i", reader.ms_datasetname, suffix);
            reader.WriteSlab<double>(strain, n_str, resultsFileName, name);
