@@ -157,9 +157,9 @@ install(
         NAMELINK_COMPONENT FANS_Development
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT FANS_Development
         INCLUDES
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
-        PRIVATE_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS COMPONENT FANS_Development
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS COMPONENT FANS_Development
+        PRIVATE_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS COMPONENT FANS_Development
 )
 
 install(
@@ -177,4 +177,13 @@ write_basic_package_version_file(
 install(FILES FANSConfig.cmake
         ${CMAKE_CURRENT_BINARY_DIR}/FANSConfigVersion.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS
+        COMPONENT FANS_Development
 )
+
+# ##############################################################################
+# PACKAGING
+# ##############################################################################
+
+if(${PROJECT_IS_TOP_LEVEL})
+  add_subdirectory(packaging)
+endif()
