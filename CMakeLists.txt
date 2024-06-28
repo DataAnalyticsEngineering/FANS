@@ -13,9 +13,6 @@ project(FANS
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_C_COMPILER mpicc)
-set(CMAKE_CXX_COMPILER mpic++)
-
 # with -fno-implicit-templates I get linker errors when using std:: stuff
 # TODO: should be developer specific, by using e.g. CMake Presets
 set(CMAKE_CXX_FLAGS "-fmax-errors=1")
@@ -36,12 +33,25 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY test/)
 # REQUIRED PACKAGES
 # ##############################################################################
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+if ("$ENV{SETVARS_COMPLETED}" STREQUAL "1")
+    message(
+            WARNING
+            "Intel OneAPI environment is active. Might lead to issues with correct MPI lib discovery!"
+    )
+endif ()
+
 set(HDF5_ENABLE_PARALLEL ON)
 find_package(HDF5 REQUIRED COMPONENTS CXX)
 
 find_package(Eigen3 REQUIRED)
 
 find_package(OpenMP REQUIRED)
+
+find_package(MPI REQUIRED)
+
+find_package(FFTW3 REQUIRED COMPONENTS SINGLE DOUBLE LONGDOUBLE MPI)
 
 # ##############################################################################
 # TARGETS
@@ -87,6 +97,8 @@ target_include_directories(FANS_FANS PUBLIC
         ${HDF5_INCLUDE_DIRS}
 )
 
+target_include_directories(FANS_FANS PUBLIC ${FFTW3_INCLUDE_DIRS})
+
 # ##############################################################################
 # SOURCES
 # ##############################################################################
@@ -111,11 +123,14 @@ target_link_libraries(FANS_FANS PRIVATE m)
 # does not yet support this.
 target_link_libraries(FANS_FANS PUBLIC ${HDF5_CXX_LIBRARIES})
 
-target_link_libraries(FANS_FANS PUBLIC fftw3 fftw3_mpi)
+target_link_libraries(FANS_FANS PUBLIC MPI::MPI_CXX)
+
+target_link_libraries(FANS_FANS PUBLIC ${FFTW3_LIBRARIES})
 
 target_link_libraries(FANS_FANS PUBLIC Eigen3::Eigen)
 
 target_link_libraries(FANS_FANS PRIVATE OpenMP::OpenMP_CXX)
+
 
 target_link_libraries(FANS_main PRIVATE FANS::FANS)
 
