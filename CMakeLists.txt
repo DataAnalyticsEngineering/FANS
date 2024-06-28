@@ -138,6 +138,7 @@ target_link_libraries(FANS_main PRIVATE FANS::FANS)
 # NAMING
 # ##############################################################################
 
+set_target_properties(FANS_FANS PROPERTIES OUTPUT_NAME FANS)
 set_target_properties(FANS_FANS PROPERTIES EXPORT_NAME FANS)
 set_target_properties(FANS_main PROPERTIES OUTPUT_NAME FANS)
 
