@@ -408,20 +408,20 @@ void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], i
     for (int i = 0; i < world_size; i++){
     	if(i == world_rank){
             char name[5096];
-            sprintf(name,"%s/ms", reader.ms_datasetname);
-            reader.WriteSlab<unsigned char>(ms, 1, resultsFileName, name);
+        //     sprintf(name,"%s/ms", reader.ms_datasetname);
+        //     reader.WriteSlab<unsigned char>(ms, 1, resultsFileName, name);
 
-           sprintf(name,"%s/u_load%i", reader.ms_datasetname, suffix);
-           reader.WriteSlab<double>(v_u, howmany, resultsFileName, name);
+        //     sprintf(name,"%s/u_load%i", reader.ms_datasetname, suffix);
+        //     reader.WriteSlab<double>(v_u, howmany, resultsFileName, name);
 
-        //    sprintf(name,"%s/r_load%i", reader.ms_datasetname, suffix);
-        //    reader.WriteSlab<double>(v_r, howmany, resultsFileName, name);
+        // //    sprintf(name,"%s/r_load%i", reader.ms_datasetname, suffix);
+        // //    reader.WriteSlab<double>(v_r, howmany, resultsFileName, name);
 
-           sprintf(name,"%s/strain_load%i", reader.ms_datasetname, suffix);
-           reader.WriteSlab<double>(strain, n_str, resultsFileName, name);
+        //     sprintf(name,"%s/strain_load%i", reader.ms_datasetname, suffix);
+        //     reader.WriteSlab<double>(strain, n_str, resultsFileName, name);
 
-            sprintf(name,"%s/stress_load%i", reader.ms_datasetname, suffix);
-            reader.WriteSlab<double>(stress, n_str, resultsFileName, name);
+        //     sprintf(name,"%s/stress_load%i", reader.ms_datasetname, suffix);
+        //     reader.WriteSlab<double>(stress, n_str, resultsFileName, name);
       	}
       	MPI_Barrier(MPI_COMM_WORLD);
     }

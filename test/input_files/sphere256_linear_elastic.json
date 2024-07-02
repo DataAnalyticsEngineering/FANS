@@ -8,8 +8,8 @@
     "problem_type": "mechanical",
     "matmodel": "MechLinear",
     "material_properties":{
-        "young_modulus": [1, 1000],
-        "poisson_ratio": [0, 0.49]
+        "young_modulus": [1, 10],
+        "poisson_ratio": [0, 0.3]
     },
 
     "method": "cg",
