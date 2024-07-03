@@ -1,0 +1,47 @@
+name: Build and Push Docker Images
+
+on: workflow_dispatch
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build fans_runtime image
+        run: docker build --target=fans_runtime -t unistuttgartdae/fans-runtime -f docker/Dockerfile .
+
+      - name: Push fans_runtime image
+        run: docker push unistuttgartdae/fans-runtime
+
+      - name: Build fans_build_env image
+        run: docker build --target=fans_build_env -t unistuttgartdae/fans-build-env -f docker/Dockerfile .
+
+      - name: Push fans_build_env image
+        run: docker push unistuttgartdae/fans-build-env
+
+      - name: Build fans_build image
+        run: docker build --target=fans_build -t unistuttgartdae/fans-build -f docker/Dockerfile .
+
+      - name: Push fans_build image
+        run: docker push unistuttgartdae/fans-build
+
+      - name: Build fans_publish image
+        run: docker build --target=fans_publish -t unistuttgartdae/fans-publish -f docker/Dockerfile .
+
+      - name: Push fans_publish image
+        run: docker push unistuttgartdae/fans-publish
+
+      - name: Build fans_dev_env image
+        run: docker build --target=fans_dev_env -t unistuttgartdae/fans-dev-env -f docker/Dockerfile .
+
+      - name: Push fans_dev_env image
+        run: docker push unistuttgartdae/fans-dev-env
