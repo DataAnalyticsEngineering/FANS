@@ -4,9 +4,9 @@
 #include "solverFP.h"
 #include "solverCG.h"
 
-int main( int argc, char ** argv ) {
-    if( argc != 2 ) {
-        fprintf( stderr, "USAGE: %s [input file basename] \n", argv[0] );
+int main( int argc, char* argv[] ) {
+    if( argc != 3 ) {
+        fprintf( stderr, "USAGE: %s [input file basename] [output file basename]\n", argv[0] );
         return 10;
     }
 
@@ -71,7 +71,7 @@ int main( int argc, char ** argv ) {
 
             matmodel->setGradient(g0);
             solver->solve();
-	    	solver->postprocess(reader, "results.h5", i_load);
+	    	solver->postprocess(reader, argv[2], i_load);
         }
     } else if(reader.problemType == "mechanical"){
 
@@ -113,7 +113,7 @@ int main( int argc, char ** argv ) {
             }
             matmodel->setGradient(g0);
             solver->solve();
-	    	solver->postprocess(reader, "results.h5", i_load);
+	    	solver->postprocess(reader, argv[2], i_load);
         }
     }
 

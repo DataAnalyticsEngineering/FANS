@@ -7,7 +7,7 @@ set(CMAKE_CXX_COMPILER mpic++)
 # with -fno-implicit-templates I get linker errors when using std:: stuff
 set(CMAKE_CXX_FLAGS    "-O3 -mavx2 -mfma -fopenmp -lm -DH5_HAVE_PARALLEL")
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY test/)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../test/)
 set(HDF5_ENABLE_PARALLEL ON)
 
 find_package(HDF5 REQUIRED COMPONENTS C CXX)

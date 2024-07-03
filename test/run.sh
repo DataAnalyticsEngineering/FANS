@@ -4,3 +4,4 @@
 # mpiexec -n 1 ./FANS input_files/berea128_h5_thermal.json
 
 
+nohup /usr/bin/time -v mpiexec -n 16 ./FANS input_files/sphere256_linear_elastic.json test_results.h5 > nohup.out 2>&1 &
