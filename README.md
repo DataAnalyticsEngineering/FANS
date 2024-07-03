@@ -63,7 +63,7 @@ Only the last two images are intended to actually be used. To set up a container
 ```bash
 mkdir workspace
 cd workspace
-git clone -b CMake git@github.tik.uni-stuttgart.de:DAE/FANS.git
+[git clone -b CMake git@github.tik.uni-stuttgart.de:DAE/FANS.git]
 
 docker pull unistuttgartdae/fans-[publish/dev-env]
 docker create --name fans -it \
@@ -72,7 +72,7 @@ docker create --name fans -it \
   -v /etc/localtime:/etc/localtime:ro \
   -v /etc/timezone:/etc/timezone:ro \
   -v $PWD/:/workspace/ \
-  unistuttgartdae/fetiger-[publish/dev-env]
+  unistuttgartdae/fans-[publish/dev-env]
 ```
 
 Then, to start the container and attach a shell, run:
@@ -83,6 +83,16 @@ docker start -i fans
 In case of the image `fans-publish`, to directly execute FANS without attaching to the container, use (be aware that the paths must be relative to the container!):
 ```bash
 docker run fans [arguments]
+```
+
+In case of the image `fans-dev-env`, the intended workflow would be to edit the code as usual in your IDE, but then to build it you would attach to the container and run:
+```bash
+cd FANS
+mkdir build
+cd build
+cmake ..
+cmake --build . -j
+
 ```
 
 ## Usage
