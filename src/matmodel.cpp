@@ -28,7 +28,7 @@ ThermalLinear :: ThermalLinear(vector<double> l_e, map<string, vector<double>> m
 }
 
 MechLinear :: MechLinear(vector<double> l_e, map<string, vector<double>> materialProperties) : MechModel(l_e) {
-
+    
     vector<double> young_modulus = materialProperties["young_modulus"];
     vector<double> poisson_ratio = materialProperties["poisson_ratio"];
     n_mat = young_modulus.size();
@@ -38,14 +38,14 @@ MechLinear :: MechLinear(vector<double> l_e, map<string, vector<double>> materia
     for (int i = 0; i < n_mat; ++i) {
         lambda[i] = (young_modulus[i]*poisson_ratio[i])/((1+poisson_ratio[i])*(1-(2*poisson_ratio[i])));
         mu[i]     = young_modulus[i]/(2*(1+poisson_ratio[i]));
-        if( verbosity > 8 ) printf("lambda[%i] = %16.8e   /   mu[%i] = %16.8e\n", i, lambda[i], i, mu[i]);
+        // if( verbosity > 8 ) printf("lambda[%i] = %16.8e   /   mu[%i] = %16.8e\n", i, lambda[i], i, mu[i]);
     }
 
     
     double lambda_ref = (*max_element(lambda.begin(), lambda.end()) + *min_element(lambda.begin(), lambda.end())) / 2;
     double mu_ref     = (*max_element(mu.begin(), mu.end()) + *min_element(mu.begin(), mu.end())) / 2;
 
-    if( verbosity > 8 ) printf("# lambda_ref: %16.8e, mu_ref: %16.8e\n", lambda_ref, mu_ref);
+    // if( verbosity > 8 ) printf("# lambda_ref: %16.8e, mu_ref: %16.8e\n", lambda_ref, mu_ref);
 
 
     kapparef_mat = Matrix<double, 6, 6>::Zero();

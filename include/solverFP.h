@@ -30,7 +30,8 @@ SolverFP<howmany> :: SolverFP(Reader reader, Matmodel<howmany>* matmodel) : Solv
 
 template<int howmany>
 void SolverFP<howmany> :: internalSolve() {
-    printf("\n# Start FANS - Fixed Point Solver \n");
+    if (this->world_rank == 0)
+        printf("\n# Start FANS - Fixed Point Solver \n");
 
     v_u_real.setZero();
     for(ptrdiff_t i = local_n0 * n_y * n_z * howmany; i < (local_n0 + 1) * n_y * n_z * howmany; i++){
@@ -50,6 +51,7 @@ void SolverFP<howmany> :: internalSolve() {
         iter ++;
         err_rel = this->compute_error(v_r_real);
     }
-    printf("# Complete FANS - Fixed Point Solver \n");
+    if (this->world_rank == 0)
+        printf("# Complete FANS - Fixed Point Solver \n");
 }
 #endif

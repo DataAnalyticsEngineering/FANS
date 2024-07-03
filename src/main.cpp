@@ -4,7 +4,6 @@
 #include "solverFP.h"
 #include "solverCG.h"
 
-
 int main( int argc, char ** argv ) {
     if( argc != 2 ) {
         fprintf( stderr, "USAGE: %s [input file basename] \n", argv[0] );
@@ -23,12 +22,14 @@ int main( int argc, char ** argv ) {
     Reader reader;
 
     // only necessary for sequential reading
-    for (int i = 0; i < world_size; i++){
-    	if(i == world_rank){
-        	reader.ReadInputFile(argv[1]);
-      	}
-      	MPI_Barrier(MPI_COMM_WORLD);
-    }
+    // for (int i = 0; i < world_size; i++){
+    // 	if(i == world_rank){
+    //     	reader.ReadInputFile(argv[1]);
+    //   	}
+    //   	MPI_Barrier(MPI_COMM_WORLD);
+    // }
+    reader.ReadInputFile(argv[1]);
+    MPI_Barrier(MPI_COMM_WORLD);
 
     if(reader.problemType == "thermal"){
 
