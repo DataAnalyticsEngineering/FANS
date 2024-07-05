@@ -91,11 +91,9 @@ void Reader :: ReadInputFile(char fn[]){
         printf("# microstructure: \t '%s'\n", ms_filename);
         printf("# FANS Tolerance: \t %10.5e\n# Max iterations: \t %6i\n", TOL, n_it);
     }
-    
-//    printf("# Macro-scale Gradient - (");
-//    for (const auto& number : g0) {
-//        printf("%10.5f ", number);}
-//    printf(")\n");
+
+    // Read the results_to_write field
+    resultsToWrite = j["results"].get<vector<string>>();
 
     }catch(const std::exception& e){
         fprintf(stderr, "ERROR trying to read input file '%s' for FANS\n", fn );
@@ -103,6 +101,10 @@ void Reader :: ReadInputFile(char fn[]){
     }
 }
 
+//    printf("# Macro-scale Gradient - (");
+//    for (const auto& number : g0) {
+//        printf("%10.5f ", number);}
+//    printf(")\n");
 
 void Reader::safe_create_group( hid_t file, const char * const name )
 {

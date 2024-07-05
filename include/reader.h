@@ -22,6 +22,8 @@ class Reader{
         string matmodel;
         string method;
 
+        vector<string> resultsToWrite;
+
         // contents of microstructure file:
         vector<int> dims;
         vector<double> l_e;
@@ -38,20 +40,20 @@ class Reader{
         ptrdiff_t local_1_start;
 
 
-        void Setup(ptrdiff_t howmany);
+        // void Setup(ptrdiff_t howmany);
         void ReadInputFile(char fn[]);
         void ReadMS(int hm);
         void ComputeVolumeFractions();
-        void ReadHDF5(char file_name[], char dset_name[]);
+        // void ReadHDF5(char file_name[], char dset_name[]);
         void safe_create_group( hid_t file, const char * const name );
         
         template<typename T>
         void WriteSlab(T *data, int _howmany, const char* file_name, const char* dset_name);
 
+        template<typename T>
+        void WriteData(T *data, const char* file_name, const char* dset_name);
         
 };
-
-
 
 // this function has to be here because of the template
 template<typename T>
@@ -77,7 +79,7 @@ void Reader::WriteSlab(T *data, int _howmany, const char* file_name, const char*
     hsize_t	    offset[rank]; 
  
     plist_id = H5Pcreate(H5P_FILE_ACCESS);
-    //H5Pset_fapl_mpio(plist_id, comm, info);
+    // H5Pset_fapl_mpio(plist_id, comm, info);
 
     //TODO: refactor this into a general error handling method
     /* Save old error handler */
@@ -115,8 +117,17 @@ void Reader::WriteSlab(T *data, int _howmany, const char* file_name, const char*
     /* Restore previous error handler */
     H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
 
+    
     if(dset_id < 0){
         dset_id = H5Dcreate(file_id, dset_name, data_type, filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+        // hid_t dcpl_id;
+        // // Create the dataset with compression
+        // dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
+        // H5Pset_chunk(dcpl_id, rank, dimsf);
+        // H5Pset_deflate(dcpl_id, 9); // Compression level 9, 6 is best for size and speed
+        // dset_id = H5Dcreate(file_id, dset_name, data_type, filespace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
+        // H5Pclose(dcpl_id);
     }
     
 
