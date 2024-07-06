@@ -18,5 +18,5 @@
            0.0, 1.0, 0.0,
            0.0, 0.0, 1.0],
     
-    "results": ["microstructure", "nodal_residual"]
+    "results": ["microstructure", "stress_average", "strain_average"]
 }

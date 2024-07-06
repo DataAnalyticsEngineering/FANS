@@ -413,13 +413,15 @@ void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], i
 
             if (world_rank == 0){
                 if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "stress_average") != reader.resultsToWrite.end()) {
-                        sprintf(name, "%s/load%i/stress_average", reader.ms_datasetname, suffix); // Writes the stres average
-                        // reader.WriteData<double>(stress_average, resultsFileName, name);
+                        sprintf(name, "%s/load%i/stress_average", reader.ms_datasetname, suffix); // Writes the stress average
+                        hsize_t dims[1] = {static_cast<hsize_t>(n_str)};  // Dimension for 1D array
+                        reader.WriteData<double>(stress_average, resultsFileName, name, dims, 1);
                         
                 }
                 if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "strain_average") != reader.resultsToWrite.end()) {
                         sprintf(name, "%s/load%i/strain_average", reader.ms_datasetname, suffix); // Writes the strain average
-                        // reader.WriteData<double>(strain_average, resultsFileName, name);
+                        hsize_t dims[1] = {static_cast<hsize_t>(n_str)};  // Dimension for 1D array
+                        reader.WriteData<double>(strain_average, resultsFileName, name, dims, 1);
                 }
             }
 
