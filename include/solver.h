@@ -453,11 +453,11 @@ void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], i
       	MPI_Barrier(MPI_COMM_WORLD);
     }
     
-    // not very elegant
-    HyperElastic* hyperElastic = dynamic_cast<HyperElastic*>(this->matmodel);
-    if(hyperElastic != NULL){
-        postprocessHyperElastic(hyperElastic, reader, resultsFileName, suffix);
-    }
+    // // not very elegant
+    // HyperElastic* hyperElastic = dynamic_cast<HyperElastic*>(this->matmodel);
+    // if(hyperElastic != NULL){
+    //     postprocessHyperElastic(hyperElastic, reader, resultsFileName, suffix);
+    // }
 }
 
 
