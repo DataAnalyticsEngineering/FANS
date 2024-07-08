@@ -109,3 +109,5 @@ RUN adduser --disabled-password \
 # entrypoint script changes uid and gid to match given host uid and gid
 COPY --chmod=755 docker/Dockerfile_user_env_entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
+
+CMD ["bash"]
