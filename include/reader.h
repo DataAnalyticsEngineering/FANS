@@ -90,6 +90,12 @@ void Reader::WriteData(T *data, const char* file_name, const char* dset_name, hs
     // Ensure all groups in the path are created
     safe_create_group(file_id, dset_name);
 
+    // Check if the dataset already exists
+    if (H5Lexists(file_id, dset_name, H5P_DEFAULT) > 0) {
+        // If it exists, delete it
+        H5Ldelete(file_id, dset_name, H5P_DEFAULT);
+    }
+
     // Create the data space for the dataset
     hid_t dataspace_id = H5Screate_simple(rank, dims, NULL);
     if (dataspace_id < 0) {
