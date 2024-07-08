@@ -416,7 +416,6 @@ void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], i
                         sprintf(name, "%s/load%i/stress_average", reader.ms_datasetname, suffix); // Writes the stress average
                         hsize_t dims[1] = {static_cast<hsize_t>(n_str)};  // Dimension for 1D array
                         reader.WriteData<double>(stress_average, resultsFileName, name, dims, 1);
-                        
                 }
                 if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "strain_average") != reader.resultsToWrite.end()) {
                         sprintf(name, "%s/load%i/strain_average", reader.ms_datasetname, suffix); // Writes the strain average
@@ -424,7 +423,7 @@ void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], i
                         reader.WriteData<double>(strain_average, resultsFileName, name, dims, 1);
                 }
                 if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "absolute_error") != reader.resultsToWrite.end()) {
-                        sprintf(name, "%s/load%i/absolute_error", reader.ms_datasetname, suffix); // Writes the strain average
+                        sprintf(name, "%s/load%i/absolute_error", reader.ms_datasetname, suffix); // Writes the absolute error
                         hsize_t dims[1] = {static_cast<hsize_t>(iter+1)};  // Dimension for 1D array
                         reader.WriteData<double>(err_all.data(), resultsFileName, name, dims, 1);
                 }
@@ -435,12 +434,12 @@ void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], i
                 reader.WriteSlab<unsigned char>(ms, 1, resultsFileName, name);
             }
 
-            if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "nodal_displacement") != reader.resultsToWrite.end()) {
+            if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "displacement") != reader.resultsToWrite.end()) {
                 sprintf(name, "%s/load%i/displacement", reader.ms_datasetname, suffix); // Writes the nodal displacement
                 reader.WriteSlab<double>(v_u, howmany, resultsFileName, name);
             }
 
-            if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "nodal_residual") != reader.resultsToWrite.end()) {
+            if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "residual") != reader.resultsToWrite.end()) {
                 sprintf(name, "%s/load%i/residual", reader.ms_datasetname, suffix); // Writes the nodal residual
                 reader.WriteSlab<double>(v_r, howmany, resultsFileName, name);
             }

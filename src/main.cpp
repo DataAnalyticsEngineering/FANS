@@ -19,16 +19,7 @@ int main( int argc, char* argv[] ) {
 	fftw_mpi_init();
 
     Reader reader;
-
-    // only necessary for sequential reading
-    // for (int i = 0; i < world_size; i++){
-    // 	if(i == world_rank){
-    //     	reader.ReadInputFile(argv[1]);
-    //   	}
-    //   	MPI_Barrier(MPI_COMM_WORLD);
-    // }
     reader.ReadInputFile(argv[1]);
-    MPI_Barrier(MPI_COMM_WORLD);
 
     if(reader.problemType == "thermal"){
 

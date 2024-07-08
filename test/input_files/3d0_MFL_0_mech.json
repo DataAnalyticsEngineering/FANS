@@ -1,19 +1,22 @@
 {
-    "comment": "This field is ignored and can be used to describe the format. 'problem_type' can be 'thermal' or 'mechanical'. 'method' can be 'fp' or 'cg'. 'matmodel' can be 'ThermalLinear', 'MechLinear' or 'HyperElastic'.",
+    "comment": "This field is ignored and can be used to describe the format. 'problem_type' can be 'thermal' or 'mechanical'. 'method' can be 'fp' or 'cg'. 'matmodel' can be 'ThermalLinear', 'MechLinear' or 'HyperElastic'. g0 is the macroscale loading vectors - each row is a new loading condition",
 
-    "ms_filename": "/home/keshav/Downloads/FANS_parallel/test/microstructures/3d0_MFL_0.h5",
+    "ms_filename": "/home/keshav/Downloads/FANS/test/microstructures/3d0_MFL_0.h5",
     "ms_datasetname": "/microstructure",
     "ms_L": [2.0, 1.0, 1.0],
 
+    "problem_type": "mechanical",
     "matmodel": "MechLinear",
     "material_properties":{
         "young_modulus": [1, 10],
         "poisson_ratio": [0, 0.3]
     },
 
-    "problem_type": "mechanical",
     "method": "cg",
-    "TOL": 1e-10,
-    "n_it": 1,
-    "g0": [0.0, 0.0, 0.0, 1.0, 0.0, 0.0]
+    "TOL": 1e-6,
+    "n_it": 100,
+    "g0": [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+
+    "results": ["stress_average", "strain_average", "absolute_error",
+                "microstructure", "stress"]
 }
