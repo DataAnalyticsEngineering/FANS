@@ -8,23 +8,17 @@
 # Inside the container you can then invoke cmake and start building the source, 
 # as described in the README.md.
 
-################################################################################
-FROM ubuntu:22.04 AS fans_runtime
-
-# during build time, don't ask for user input
+# during build time, don't ask for user input (has to be included in every stage
+# to take effect
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update -qq && apt-get install -y --no-install-recommends \
-# packages specifically required by FANS
-    libhdf5-dev \
-    libopenmpi-dev \
-    libeigen3-dev \
-    libfftw3-dev \
-    libfftw3-mpi-dev \
-    && rm -rf /var/lib/apt/lists/*
+################################################################################
+FROM ubuntu:22.04 AS fans_base
+ARG DEBIAN_FRONTEND
 
 ################################################################################
-FROM fans_runtime AS fans_build_env
+FROM fans_base AS fans_build
+ARG DEBIAN_FRONTEND
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
 # basic packages
@@ -34,10 +28,17 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
     file \
+# packages required to build FANS \
+    libhdf5-dev \
+    libopenmpi-dev \
+    libeigen3-dev \
+    libfftw3-dev \
+    libfftw3-mpi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 ################################################################################
-FROM fans_build_env AS fans_build
+FROM fans_build AS fans_built
+ARG DEBIAN_FRONTEND
 
 # copy whole repository into the image
 COPY . /FANS
@@ -48,12 +49,14 @@ WORKDIR /FANS/build
 RUN cmake .. && cmake --build . -j && cpack -G "DEB"
 
 ################################################################################
-FROM fans_runtime AS fans_publish
-ARG pkg_name="fans-fans_runtime_0.0.0_amd64.deb"
-COPY --from=fans_build /FANS/build/${pkg_name} /FANS/build/${pkg_name}
-RUN apt install /FANS/build/${pkg_name}
+FROM fans_base AS fans
+ARG DEBIAN_FRONTEND
 
-RUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+ARG pkg_name="fans-fans_runtime_0.0.0_amd64.deb"
+COPY --from=fans_built /FANS/build/${pkg_name} /FANS/build/${pkg_name}
+
+RUN apt-get update -qq && apt-get install -y --no-install-recommends \
+    /FANS/build/${pkg_name} \
     sudo \
     gosu \
     && apt-get clean \
@@ -82,9 +85,10 @@ ENTRYPOINT ["/entrypoint.sh"]
 CMD ["FANS"]
 
 ################################################################################
-FROM fans_build_env AS fans_dev_env
+FROM fans_build AS fans_dev
+ARG DEBIAN_FRONTEND
 
-RUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     sudo \
     gosu \
     && apt-get clean \

@@ -16,32 +16,14 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build fans_runtime image
-        run: docker build --target=fans_runtime -t unistuttgartdae/fans-runtime -f docker/Dockerfile .
+      - name: Build fans image
+        run: docker build --target=fans -t unistuttgartdae/fans -f docker/Dockerfile .
 
-      - name: Push fans_runtime image
-        run: docker push unistuttgartdae/fans-runtime
+      - name: Push fans image
+        run: docker push unistuttgartdae/fans
 
-      - name: Build fans_build_env image
-        run: docker build --target=fans_build_env -t unistuttgartdae/fans-build-env -f docker/Dockerfile .
+      - name: Build fans_dev image
+        run: docker build --target=fans_dev -t unistuttgartdae/fans-dev -f docker/Dockerfile .
 
-      - name: Push fans_build_env image
-        run: docker push unistuttgartdae/fans-build-env
-
-      - name: Build fans_build image
-        run: docker build --target=fans_build -t unistuttgartdae/fans-build -f docker/Dockerfile .
-
-      - name: Push fans_build image
-        run: docker push unistuttgartdae/fans-build
-
-      - name: Build fans_publish image
-        run: docker build --target=fans_publish -t unistuttgartdae/fans-publish -f docker/Dockerfile .
-
-      - name: Push fans_publish image
-        run: docker push unistuttgartdae/fans-publish
-
-      - name: Build fans_dev_env image
-        run: docker build --target=fans_dev_env -t unistuttgartdae/fans-dev-env -f docker/Dockerfile .
-
-      - name: Push fans_dev_env image
-        run: docker push unistuttgartdae/fans-dev-env
+      - name: Push fans_dev image
+        run: docker push unistuttgartdae/fans-dev
