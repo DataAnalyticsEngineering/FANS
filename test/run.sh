@@ -1,6 +1,4 @@
-# nohup /usr/bin/time -v mpiexec -n 16 ./FANS input_files/3d0_MFL_0_mech.json &
-# nohup taskset -c 0 /usr/bin/time -v mpiexec -n 1 ./FANS input_files/berea128_h5_mech.json &
-# nohup /usr/bin/time -v mpiexec -n 4 ./FANS input_files/sphere32_hyper_elastic.json > nohup.out 2>&1 &
-# mpiexec -n 1 ./FANS input_files/berea128_h5_thermal.json
-
-
+# nohup /usr/bin/time -v mpiexec --bind-to core -n 32 ./FANS input_files/3d0_MFL_0_mech.json test_results.h5 > nohup.log 2>&1 &
+nohup /usr/bin/time -v mpiexec --bind-to core -n 16 ./FANS input_files/test_ThermalLinear.json test_results.h5 > nohup.log 2>&1 &
+# nohup /usr/bin/time -v mpiexec --bind-to core -n 32 ./FANS input_files/test_MechLinear.json test_results.h5 > nohup.log 2>&1 &
+# nohup /usr/bin/time -v mpiexec --bind-to core -n 8 ./FANS input_files/test_HyperElastic.json test_results.h5 > nohup.log 2>&1 &

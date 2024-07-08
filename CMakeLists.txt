@@ -27,7 +27,7 @@ option(CMAKE_INTERPROCEDURAL_OPTIMIZATION
 )
 
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY test/)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../test/)
 
 # ##############################################################################
 # REQUIRED PACKAGES

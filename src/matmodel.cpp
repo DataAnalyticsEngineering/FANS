@@ -1,4 +1,3 @@
-
 #include "matmodel.h"
 
 #include <Eigen/Dense>

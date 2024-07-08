@@ -91,11 +91,9 @@ void Reader :: ReadInputFile(char fn[]){
         printf("# microstructure: \t '%s'\n", ms_filename);
         printf("# FANS Tolerance: \t %10.5e\n# Max iterations: \t %6i\n", TOL, n_it);
     }
-    
-//    printf("# Macro-scale Gradient - (");
-//    for (const auto& number : g0) {
-//        printf("%10.5f ", number);}
-//    printf(")\n");
+
+    // Read the results_to_write field
+    resultsToWrite = j["results"].get<vector<string>>();
 
     }catch(const std::exception& e){
         fprintf(stderr, "ERROR trying to read input file '%s' for FANS\n", fn );
@@ -103,6 +101,10 @@ void Reader :: ReadInputFile(char fn[]){
     }
 }
 
+//    printf("# Macro-scale Gradient - (");
+//    for (const auto& number : g0) {
+//        printf("%10.5f ", number);}
+//    printf(")\n");
 
 void Reader::safe_create_group( hid_t file, const char * const name )
 {
@@ -203,9 +205,9 @@ void Reader :: ReadMS(int hm){
 
     if (world_rank == 0){
         printf("# grid size set to [%i x %i x %i] --> %i voxels \nMicrostructure length: [%3.6f x %3.6f x %3.6f]\n", dims[0], dims[1], dims[2], dims[0]*dims[1]*dims[2], L[0], L[1], L[2] );
-        if(dims[0] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_x is not a multiple of 2\n");
-        if(dims[1] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_y is not a multiple of 2\n");
-        if(dims[2] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_z is not a multiple of 2\n");
+        // if(dims[0] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_x is not a multiple of 2\n");
+        // if(dims[1] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_y is not a multiple of 2\n");
+        // if(dims[2] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_z is not a multiple of 2\n");
         printf("Voxel length: [%1.8f, %1.8f, %1.8f]\n", l_e[0], l_e[1],l_e[2]);
     }
 
@@ -227,7 +229,7 @@ void Reader :: ReadMS(int hm){
     */
 
     alloc_local = fftw_mpi_local_size_many_transposed(rank, n, hm, block0, block1, MPI_COMM_WORLD, &local_n0, &local_0_start, &local_n1, &local_1_start);
-
+    
 
     //Each process defines a dataset in memory which reads a hyperslab from the file
     count[0] = local_n0;

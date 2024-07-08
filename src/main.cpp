@@ -4,9 +4,9 @@
 #include "solverFP.h"
 #include "solverCG.h"
 
-int main( int argc, char ** argv ) {
-    if( argc != 2 ) {
-        fprintf( stderr, "USAGE: %s [input file basename] \n", argv[0] );
+int main( int argc, char* argv[] ) {
+    if( argc != 3 ) {
+        fprintf( stderr, "USAGE: %s [input file basename] [output file basename]\n", argv[0] );
         return 10;
     }
 
@@ -16,20 +16,10 @@ int main( int argc, char ** argv ) {
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
     // initialize fftw mpi
-    //
 	fftw_mpi_init();
 
     Reader reader;
-
-    // only necessary for sequential reading
-    // for (int i = 0; i < world_size; i++){
-    // 	if(i == world_rank){
-    //     	reader.ReadInputFile(argv[1]);
-    //   	}
-    //   	MPI_Barrier(MPI_COMM_WORLD);
-    // }
     reader.ReadInputFile(argv[1]);
-    MPI_Barrier(MPI_COMM_WORLD);
 
     if(reader.problemType == "thermal"){
 
@@ -71,7 +61,7 @@ int main( int argc, char ** argv ) {
 
             matmodel->setGradient(g0);
             solver->solve();
-	    	solver->postprocess(reader, "results.h5", i_load);
+	    	solver->postprocess(reader, argv[2], i_load);
         }
     } else if(reader.problemType == "mechanical"){
 
@@ -113,7 +103,7 @@ int main( int argc, char ** argv ) {
             }
             matmodel->setGradient(g0);
             solver->solve();
-	    	solver->postprocess(reader, "results.h5", i_load);
+	    	solver->postprocess(reader, argv[2], i_load);
         }
     }
 

@@ -405,32 +405,63 @@ void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], i
         printf(") \n\n");
     }
 
+    
+
     for (int i = 0; i < world_size; i++){
     	if(i == world_rank){
             char name[5096];
-        //     sprintf(name,"%s/ms", reader.ms_datasetname);
-        //     reader.WriteSlab<unsigned char>(ms, 1, resultsFileName, name);
 
-        //     sprintf(name,"%s/u_load%i", reader.ms_datasetname, suffix);
-        //     reader.WriteSlab<double>(v_u, howmany, resultsFileName, name);
+            if (world_rank == 0){
+                if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "stress_average") != reader.resultsToWrite.end()) {
+                        sprintf(name, "%s/load%i/stress_average", reader.ms_datasetname, suffix); // Writes the stress average
+                        hsize_t dims[1] = {static_cast<hsize_t>(n_str)};  // Dimension for 1D array
+                        reader.WriteData<double>(stress_average, resultsFileName, name, dims, 1);
+                }
+                if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "strain_average") != reader.resultsToWrite.end()) {
+                        sprintf(name, "%s/load%i/strain_average", reader.ms_datasetname, suffix); // Writes the strain average
+                        hsize_t dims[1] = {static_cast<hsize_t>(n_str)};  // Dimension for 1D array
+                        reader.WriteData<double>(strain_average, resultsFileName, name, dims, 1);
+                }
+                if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "absolute_error") != reader.resultsToWrite.end()) {
+                        sprintf(name, "%s/load%i/absolute_error", reader.ms_datasetname, suffix); // Writes the absolute error
+                        hsize_t dims[1] = {static_cast<hsize_t>(iter+1)};  // Dimension for 1D array
+                        reader.WriteData<double>(err_all.data(), resultsFileName, name, dims, 1);
+                }
+            }
 
-        // //    sprintf(name,"%s/r_load%i", reader.ms_datasetname, suffix);
-        // //    reader.WriteSlab<double>(v_r, howmany, resultsFileName, name);
+            if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "microstructure") != reader.resultsToWrite.end()) {
+                sprintf(name, "%s/microstructure", reader.ms_datasetname); // Writes the micro-structure
+                reader.WriteSlab<unsigned char>(ms, 1, resultsFileName, name);
+            }
 
-        //     sprintf(name,"%s/strain_load%i", reader.ms_datasetname, suffix);
-        //     reader.WriteSlab<double>(strain, n_str, resultsFileName, name);
+            if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "displacement") != reader.resultsToWrite.end()) {
+                sprintf(name, "%s/load%i/displacement", reader.ms_datasetname, suffix); // Writes the nodal displacement
+                reader.WriteSlab<double>(v_u, howmany, resultsFileName, name);
+            }
 
-        //     sprintf(name,"%s/stress_load%i", reader.ms_datasetname, suffix);
-        //     reader.WriteSlab<double>(stress, n_str, resultsFileName, name);
+            if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "residual") != reader.resultsToWrite.end()) {
+                sprintf(name, "%s/load%i/residual", reader.ms_datasetname, suffix); // Writes the nodal residual
+                reader.WriteSlab<double>(v_r, howmany, resultsFileName, name);
+            }
+
+            if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "strain") != reader.resultsToWrite.end()) {
+                sprintf(name, "%s/load%i/strain", reader.ms_datasetname, suffix); // Writes the strain
+                reader.WriteSlab<double>(strain, n_str, resultsFileName, name);
+            }
+
+            if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "stress") != reader.resultsToWrite.end()) {
+                sprintf(name, "%s/load%i/stress", reader.ms_datasetname, suffix); // Writes the stress
+                reader.WriteSlab<double>(stress, n_str, resultsFileName, name);
+            }
       	}
       	MPI_Barrier(MPI_COMM_WORLD);
     }
     
-    // not very elegant
-    HyperElastic* hyperElastic = dynamic_cast<HyperElastic*>(this->matmodel);
-    if(hyperElastic != NULL){
-        postprocessHyperElastic(hyperElastic, reader, resultsFileName, suffix);
-    }
+    // // not very elegant
+    // HyperElastic* hyperElastic = dynamic_cast<HyperElastic*>(this->matmodel);
+    // if(hyperElastic != NULL){
+    //     postprocessHyperElastic(hyperElastic, reader, resultsFileName, suffix);
+    // }
 }
 
 
