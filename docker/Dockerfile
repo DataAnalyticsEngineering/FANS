@@ -48,26 +48,31 @@ WORKDIR /FANS/build
 
 RUN cmake .. && cmake --build . -j && cpack -G "DEB"
 
+# only keep the runtime package in order to
+RUN find ./packages/ -type f ! -name '*runtime*.deb' -delete
+
 ################################################################################
 FROM fans_base AS fans
 ARG DEBIAN_FRONTEND
 
-ARG pkg_name="fans-fans_runtime_0.0.0_amd64.deb"
-COPY --from=fans_built /FANS/build/${pkg_name} /FANS/build/${pkg_name}
+COPY --from=fans_built /FANS/build/packages/ /FANS/build/packages/
+RUN [ $(ls /FANS/build/packages/*.deb | wc -l) -eq 1 ] || (echo "Error: Expected exactly one .deb file" && exit 1)
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
-    /FANS/build/${pkg_name} \
+    /FANS/build/packages/*runtime*.deb \
     sudo \
     gosu \
     && apt-get clean \
     && apt-get autoremove --purge -y \
     && rm -rf /var/lib/apt/lists/*
 
+RUN rm -rf /FANS
+
 # Create a non-root user
-ENV USER develop
-ENV UID 1000
-ENV GID 100
-ENV HOME /home/${USER}
+ENV USER=develop
+ENV UID=1000
+ENV GID=100
+ENV HOME=/home/${USER}
 RUN adduser --disabled-password \
     --gecos "Non-root user" \
     --uid ${UID} \
@@ -96,10 +101,10 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Create a non-root user
-ENV USER develop
-ENV UID 1000
-ENV GID 100
-ENV HOME /home/${USER}
+ENV USER=develop
+ENV UID=1000
+ENV GID=100
+ENV HOME=/home/${USER}
 RUN adduser --disabled-password \
     --gecos "Non-root user" \
     --uid ${UID} \

@@ -1,4 +1,4 @@
-name: Build and Push Docker Images
+name: Build and Push Multi-Architecture Docker Images
 
 on: workflow_dispatch
 
@@ -10,20 +10,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build fans image
-        run: docker build --target=fans -t unistuttgartdae/fans -f docker/Dockerfile .
+      - name: Build and push fans image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: unistuttgartdae/fans:latest
+          target: fans
 
-      - name: Push fans image
-        run: docker push unistuttgartdae/fans
-
-      - name: Build fans_dev image
-        run: docker build --target=fans_dev -t unistuttgartdae/fans-dev -f docker/Dockerfile .
-
-      - name: Push fans_dev image
-        run: docker push unistuttgartdae/fans-dev
+      - name: Build and push fans_dev image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: unistuttgartdae/fans-dev:latest
+          target: fans_dev

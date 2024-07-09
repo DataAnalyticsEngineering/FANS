@@ -67,7 +67,16 @@ add_library(FANS::FANS ALIAS FANS_FANS)
 target_compile_definitions(FANS_FANS PUBLIC H5_HAVE_PARALLEL)
 
 # TODO: move optimization options into presets
-target_compile_options(FANS_FANS PUBLIC -O3 -mavx2 -mfma)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
+    # ARM-specific flags
+    target_compile_options(FANS_FANS PUBLIC -O3 -march=armv8-a+simd+fp+crypto)
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+    # x86_64-specific flags
+    target_compile_options(FANS_FANS PUBLIC -O3 -mavx2 -mfma)
+else()
+    # Generic optimization flag for other architectures
+    target_compile_options(FANS_FANS PUBLIC -O3)
+endif()
 
 add_executable(FANS_main)
 
