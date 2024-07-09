@@ -23,13 +23,17 @@ set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 # set(CPACK_RESOURCE_FILE_README ${CMAKE_CURRENT_LIST_DIR}/Readme.txt)
 
 set(CPACK_DEB_COMPONENT_INSTALL ON)
+set(CPACK_DEBIAN_ENABLE_COMPONENT_DEPENDS ON)
 
 # this option automatically computes the dependencies of shared libraries (by looking at the libs they are themselves
 # linked to). Requires 'dpkg-shlibdeps' to be available.
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 
+# this package is not autodetected but is required for mpi to function properly
+set(CPACK_DEBIAN_FANS_RUNTIME_PACKAGE_DEPENDS "openmpi-bin")
+
 # add header packages of dependencies as recommended (they are required to build from the FANS headers).
-set(CPACK_DEBIAN_FANS_Development_PACKAGE_RECOMMENDS "libhdf5-dev, libopenmpi-dev, libeigen3-dev, libfftw3-dev, libfftw3-mpi-dev")
+set(CPACK_DEBIAN_FANS_DEVELOPMENT_PACKAGE_DEPENDS "libhdf5-dev, libopenmpi-dev, libeigen3-dev, libfftw3-dev, libfftw3-mpi-dev")
 
 include(CPack)
 
@@ -39,13 +43,14 @@ cpack_add_component(FANS_Runtime
         REQUIRED
         INSTALL_TYPES Full Developer Minimal
 )
+message(STATUS deps: ${CPACK_DEBIAN_FANS_RUNTIME_PACKAGE_DEPENDS})
+message(STATUS dev deps: ${CPACK_DEBIAN_FANS_DEVELOPMENT_PACKAGE_DEPENDS})
 cpack_add_component(FANS_Development
         DISPLAY_NAME "Developer pre-requisites"
         DESCRIPTION "Headers/static libs needed for building"
         DEPENDS FANS_Runtime
-        GROUP FANS_SDK
         INSTALL_TYPES Full Developer
 )
 cpack_add_install_type(Full)
 cpack_add_install_type(Minimal)
-cpack_add_install_type(Developer DISPLAY_NAME "SDK Development")
+cpack_add_install_type(Developer)
