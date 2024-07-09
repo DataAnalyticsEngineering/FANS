@@ -17,7 +17,7 @@ FROM ubuntu:22.04 AS fans_base
 ARG DEBIAN_FRONTEND
 
 ################################################################################
-FROM fans_base AS fans_build
+FROM fans_base AS fans_ci
 ARG DEBIAN_FRONTEND
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
@@ -37,7 +37,7 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 ################################################################################
-FROM fans_build AS fans_built
+FROM fans_ci AS fans_built
 ARG DEBIAN_FRONTEND
 
 # copy whole repository into the image
@@ -48,8 +48,8 @@ WORKDIR /FANS/build
 
 RUN cmake .. && cmake --build . -j && cpack -G "DEB"
 
-# only keep the runtime package in order to
-RUN find ./packages/ -type f ! -name '*runtime*.deb' -delete
+# only keep the runtime package
+RUN find ./packages/ -type f ! -name 'fans_*.deb' -delete
 
 ################################################################################
 FROM fans_base AS fans
@@ -59,7 +59,7 @@ COPY --from=fans_built /FANS/build/packages/ /FANS/build/packages/
 RUN [ $(ls /FANS/build/packages/*.deb | wc -l) -eq 1 ] || (echo "Error: Expected exactly one .deb file" && exit 1)
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
-    /FANS/build/packages/*runtime*.deb \
+    /FANS/build/packages/*.deb \
     sudo \
     gosu \
     && apt-get clean \
@@ -87,10 +87,10 @@ RUN adduser --disabled-password \
 COPY --chmod=755 docker/Dockerfile_user_env_entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
-CMD ["FANS"]
+CMD ["bash"]
 
 ################################################################################
-FROM fans_build AS fans_dev
+FROM fans_ci AS fans_dev
 ARG DEBIAN_FRONTEND
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \

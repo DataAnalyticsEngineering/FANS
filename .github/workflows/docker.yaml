@@ -32,6 +32,16 @@ jobs:
           tags: unistuttgartdae/fans:latest
           target: fans
 
+      - name: Build and push fans_ci image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: unistuttgartdae/fans-ci:latest
+          target: fans_ci
+
       - name: Build and push fans_dev image
         uses: docker/build-push-action@v5
         with:

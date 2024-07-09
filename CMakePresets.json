@@ -12,27 +12,15 @@
       "hidden": true
     },
     {
-      "name": "avx2",
-      "displayName": "AVX2 Optimization",
-      "inherits": [
-        "base"
-      ],
-      "hidden": true,
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-mavx2"
-      }
-    },
-    {
       "name": "ci-linux",
       "displayName": "CI Linux",
       "inherits": [
-        "base",
-        "avx2"
+        "base"
       ],
       "binaryDir": "build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "BUILD_SHARED_LIBS": "ON"
+        "FANS_BUILD_STATIC": "OFF"
       }
     }
   ],
@@ -50,6 +38,14 @@
       "configurePreset": "ci-linux"
     }
   ]
+//  "packagePresets": [
+//    {
+//      "name": "ci-linux",
+//      "displayName": "CI Linux",
+//      "configurePreset": "ci-linux",
+//      "generators": ["DEB"]
+//    }
+//  ]
   // ],
   // "workflowPresets": [
   //   {
