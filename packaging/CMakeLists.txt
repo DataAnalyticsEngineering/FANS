@@ -25,6 +25,9 @@ set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_DEB_COMPONENT_INSTALL ON)
 set(CPACK_DEBIAN_ENABLE_COMPONENT_DEPENDS ON)
 
+set(CPACK_DEBIAN_FANS_RUNTIME_PACKAGE_NAME "fans")
+set(CPACK_DEBIAN_FANS_DEVELOPMENT_PACKAGE_NAME "fans-dev")
+
 # this option automatically computes the dependencies of shared libraries (by looking at the libs they are themselves
 # linked to). Requires 'dpkg-shlibdeps' to be available.
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
@@ -38,16 +41,14 @@ set(CPACK_DEBIAN_FANS_DEVELOPMENT_PACKAGE_DEPENDS "libhdf5-dev, libopenmpi-dev, 
 include(CPack)
 
 cpack_add_component(FANS_Runtime
-        DISPLAY_NAME Runtime
-        DESCRIPTION "Shared libraries and executables"
+        DISPLAY_NAME "FANS Runtime"
+        DESCRIPTION "FANS shared library and executable"
         REQUIRED
         INSTALL_TYPES Full Developer Minimal
 )
-message(STATUS deps: ${CPACK_DEBIAN_FANS_RUNTIME_PACKAGE_DEPENDS})
-message(STATUS dev deps: ${CPACK_DEBIAN_FANS_DEVELOPMENT_PACKAGE_DEPENDS})
 cpack_add_component(FANS_Development
-        DISPLAY_NAME "Developer pre-requisites"
-        DESCRIPTION "Headers/static libs needed for building"
+        DISPLAY_NAME "FANS Development"
+        DESCRIPTION "FANS headers and CMake files"
         DEPENDS FANS_Runtime
         INSTALL_TYPES Full Developer
 )
