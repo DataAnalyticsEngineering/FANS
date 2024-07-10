@@ -66,11 +66,11 @@ endif ()
 add_library(FANS::FANS ALIAS FANS_FANS)
 target_compile_definitions(FANS_FANS PUBLIC H5_HAVE_PARALLEL)
 
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
     target_compile_options(FANS_FANS PUBLIC -march=armv8-a+simd+fp+crypto)
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
     target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
-endif()
+endif ()
 
 add_executable(FANS_main)
 
@@ -194,6 +194,6 @@ install(FILES FANSConfig.cmake
 # PACKAGING
 # ##############################################################################
 
-if(${PROJECT_IS_TOP_LEVEL})
-  add_subdirectory(packaging)
-endif()
+if (${PROJECT_IS_TOP_LEVEL})
+    add_subdirectory(packaging)
+endif ()
