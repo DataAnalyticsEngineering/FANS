@@ -1,8 +1,8 @@
 {
     "comment": "This field is ignored and can be used to describe the format. 'problem_type' can be 'thermal' or 'mechanical'. 'method' can be 'fp' or 'cg'. 'matmodel' can be 'ThermalLinear', 'MechLinear' or 'HyperElastic'.",
 
-    "ms_filename": "/home/keshav/Downloads/FANS/test/microstructures/ulm_dataset.h5",
-    "ms_datasetname": "/structures_train/dset_10000/image",
+    "ms_filename": "microstructures/sphere32.h5",
+    "ms_datasetname": "/sphere/32x32x32/ms",
     "ms_L": [1.0, 1.0, 1.0],
 
     "problem_type": "thermal",
@@ -14,9 +14,7 @@
     "method": "cg",
     "TOL": 1e-6,
     "n_it": 100,
-    "g0": [1.0, 0.0, 0.0,
-           0.0, 1.0, 0.0,
-           0.0, 0.0, 1.0],
+    "g0": [1, 1, 1],
     
-    "results": ["microstructure", "stress_average", "strain_average", "absolute_error", "stress", "strain", "displacement"]
+    "results": []
 }

@@ -457,11 +457,11 @@ void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], i
       	MPI_Barrier(MPI_COMM_WORLD);
     }
     
-    // // not very elegant
-    // HyperElastic* hyperElastic = dynamic_cast<HyperElastic*>(this->matmodel);
-    // if(hyperElastic != NULL){
-    //     postprocessHyperElastic(hyperElastic, reader, resultsFileName, suffix);
-    // }
+    // not very elegant -> redo as inherited mat specific postprocessing function
+    HyperElastic* hyperElastic = dynamic_cast<HyperElastic*>(this->matmodel);
+    if(hyperElastic != NULL){
+        postprocessHyperElastic(hyperElastic, reader, resultsFileName, suffix);
+    }
 }
 
 
@@ -496,16 +496,18 @@ void Solver<howmany>::postprocessHyperElastic(HyperElastic* hyperElastic, Reader
     MPI_Allreduce(MPI_IN_PLACE, &n_plastic, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
     MPI_Allreduce(MPI_IN_PLACE, &n_elastic, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
 
-    printf("Number of Plastic elements is %li out of %li \n",n_plastic,n_plastic+n_elastic);
-    printf("Number of Elastic elements is %li out of %li \n",n_elastic,n_plastic+n_elastic);
-
+    if (world_rank == 0){
+        printf("Number of Plastic elements is %li out of %li \n",n_plastic,n_plastic+n_elastic);
+        printf("Number of Elastic elements is %li out of %li \n",n_elastic,n_plastic+n_elastic);
+    }
 
     for (int i = 0; i < world_size; i++){
     	if(i == world_rank){
         	char name[5096];
-            sprintf(name,"plasticflag%i", suffix);
-            reader.WriteSlab<unsigned char>(plasticflag, 1, resultsFileName, name);
-            cout << "# Writing Plastic Flag into " << resultsFileName << endl;
+            if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "plastic_flag") != reader.resultsToWrite.end()) {
+                sprintf(name, "%s/load%i/plastic_flag", reader.ms_datasetname, suffix); // Writes the nodal displacement
+                reader.WriteSlab<unsigned char>(plasticflag, 1, resultsFileName, name);
+            }
       	}
       	MPI_Barrier(MPI_COMM_WORLD);
     }
