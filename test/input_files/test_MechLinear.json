@@ -15,12 +15,8 @@
     "method": "cg",
     "TOL": 1e-6,
     "n_it": 100,
-    "g0": [ 1,     0,     0,     0,     0,     0,
-            0,     1,     0,     0,     0,     0,
-            0,     0,     1,     0,     0,     0,
-            0,     0,     0,     1,     0,     0,
-            0,     0,     0,     0,     1,     0,
-            0,     0,     0,     0,     0,     1],
+    "g0": [ 1,     0,     0,     0,     0,     0],
 
-    "results": ["stress_average", "strain_average", "absolute_error"]
+    "results": ["microstructure", "stress", "strain", "displacement", 
+                "stress_average", "strain_average", "absolute_error"]
 }

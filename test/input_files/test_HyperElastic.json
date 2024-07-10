@@ -69,5 +69,5 @@
             0.020, -0.020, 0, 0.0, 0, 0
     ],
 
-    "results": ["stress_average", "strain_average", "absolute_error"]
+    "results": ["stress_average", "strain_average", "absolute_error", "plastic_flag", "stress", "strain"]
 }
