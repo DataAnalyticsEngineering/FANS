@@ -32,7 +32,7 @@ jobs:
             bash $FANS_DIR/.github/workflows/ci-linux.sh
 
       - name: Upload packages
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: fans-packages-${{ matrix.arch }}
           path: ${{ github.workspace }}/build/release/packages/*.deb
