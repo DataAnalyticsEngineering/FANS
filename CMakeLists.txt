@@ -33,7 +33,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../test/)
 # REQUIRED PACKAGES
 # ##############################################################################
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
 if ("$ENV{SETVARS_COMPLETED}" STREQUAL "1")
     message(
@@ -152,31 +152,44 @@ set_target_properties(FANS_main PROPERTIES OUTPUT_NAME FANS)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 install(
-        TARGETS FANS_FANS FANS_main
+        TARGETS FANS_FANS
         EXPORT FANS
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT FANS_Runtime
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}
         COMPONENT FANS_Runtime
         NAMELINK_COMPONENT FANS_Development
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT FANS_Development
+        ARCHIVE
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        COMPONENT FANS_Development
         INCLUDES
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS COMPONENT FANS_Development
-        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS COMPONENT FANS_Development
-        PRIVATE_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS COMPONENT FANS_Development
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
+        COMPONENT FANS_Development
+        PUBLIC_HEADER
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
+        COMPONENT FANS_Development
+        PRIVATE_HEADER
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
+        COMPONENT FANS_Development
 )
 
-# install custom cmake find scripts
 install(
-        FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindFFTW3.cmake
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS/customFindScripts
-        COMPONENT FANS_Development
+        TARGETS FANS_main
+        RUNTIME
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
+        COMPONENT FANS_Runtime
 )
 
 install(
         EXPORT FANS
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS
         NAMESPACE FANS::
-        FILE FANS.cmake
+        FILE FANSTargets.cmake
+        COMPONENT FANS_Development
+)
+
+install(
+        FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/FindFFTW3.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS/modules
         COMPONENT FANS_Development
 )
 
@@ -184,7 +197,15 @@ write_basic_package_version_file(
         ${CMAKE_CURRENT_BINARY_DIR}/FANSConfigVersion.cmake
         COMPATIBILITY SameMajorVersion
 )
-install(FILES FANSConfig.cmake
+configure_package_config_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FANSConfig.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/FANSConfig.cmake"
+        INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/FANS"
+        NO_SET_AND_CHECK_MACRO
+        NO_CHECK_REQUIRED_COMPONENTS_MACRO
+)
+install(
+        FILES ${CMAKE_CURRENT_BINARY_DIR}/FANSConfig.cmake
         ${CMAKE_CURRENT_BINARY_DIR}/FANSConfigVersion.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS
         COMPONENT FANS_Development
@@ -195,5 +216,5 @@ install(FILES FANSConfig.cmake
 # ##############################################################################
 
 if (${PROJECT_IS_TOP_LEVEL})
-    add_subdirectory(packaging)
+    add_subdirectory(cmake/packaging)
 endif ()
