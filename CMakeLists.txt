@@ -165,6 +165,13 @@ install(
         PRIVATE_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS COMPONENT FANS_Development
 )
 
+# install custom cmake find scripts
+install(
+        FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindFFTW3.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS/customFindScripts
+        COMPONENT FANS_Development
+)
+
 install(
         EXPORT FANS
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS
