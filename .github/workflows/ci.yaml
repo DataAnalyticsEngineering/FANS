@@ -23,7 +23,7 @@ jobs:
         uses: docker/setup-qemu-action@v3
 
       - name: Pull Docker image
-        run: docker pull --platform linux/${{ matrix.arch }} $FANS_IMG-${{ matrix.ubuntu-version }}
+        run: docker pull --platform linux/${{ matrix.arch }} ${FANS_IMG}-${{ matrix.ubuntu-version }}
 
       - name: Build FANS
         run: |
@@ -33,7 +33,7 @@ jobs:
             -v /etc/timezone:/etc/timezone:ro \
             -v ${{ github.workspace }}:${FANS_DIR} \
             -e FANS_DIR=${FANS_DIR} \
-            $FANS_IMG-${{ matrix.ubuntu-version }} \
+            ${FANS_IMG}-${{ matrix.ubuntu-version }} \
             bash ${FANS_DIR}/.github/workflows/build.sh ${FANS_BUILD_DIR}
 
       - name: Package FANS
@@ -44,7 +44,7 @@ jobs:
             -v /etc/timezone:/etc/timezone:ro \
             -v ${{ github.workspace }}:${FANS_DIR} \
             -e FANS_DIR=${FANS_DIR} \
-            $FANS_IMG-${{ matrix.ubuntu-version }} \
+            ${FANS_IMG}-${{ matrix.ubuntu-version }} \
             bash -c "cd ${FANS_DIR}/${FANS_BUILD_DIR} && cpack -G \"DEB\""
 
       - name: Upload packages
