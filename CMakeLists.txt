@@ -231,6 +231,7 @@ install(
 # PACKAGING
 # ##############################################################################
 
-if (${PROJECT_IS_TOP_LEVEL})
+# if (${PROJECT_IS_TOP_LEVEL}) # only available with CMake 3.21+
+if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
     add_subdirectory(cmake/packaging)
 endif ()
