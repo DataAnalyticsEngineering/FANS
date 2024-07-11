@@ -30,7 +30,7 @@ jobs:
       - name: Build and push fans_ci image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ${{ github.workspace }}
           file: docker/Dockerfile
           platforms: linux/${{ matrix.arch }}
           push: true
@@ -41,7 +41,7 @@ jobs:
       - name: Build and push fans_dev image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ${{ github.workspace }}
           file: docker/Dockerfile
           platforms: linux/${{ matrix.arch }}
           push: true
