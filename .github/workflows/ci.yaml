@@ -11,7 +11,9 @@ jobs:
   fans-ci:
     strategy:
       matrix:
-        arch: [amd64]
+        arch: [amd64, arm64]
+        ubuntu-version: [noble, jammy, focal]
+
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -21,7 +23,7 @@ jobs:
         uses: docker/setup-qemu-action@v3
 
       - name: Pull Docker image
-        run: docker pull --platform linux/${{ matrix.arch }} $FANS_IMG
+        run: docker pull --platform linux/${{ matrix.arch }} $FANS_IMG-${{ matrix.ubuntu-version }}
 
       - name: Build FANS
         run: |
@@ -31,7 +33,7 @@ jobs:
             -v /etc/timezone:/etc/timezone:ro \
             -v ${{ github.workspace }}:${FANS_DIR} \
             -e FANS_DIR=${FANS_DIR} \
-            $FANS_IMG \
+            $FANS_IMG-${{ matrix.ubuntu-version }} \
             bash ${FANS_DIR}/.github/workflows/build.sh ${FANS_BUILD_DIR}
 
       - name: Package FANS
@@ -42,7 +44,7 @@ jobs:
             -v /etc/timezone:/etc/timezone:ro \
             -v ${{ github.workspace }}:${FANS_DIR} \
             -e FANS_DIR=${FANS_DIR} \
-            $FANS_IMG \
+            $FANS_IMG-${{ matrix.ubuntu-version }} \
             bash -c "cd ${FANS_DIR}/${FANS_BUILD_DIR} && cpack -G \"DEB\""
 
       - name: Upload packages
@@ -67,6 +69,9 @@ jobs:
           file: docker/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: unistuttgartdae/fans:latest
+          tags: unistuttgartdae/fans-${{ matrix.ubuntu-version }}:latest
           target: fans
-          build-args: BUILD_DIR=${FANS_BUILD_DIR}
+          build-args: |
+            BUILD_DIR=${FANS_BUILD_DIR}
+            UBUNTU_VERSION=${{ matrix.ubuntu-version }}
+
