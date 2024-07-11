@@ -5,7 +5,7 @@
 ARG DEBIAN_FRONTEND=noninteractive
 
 ################################################################################
-FROM ubuntu:22.04 AS fans_base
+FROM ubuntu:noble AS fans_base
 ARG DEBIAN_FRONTEND
 
 ################################################################################
