@@ -11,9 +11,9 @@ FROM ubuntu:${UBUNTU_VERSION} AS fans_base
 ARG DEBIAN_FRONTEND
 
 # context: https://askubuntu.com/questions/1513927/ubuntu-24-04-docker-images-now-includes-user-ubuntu-with-uid-gid-1000
-# Weird behaviour: when not using bash -c '...', for noble I had to escape the
-# & sign in the if condition, while for focal I had to not escape it for it to
-# work. Why?
+# Weird behaviour: when not using bash -c '...', for focal and jammy I had to 
+# escape the & sign in the if condition, while for noble I had to not escape it
+# for it to work. Why?
 RUN bash -c 'if id "ubuntu" &>/dev/null; then \
       touch /var/mail/ubuntu && \
       chown ubuntu /var/mail/ubuntu && \
