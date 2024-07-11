@@ -5,10 +5,19 @@
 ARG DEBIAN_FRONTEND=noninteractive
 
 ################################################################################
+
 FROM ubuntu:noble AS fans_base
 ARG DEBIAN_FRONTEND
 
+# context: https://askubuntu.com/questions/1513927/ubuntu-24-04-docker-images-now-includes-user-ubuntu-with-uid-gid-1000
+RUN if id "ubuntu" &>/dev/null; then \
+      touch /var/mail/ubuntu && \
+      chown ubuntu /var/mail/ubuntu && \
+      userdel -r ubuntu; \
+    fi
+
 ################################################################################
+
 FROM fans_base AS fans_ci
 ARG DEBIAN_FRONTEND
 
