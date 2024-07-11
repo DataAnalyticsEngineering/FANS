@@ -21,8 +21,10 @@ cd "$FANS_DIR" || exit
 
 start=$(date +%s)
 
-mkdir build && cd build
-cmake -DCMAKE_BUILD_TYPE=Release .
+rm -rf build
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
 configure=$(date +%s)
 
 # run in parallel, but retry single threaded in case of failure such
@@ -33,5 +35,5 @@ build=$(date +%s)
 echo "---------------------------------------------------"
 echo "configure time: $((configure-start))s"
 echo "build time:     $((build-configure))s"
-echo "total time:     $((test-start))s"
+echo "total time:     $((build-start))s"
 echo "---------------------------------------------------"
