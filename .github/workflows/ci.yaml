@@ -51,7 +51,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: fans-packages-${{ matrix.arch }}
-          path: ${{ github.workspace }}/${FANS_BUILD_DIR}/packages/*.deb
+          path: ${{ github.workspace }}/${{ env.FANS_BUILD_DIR }}/packages/*.deb
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
