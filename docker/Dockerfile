@@ -3,10 +3,11 @@
 # during build time, don't ask for user input (has to be included in every stage
 # to take effect
 ARG DEBIAN_FRONTEND=noninteractive
+ARG UBUNTU_VERSION=noble
 
 ################################################################################
 
-FROM ubuntu:noble AS fans_base
+FROM ubuntu:${UBUNTU_VERSION} AS fans_base
 ARG DEBIAN_FRONTEND
 
 # context: https://askubuntu.com/questions/1513927/ubuntu-24-04-docker-images-now-includes-user-ubuntu-with-uid-gid-1000
