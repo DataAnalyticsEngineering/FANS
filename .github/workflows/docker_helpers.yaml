@@ -35,7 +35,7 @@ jobs:
           push: true
           tags: unistuttgartdae/fans-ci-${{ matrix.ubuntu-version }}:latest
           target: fans_ci
-          args: UBUNTU_VERSION=${{ matrix.ubuntu-version }}
+          build-args: UBUNTU_VERSION=${{ matrix.ubuntu-version }}
 
       - name: Build and push fans_dev image
         uses: docker/build-push-action@v5
@@ -46,5 +46,5 @@ jobs:
           push: true
           tags: unistuttgartdae/fans-dev-${{ matrix.ubuntu-version }}:latest
           target: fans_dev
-          args: UBUNTU_VERSION=${{ matrix.ubuntu-version }}
+          build-args: UBUNTU_VERSION=${{ matrix.ubuntu-version }}
 

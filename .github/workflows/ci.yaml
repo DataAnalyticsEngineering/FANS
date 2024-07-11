@@ -8,7 +8,7 @@ env:
   FANS_BUILD_DIR: build
 
 jobs:
-  build:
+  fans-ci:
     strategy:
       matrix:
         arch: [amd64]
@@ -69,4 +69,4 @@ jobs:
           push: true
           tags: unistuttgartdae/fans:latest
           target: fans
-          args: BUILD_DIR=${FANS_BUILD_DIR}
+          build-args: BUILD_DIR=${FANS_BUILD_DIR}
