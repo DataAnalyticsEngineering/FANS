@@ -51,6 +51,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: fans-build-${{ matrix.arch }}
+      
+      - name: Display structure of downloaded files
+        run: ls -R
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
