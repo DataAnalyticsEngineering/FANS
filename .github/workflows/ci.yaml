@@ -72,6 +72,6 @@ jobs:
           tags: unistuttgartdae/fans-${{ matrix.ubuntu-version }}:latest
           target: fans
           build-args: |
-            BUILD_DIR=${FANS_BUILD_DIR}
+            BUILD_DIR=${{ env.FANS_BUILD_DIR }}
             UBUNTU_VERSION=${{ matrix.ubuntu-version }}
 
