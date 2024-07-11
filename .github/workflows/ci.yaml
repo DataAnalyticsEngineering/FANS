@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         arch: [amd64, arm64]
-        ubuntu-version: [noble, jammy]
+        ubuntu-version: [noble, jammy, focal]
 
     runs-on: ubuntu-latest
     steps:
@@ -74,4 +74,3 @@ jobs:
           build-args: |
             BUILD_DIR=${{ env.FANS_BUILD_DIR }}
             UBUNTU_VERSION=${{ matrix.ubuntu-version }}
-
