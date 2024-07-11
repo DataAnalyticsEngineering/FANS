@@ -1,12 +1,4 @@
-# Dockerfile for building FANS
-#
-# How to use:
-# Build image (for example with tag FANS_build_image):
-#   docker build -t FANS_build_image .
-# Run image and map FANS directory into the container:
-#   docker run -it -v $FE_DIR:/FANS --name FANS_build_container FANS_build_image
-# Inside the container you can then invoke cmake and start building the source, 
-# as described in the README.md.
+# Dockerfile for building FANS (see README.md for instructions)
 
 # during build time, don't ask for user input (has to be included in every stage
 # to take effect
