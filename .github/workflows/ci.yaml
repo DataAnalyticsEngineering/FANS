@@ -67,7 +67,7 @@ jobs:
         with:
           context: ${{ github.workspace }}
           file: docker/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/${{ matrix.arch }}
           push: true
           tags: unistuttgartdae/fans-${{ matrix.ubuntu-version }}:latest
           target: fans
