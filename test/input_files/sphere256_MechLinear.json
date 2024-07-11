@@ -5,16 +5,22 @@
     "ms_datasetname": "/sphere/32x32x32/ms",
     "ms_L": [1.0, 1.0, 1.0],
 
-    "problem_type": "thermal",
-    "matmodel": "ThermalLinear",
+    "problem_type": "mechanical",
+    "matmodel": "MechLinear",
     "material_properties":{
-        "conductivity": [1, 10]
+        "young_modulus": [1, 10],
+        "poisson_ratio": [0, 0.3]
     },
 
     "method": "cg",
     "TOL": 1e-6,
     "n_it": 100,
-    "g0": [1, 1, 1],
-    
+    "g0": [ 1,     0,     0,     0,     0,     0,
+            0,     1,     0,     0,     0,     0,
+            0,     0,     1,     0,     0,     0,
+            0,     0,     0,     1,     0,     0,
+            0,     0,     0,     0,     1,     0,
+            0,     0,     0,     0,     0,     1],
+
     "results": []
 }
