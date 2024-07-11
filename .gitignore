@@ -63,7 +63,9 @@ pip-wheel-metadata/
 # Extra
 *.xdmf
 FANS
-test_results.h5
-ulm_dataset.h5
 *.log
 json_creator/
+run.sh
+
+*.h5
+!sphere.h5
