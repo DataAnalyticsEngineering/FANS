@@ -2,6 +2,8 @@
 
 set -e
 
+FANS_BUILD_DIR=${1:-build}
+
 if [ -z "$FANS_DIR" ]; then
     echo "FANS_DIR is not set"
     exit 1
@@ -21,9 +23,9 @@ cd "$FANS_DIR" || exit
 
 start=$(date +%s)
 
-rm -rf build
-mkdir build
-cd build
+rm -rf ${FANS_BUILD_DIR}
+mkdir ${FANS_BUILD_DIR}
+cd ${FANS_BUILD_DIR}
 cmake -DCMAKE_BUILD_TYPE=Release ..
 configure=$(date +%s)
 

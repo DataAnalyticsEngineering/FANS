@@ -3,7 +3,6 @@
 # during build time, don't ask for user input (has to be included in every stage
 # to take effect
 ARG DEBIAN_FRONTEND=noninteractive
-ARG WORKSPACE=/workspace
 
 ################################################################################
 
@@ -74,41 +73,22 @@ CMD ["bash"]
 
 ################################################################################
 # These stages are for the standalone FANS container
-# The docker build context must contain the built FANS binaries including the
-# CMake build files in the directory ./build !
-################################################################################
-
-# we use the prebuilt fans-ci image here to save time. Needs to be pushed to
-# Dockerhub first!
-FROM unistuttgartdae/fans-ci AS fans_built
-ARG DEBIAN_FRONTEND
-ARG WORKSPACE
-
-# copy whole repository into the image
-COPY ./build ${WORKSPACE}
-
-WORKDIR ${WORKSPACE}
-
-RUN cpack -G "DEB"
-
-# only keep the runtime package and move it to the root of WORKSPACE
-RUN find . -type f ! -name 'fans_*.deb' -delete && \
-    find . -type f -name 'fans_*.deb' -exec mv {} . \; && \
-    find . ! -name 'fans_*.deb' -delete
-
 ################################################################################
 
 FROM fans_base AS fans
 ARG DEBIAN_FRONTEND
-ARG WORKSPACE
+ARG WORKSPACE=/workspace
+ARG BUILD_DIR=build
 
-COPY --from=fans_built ${WORKSPACE} ${WORKSPACE}
+COPY ${BUILD_DIR}/packages/fans_*.deb ${WORKSPACE}/
+
 RUN [ $(ls ${WORKSPACE}/*.deb | wc -l) -eq 1 ] || (echo "Error: Expected exactly one .deb file" && exit 1)
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     ${WORKSPACE}/*.deb \
     sudo \
     gosu \
+    time \
     && apt-get clean \
     && apt-get autoremove --purge -y \
     && rm -rf /var/lib/apt/lists/*
