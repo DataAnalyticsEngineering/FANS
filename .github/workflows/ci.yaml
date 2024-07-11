@@ -50,7 +50,7 @@ jobs:
       - name: Upload packages
         uses: actions/upload-artifact@v4
         with:
-          name: fans-packages-${{ matrix.arch }}
+          name: fans-packages-${{ matrix.ubuntu-version }}-${{ matrix.arch }}
           path: ${{ github.workspace }}/${{ env.FANS_BUILD_DIR }}/packages/*.deb
 
       - name: Set up Docker Buildx
