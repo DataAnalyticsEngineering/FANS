@@ -22,7 +22,7 @@ jobs:
       - name: Pull Docker image
         run: docker pull --platform linux/${{ matrix.arch }} $FANS_IMG
 
-      - name: Create and start container
+      - name: Build FANS
         run: |
           docker run --rm --name fans \
             --platform linux/${{ matrix.arch }} \
@@ -33,35 +33,7 @@ jobs:
             $FANS_IMG \
             bash $FANS_DIR/.github/workflows/build.sh
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: fans-build-${{ matrix.arch }}
-          path: |
-            ${{ github.workspace }}/build/
-
-  package:
-    needs: build
-    strategy:
-      matrix:
-        arch: [amd64]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: fans-build-${{ matrix.arch }}
-      
-      - name: Display structure of downloaded files
-        run: ls -R
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Pull Docker image
-        run: docker pull --platform linux/${{ matrix.arch }} $FANS_IMG
-
-      - name: Create and start container
+      - name: Package FANS
         run: |
           docker run --rm --name fans \
             --platform linux/${{ matrix.arch }} \
