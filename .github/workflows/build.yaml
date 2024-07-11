@@ -1,0 +1,41 @@
+name: FANS CI
+on:
+  workflow_dispatch:
+
+env:
+  FANS_DIR: /FANS
+  FANS_IMG: unistuttgartdae/fans-ci
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Pull Docker image
+        run: docker pull --platform linux/${{ matrix.arch }} $FANS_IMG
+
+      - name: Create and start container
+        run: |
+          docker run --rm --name fans \
+            --platform linux/${{ matrix.arch }} \
+            -v /etc/localtime:/etc/localtime:ro \
+            -v /etc/timezone:/etc/timezone:ro \
+            -v ${{ github.workspace }}:$FANS_DIR \
+            -e FANS_DIR=$FANS_DIR \
+            $FANS_IMG \
+            bash $FANS_DIR/.github/workflows/build.sh
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fans-build-${{ matrix.arch }}
+          path: |
+            ${{ github.workspace }}/build/
