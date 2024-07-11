@@ -26,9 +26,6 @@ option(CMAKE_INTERPROCEDURAL_OPTIMIZATION
         "Enable interprocedural optimization for all targets." ON
 )
 
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ../test/)
-
 # ##############################################################################
 # REQUIRED PACKAGES
 # ##############################################################################
@@ -73,6 +70,14 @@ elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
 endif ()
 
 add_executable(FANS_main)
+add_custom_command(
+    TARGET FANS_main
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        $<TARGET_FILE:FANS_main>
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/$<TARGET_FILE_NAME:FANS_main>
+    COMMENT "Create a symlink for FANS executable to ${CMAKE_CURRENT_SOURCE_DIR}/test/"
+)
 
 # ##############################################################################
 # HEADERS
