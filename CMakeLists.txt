@@ -9,6 +9,9 @@ project(FANS
         LANGUAGES C CXX
 )
 
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
 # set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -16,11 +19,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # with -fno-implicit-templates I get linker errors when using std:: stuff
 # TODO: should be developer specific, by using e.g. CMake Presets
 set(CMAKE_CXX_FLAGS "-fmax-errors=1")
-
-# handle rpath weirdness
-if (NOT APPLE)
-    set(CMAKE_INSTALL_RPATH $ORIGIN)
-endif ()
 
 # IPO
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.9")
@@ -37,6 +35,39 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.9")
         message(STATUS "IPO not supported.")
     endif ()
 endif ()
+
+# ##############################################################################
+# RPATH settings
+# ##############################################################################
+
+# Taken from https://gitlab.kitware.com/cmake/community/-/wikis/doc/cmake/RPATH-handling
+
+# use, i.e. don't skip the full RPATH for the build tree
+set(CMAKE_SKIP_BUILD_RPATH FALSE)
+
+# when building, don't use the install RPATH already
+# (but later on when installing)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+
+# add the automatically determined parts of the RPATH
+# which point to directories outside the build tree to the install RPATH
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+# From https://stackoverflow.com/questions/73248130/how-to-avoid-the-removal-of-the-rpath-during-cmake-install-step
+
+if (APPLE)
+    set(RPATH_BASE "@loader_path")
+else ()
+    set(RPATH_BASE "$ORIGIN")
+endif ()
+
+file(RELATIVE_PATH REL_PATH_LIB
+        "/${CMAKE_INSTALL_BINDIR}/"
+        "/${CMAKE_INSTALL_LIBDIR}/")
+
+# Honor user overrides, whether at the command line or FetchContent
+set(CMAKE_INSTALL_RPATH "${RPATH_BASE};${RPATH_BASE}/${REL_PATH_LIB}"
+        CACHE STRING "Install RPATH")
 
 # ##############################################################################
 # REQUIRED PACKAGES
@@ -166,8 +197,6 @@ set_target_properties(FANS_main PROPERTIES OUTPUT_NAME FANS)
 # INSTALLING
 # ##############################################################################
 
-include(GNUInstallDirs)
-include(CMakePackageConfigHelpers)
 install(
         TARGETS FANS_FANS
         EXPORT FANS

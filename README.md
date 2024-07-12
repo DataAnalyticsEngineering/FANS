@@ -23,8 +23,18 @@ Please ensure you have the following dependencies installed on your system:
 - Eigen3
 - FFTW3 with MPI support
 
+Specifically, to run FANS, you at least need the following packages:
+```
+openmpi-bin, libc6, libfftw3-double3, libfftw3-mpi3, libgcc-s1, libgomp1, libhdf5-103, libopenmpi3, libstdc++6
+```
+To build fans, you additionally need these packages:
+```
+libhdf5-dev, libopenmpi-dev, libeigen3-dev, libfftw3-dev, libfftw3-mpi-dev
+```
+
 ### Docker
 We provide a set of docker images for different use cases:
+- fans: Contains the minimum environment for FANS to run and has the package 'fans' installed. Offers a non-root user and handling of UID and GID to not mess up permissions when volume mounting into the container. Meant for users of FANS that can't install the fans package directly.
 - fans-ci: Contains the minimum tools to build FANS (including dev packages of dependencies with the required headers), but does not include FANS itself. Meant for a CI workflow.
 - fans-dev: Based upon fans-ci, but offers a non-root user and handling of UID and GID to not mess up permissions when volume mounting into the container. Meant for developers that can't install the required tools on their machines.
 
@@ -57,15 +67,44 @@ As the `fans-dev` image is meant for developers that can't or don't want to inst
     ```
 2. Configure the project using CMake:
     ```sh
-    cmake .
+    mkdir build
+    cd build
+    cmake ..
     ```
 
-3. Compile the project using `make`:
+3. Compile the project:
     ```sh
-    make all
+    cmake --build . -j
+    ```
+The compilation will symlink the generated FANS binary into the `test/` directory for convenience.
+
+### Installing the Project
+You can install FANS systemwide using the following options:
+
+1. Using CMake (sudo required if --prefix is omitted):
+    ```sh
+    cmake --install . [--prefix <install-dir>]
+    ```
+2. Using .deb packages (only debian based distros; sudo required):
+    ```sh
+    cpack -G "DEB"
+    apt install packages/fans_<version>_<architecture>.deb
+    apt install packages/fans-dev_<version>_<architecture>.deb
     ```
 
-The compilation will generate a binary called `FANS` in the `test/` directory.
+### Build Options
+This project supports the following CMake build options:
+
+- `CMAKE_BUILD_TYPE`: Sets the build type. Common values are Debug, Release, RelWithDebInfo, and MinSizeRel.
+
+- `FANS_BUILD_STATIC`: Build static library instead of shared library.
+  - Default: OFF
+  - Usage: `-DFANS_BUILD_STATIC=ON`
+
+- `CMAKE_INTERPROCEDURAL_OPTIMIZATION`: Enable interprocedural optimization (IPO) for all targets.
+  - Default: ON (if supported)
+  - Usage: `-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF`
+  - Note: When you run the configure step for the first time, IPO support is automatically checked and enabled if available. A status message will indicate whether IPO is activated or not supported.
 
 ## Usage
 
