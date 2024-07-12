@@ -161,14 +161,49 @@ def write_xdmf(h5_filepath, xdmf_filepath=None, cube_length=[1, 1, 1], time_seri
         print_verbose(f'Wrote XDMF file: {xdmf_filepath}.')
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="XDMF representation of HDF5 for 3D spaciotemporal microstructure data.")
-    parser.add_argument('h5_filepath', type=str, help='Input HDF5 file path.')
-    parser.add_argument('-x', '--xdmf_filepath', type=str, default=None, 
-                        help='Output XDMF file path. Optional. If not given, uses the HDF5 file name with .xdmf extension.')
-    parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output.')
-    parser.add_argument('-c', '--cube_length', type=float, nargs=3, default=[1.0, 1.0, 1.0], metavar=('Lx', 'Ly', 'Lz'),
-                        help='Cube length in x, y, z dimensions. Provide three floats. Default is [1.0, 1.0, 1.0].')
-    parser.add_argument('-t', '--time-series', action='store_true', help='Treat datasets as a time series based on load groups.')
+    parser = argparse.ArgumentParser(
+        description=(
+            "Convert HDF5 files with 3D spaciotemporal microstructure data to XDMF representation for visualization.\n\n"
+            "This script reads an input HDF5 file containing 3D microstructural field data and converts it into an XDMF file. "
+            "The resulting XDMF file can be used for visualization in software like ParaView."
+        ),
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument(
+        'h5_filepath', 
+        type=str, 
+        help='Path to the input HDF5 file.'
+    )
+    parser.add_argument(
+        '-x', '--xdmf_filepath', 
+        type=str, 
+        default=None, 
+        help='Path to the output XDMF file. Optional. If not provided, the HDF5 filename with .xdmf extension is used.'
+    )
+    parser.add_argument(
+        '-v', '--verbose', 
+        action='store_true', 
+        help='Enable verbose output.'
+    )
+    parser.add_argument(
+        '-c', '--cube_length', 
+        type=float, 
+        nargs=3, 
+        default=[1.0, 1.0, 1.0], 
+        metavar=('Lx', 'Ly', 'Lz'),
+        help=(
+            "Cube length in x, y, z dimensions.\n"
+            "Provide three floats. Default is [1.0, 1.0, 1.0]."
+        )
+    )
+    parser.add_argument(
+        '-t', '--time-series', 
+        action='store_true', 
+        help=(
+            "Treat datasets as a time series based on load groups.\n"
+            "If this flag is set, the script will search for datasets within groups named 'load{integer}' and creates a temporal collection in the XDMF file."
+        )
+    )
 
     args = parser.parse_args()
     set_verbose(args.verbose)
