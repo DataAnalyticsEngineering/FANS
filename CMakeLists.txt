@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.0)
 
 # ##############################################################################
 # GENERAL SETTINGS
@@ -22,9 +22,21 @@ if (NOT APPLE)
     set(CMAKE_INSTALL_RPATH $ORIGIN)
 endif ()
 
-option(CMAKE_INTERPROCEDURAL_OPTIMIZATION
-        "Enable interprocedural optimization for all targets." ON
-)
+# IPO
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.9")
+    cmake_policy(SET CMP0069 NEW)
+    include(CheckIPOSupported)
+    get_property(languages GLOBAL PROPERTY ENABLED_LANGUAGES)
+    check_ipo_supported(RESULT result LANGUAGES ${languages})
+    if (result AND NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+        option(CMAKE_INTERPROCEDURAL_OPTIMIZATION
+                "Enable interprocedural optimization for all targets." ON
+        )
+        message(STATUS "IPO activated.")
+    elseif (NOT result)
+        message(STATUS "IPO not supported.")
+    endif ()
+endif ()
 
 # ##############################################################################
 # REQUIRED PACKAGES
@@ -71,12 +83,12 @@ endif ()
 
 add_executable(FANS_main)
 add_custom_command(
-    TARGET FANS_main
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
+        TARGET FANS_main
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
         $<TARGET_FILE:FANS_main>
         ${CMAKE_CURRENT_SOURCE_DIR}/test/$<TARGET_FILE_NAME:FANS_main>
-    COMMENT "Create a symlink for FANS executable to ${CMAKE_CURRENT_SOURCE_DIR}/test/"
+        COMMENT "Create a symlink for FANS executable to ${CMAKE_CURRENT_SOURCE_DIR}/test/"
 )
 
 # ##############################################################################
