@@ -25,11 +25,11 @@ Please ensure you have the following dependencies installed on your system:
 
 Specifically, to run FANS, you at least need the following packages:
 ```
-openmpi-bin, libc6, libfftw3-double3, libfftw3-mpi3, libgcc-s1, libgomp1, libhdf5-103, libopenmpi3, libstdc++6
+openmpi-bin libc6 libfftw3-double3 libfftw3-mpi3 libgcc-s1 libgomp1 libhdf5-103 libopenmpi3 libstdc++6
 ```
 To build fans, you additionally need these packages:
 ```
-libhdf5-dev, libopenmpi-dev, libeigen3-dev, libfftw3-dev, libfftw3-mpi-dev
+libhdf5-dev libopenmpi-dev libeigen3-dev libfftw3-dev libfftw3-mpi-dev
 ```
 
 ### Building the Project
