@@ -38,7 +38,7 @@ We provide a set of docker images for different use cases:
 - fans-ci: Contains the minimum tools to build FANS (including dev packages of dependencies with the required headers), but does not include FANS itself. Meant for a CI workflow.
 - fans-dev: Based upon fans-ci, but offers a non-root user and handling of UID and GID to not mess up permissions when volume mounting into the container. Meant for developers that can't install the required tools on their machines.
 
-The images are built for both linux/amd64 and linux/arm64 and are available on our (Dockerhub profile)[https://hub.docker.com/u/unistuttgartdae].
+The images are built for both linux/amd64 and linux/arm64 and are available on our [Dockerhub profile](https://hub.docker.com/u/unistuttgartdae).
 
 To set up a development container with your current working directory mounted into it, type:
 ```bash
