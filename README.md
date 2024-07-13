@@ -32,32 +32,7 @@ To build fans, you additionally need these packages:
 ```
 libhdf5-dev libopenmpi-dev libeigen3-dev libfftw3-dev libfftw3-mpi-dev
 ```
-
-### Docker
-We provide a set of docker images for different use cases:
-- fans: Contains the minimum environment for FANS to run and has the package 'fans' installed. Offers a non-root user and handling of UID and GID to not mess up permissions when volume mounting into the container. Meant for users of FANS that can't install the fans package directly.
-- fans-ci: Contains the minimum tools to build FANS (including dev packages of dependencies with the required headers), but does not include FANS itself. Meant for a CI workflow.
-- fans-dev: Based upon fans-ci, but offers a non-root user and handling of UID and GID to not mess up permissions when volume mounting into the container. Meant for developers that can't install the required tools on their machines.
-
-The images are built for both linux/amd64 and linux/arm64 and are available on our [Dockerhub profile](https://hub.docker.com/u/unistuttgartdae).
-
-To set up a development container with your current working directory mounted into it, type:
-```bash
-docker create --name fans-dev -it \
-  -e HOST_UID=$(id -u) \
-  -e HOST_GID=$(id -g) \
-  -v /etc/localtime:/etc/localtime:ro \
-  -v /etc/timezone:/etc/timezone:ro \
-  -v $PWD/:/workspace/ \
-  unistuttgartdae/fans-dev
-```
-The `-e` options provide the entrypoint script of the container with your host user ID and GID, such that the user ID and GID inside the container can be adapted to match yours. This is done to not mess up file permissions in the mounted volumes. The two volume mounts of `/etc/localtime` and `/etc/timezone` are required to have the host date and time inside the container.
-
-To start the container and attach a shell, run:
-```bash
-docker start -i fans
-```
-As the `fans-dev` image is meant for developers that can't or don't want to install the required dependencies directly on their machine, the following workflow is suggested: You would work on the code as usual on your host; and only to build and run FANS you would attach to the container (see next section).
+For users that can't or don't want to install these packages directly on their host machine, we provide a [set of Docker images](docker/) to create and work with FANS within an isolated environment.
 
 ### Building the Project
 
@@ -113,12 +88,6 @@ To run the FANS solver, you need to provide a JSON input file specifying the pro
 
 ```sh
 nohup /usr/bin/time -v mpiexec -n 1 ./FANS path/to/your/input_file.json &
-```
-In case you are using the docker workflow, you first need to start and attach to the container (`docker start -i fans-dev`). If you need to use the command in scripts, the interactive mode (`-i`) is not suitable. Then you need to use `docker exec`:
-```bash
-docker start fans-dev
-nohup /usr/bin/time -v docker exec -u develop -w /workspace/test fans-dev [original command from above] &
-docker stop fans-dev
 ```
 
 ## Input File Format
