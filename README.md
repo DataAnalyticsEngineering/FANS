@@ -12,6 +12,7 @@ Fourier Accelerated Nodal Solvers (FANS) is an FFT-based homogenization solver d
 - [Example](#example)
 
 ## Installation
+You can either build FANS yourself, or use one of our prebuilt packages (see [Tags section](https://github.tik.uni-stuttgart.de/DAE/FANS/tags)).
 
 ### Prerequisites
 
@@ -25,11 +26,11 @@ Please ensure you have the following dependencies installed on your system:
 
 Specifically, to run FANS, you at least need the following packages:
 ```
-openmpi-bin, libc6, libfftw3-double3, libfftw3-mpi3, libgcc-s1, libgomp1, libhdf5-103, libopenmpi3, libstdc++6
+openmpi-bin libc6 libfftw3-double3 libfftw3-mpi3 libgcc-s1 libgomp1 libhdf5-103 libopenmpi3 libstdc++6
 ```
 To build fans, you additionally need these packages:
 ```
-libhdf5-dev, libopenmpi-dev, libeigen3-dev, libfftw3-dev, libfftw3-mpi-dev
+libhdf5-dev libopenmpi-dev libeigen3-dev libfftw3-dev libfftw3-mpi-dev
 ```
 
 ### Docker
@@ -78,20 +79,6 @@ As the `fans-dev` image is meant for developers that can't or don't want to inst
     ```
 The compilation will symlink the generated FANS binary into the `test/` directory for convenience.
 
-### Installing the Project
-You can install FANS systemwide using the following options:
-
-1. Using CMake (sudo required if --prefix is omitted):
-    ```sh
-    cmake --install . [--prefix <install-dir>]
-    ```
-2. Using .deb packages (only debian based distros; sudo required):
-    ```sh
-    cpack -G "DEB"
-    apt install packages/fans_<version>_<architecture>.deb
-    apt install packages/fans-dev_<version>_<architecture>.deb
-    ```
-
 ### Build Options
 This project supports the following CMake build options:
 
@@ -105,6 +92,20 @@ This project supports the following CMake build options:
   - Default: ON (if supported)
   - Usage: `-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF`
   - Note: When you run the configure step for the first time, IPO support is automatically checked and enabled if available. A status message will indicate whether IPO is activated or not supported.
+
+### Installing the Project
+After compiling, you can install FANS (system-wide) using the following options:
+
+1. Using CMake (sudo required if --prefix is omitted):
+    ```sh
+    cmake --install . [--prefix <install-dir>]
+    ```
+2. Using .deb packages (only debian based distros; sudo required):
+    ```sh
+    cpack -G "DEB"
+    apt install packages/fans_<version>_<architecture>.deb
+    apt install packages/fans-dev_<version>_<architecture>.deb
+    ```
 
 ## Usage
 
