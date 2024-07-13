@@ -5,6 +5,7 @@ on:
 env:
   FANS_DIR: /FANS
   FANS_IMG: unistuttgartdae/fans-ci
+  FANS_CONTAINER: fans-ci
   FANS_BUILD_DIR: build
 
 jobs:
@@ -25,27 +26,30 @@ jobs:
       - name: Pull Docker image
         run: docker pull --platform linux/${{ matrix.arch }} ${FANS_IMG}-${{ matrix.ubuntu-version }}
 
+      - name: Create and start container
+        run: |
+          docker create \
+            --name ${FANS_CONTAINER} \
+            -i -t \
+            -u `id -u`:`id -g` \
+            -v /etc/localtime:/etc/localtime:ro \
+            -v /etc/timezone:/etc/timezone:ro \
+            -v ${{ github.workspace }}:${FANS_DIR} \
+            -e FANS_DIR=${FANS_DIR} \
+            -w ${FANS_DIR} \
+            ${FANS_IMG}-${{ matrix.ubuntu-version }}
+          docker start ${FANS_CONTAINER}
+
       - name: Build FANS
         run: |
-          docker run --rm --name fans \
-            --platform linux/${{ matrix.arch }} \
-            -v /etc/localtime:/etc/localtime:ro \
-            -v /etc/timezone:/etc/timezone:ro \
-            -v ${{ github.workspace }}:${FANS_DIR} \
-            -e FANS_DIR=${FANS_DIR} \
-            ${FANS_IMG}-${{ matrix.ubuntu-version }} \
-            bash ${FANS_DIR}/.github/workflows/build.sh ${FANS_BUILD_DIR}
-
+          docker exec ${FANS_CONTAINER} \
+            bash .github/workflows/build.sh ${FANS_BUILD_DIR}
+            
       - name: Package FANS
         run: |
-          docker run --rm --name fans \
-            --platform linux/${{ matrix.arch }} \
-            -v /etc/localtime:/etc/localtime:ro \
-            -v /etc/timezone:/etc/timezone:ro \
-            -v ${{ github.workspace }}:${FANS_DIR} \
-            -e FANS_DIR=${FANS_DIR} \
-            ${FANS_IMG}-${{ matrix.ubuntu-version }} \
-            bash -c "cd ${FANS_DIR}/${FANS_BUILD_DIR} && cpack -G \"DEB\""
+          docker exec ${FANS_CONTAINER} \
+            -w ${FANS_DIR}/${FANS_BUILD_DIR} \
+            cpack -G \"DEB\""
 
       - name: Upload packages
         uses: actions/upload-artifact@v4
