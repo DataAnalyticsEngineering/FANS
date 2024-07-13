@@ -47,8 +47,9 @@ jobs:
             
       - name: Package FANS
         run: |
-          docker exec ${FANS_CONTAINER} \
+          docker exec \
             -w ${FANS_DIR}/${FANS_BUILD_DIR} \
+            ${FANS_CONTAINER} \
             cpack -G \"DEB\""
 
       - name: Upload packages
