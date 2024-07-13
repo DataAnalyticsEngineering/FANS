@@ -26,7 +26,7 @@ docker start -i fans
 As the `fans-dev` image is meant for developers that can't or don't want to install the required dependencies directly on their machine, the following workflow is suggested: You would work on the code as usual on your host; and only to build and run FANS you would attach to the container (see next section).
 
 ## FANS Usage Within a Container
-Since FANS needs to run inside the container, you first need to start and attach to the container (`docker start -i fans-dev`). Then you are in interactive mode and can continue using FANS as described in the main [README](../README.md).
+Since FANS needs to run inside the container, you first need to start and attach to the container (`docker start -i fans-dev`). Then you are in interactive mode and can continue using FANS as described in the main [README](../README.md#usage).
 
 However, if you need to use FANS within scripts, Docker's interactive mode (`-i`) is not suitable. In such cases you need to use `docker exec`. You basically replace the original `FANS` call by `docker exec -u develop -w /workspace/test fans-dev [original call]`. For example in conjunction with nohup:
 ```bash
