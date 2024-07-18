@@ -357,7 +357,7 @@ double Solver<howmany>::compute_error(RealArray& r){
 
 
 template<int howmany>
-void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], int suffix){
+std::vector<double> Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], int suffix){
     int n_str = matmodel->n_str;
     double* strain = FANS_malloc<double>(local_n0 * n_y * n_z * n_str);
     double* stress = FANS_malloc<double>(local_n0 * n_y * n_z * n_str);
@@ -405,7 +405,12 @@ void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], i
         printf(") \n\n");
     }
 
-    
+    double* temp_array = new double[n_str];
+
+    std::memcpy(temp_array, average_stress, n_str * sizeof(double));
+    std::vector<double> average_stress_vector(n_str);
+    std::copy(temp_array, temp_array + n_str, average_stress_vector.begin());
+    delete[] temp_array;    
 
     for (int i = 0; i < world_size; i++){
     	if(i == world_rank){
@@ -462,6 +467,7 @@ void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], i
     if(hyperElastic != NULL){
         postprocessHyperElastic(hyperElastic, reader, resultsFileName, suffix);
     }
+    return average_stress_vector
 }
 
 

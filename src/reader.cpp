@@ -67,7 +67,7 @@ void Reader :: ReadInputFile(char fn[]){
 
     TOL = j["TOL"].get<double>();
     n_it = j["n_it"].get<int>();
-    g0 = j["g0"].get<vector<double>>();
+    // g0 = j["g0"].get<vector<double>>();
 
     problemType = j["problem_type"].get<string>();
     matmodel = j["matmodel"].get<string>();

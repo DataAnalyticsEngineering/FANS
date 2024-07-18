@@ -5,10 +5,7 @@
 #include "solverCG.h"
 
 int main( int argc, char* argv[] ) {
-    if( argc != 3 ) {
-        fprintf( stderr, "USAGE: %s [input file basename] [output file basename]\n", argv[0] );
-        return 10;
-    }
+    
 
     MPI_Init(NULL, NULL);
     int world_rank, world_size;
@@ -18,8 +15,15 @@ int main( int argc, char* argv[] ) {
     // initialize fftw mpi
 	fftw_mpi_init();
 
+    // std::string filePath = "/home/torben/Documents/git/FANS/test/input_files/sphere_ThermalLinear.json";
+    const char* actual_path = "/home/torben/Documents/git/FANS/test/input_files/sphere_ThermalLinear.json";  // Replace with your actual path
+  int path_length = strlen(actual_path) + 1;  // Add 1 for null terminator
+
+  char* temp_path = new char[path_length];  // Allocate memory for the path
+  strcpy(temp_path, actual_path);   
+    printf("filePath: %s\n", temp_path);
     Reader reader;
-    reader.ReadInputFile(argv[1]);
+    reader.ReadInputFile(temp_path);
 
     if(reader.problemType == "thermal"){
 
