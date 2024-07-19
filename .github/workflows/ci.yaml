@@ -50,7 +50,7 @@ jobs:
           docker exec \
             -w ${FANS_DIR}/${FANS_BUILD_DIR} \
             ${FANS_CONTAINER} \
-            cpack -G \"DEB\"
+            cpack -G "DEB"
 
       - name: Upload packages
         uses: actions/upload-artifact@v4
