@@ -260,7 +260,10 @@ install(
 # PACKAGING
 # ##############################################################################
 
-# if (${PROJECT_IS_TOP_LEVEL}) # only available with CMake 3.21+
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    set(FANS_ENABLE_PACKAGING_DEFAULT ON)
+endif ()
+option(FANS_ENABLE_PACKAGING "Enable creation of Debian packages" ${FANS_ENABLE_PACKAGING_DEFAULT})
+if (FANS_ENABLE_PACKAGING)
     add_subdirectory(cmake/packaging)
 endif ()
