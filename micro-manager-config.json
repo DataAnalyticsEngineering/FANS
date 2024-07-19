@@ -1,5 +1,5 @@
 {
-  "micro_file_name": "micro",
+  "micro_file_name": "build/FANS_pybind",
   "coupling_params": {
       "parameter_file_name": "thermal_linear.hdf5",
       "read_data_names": {"g0": "vector"},

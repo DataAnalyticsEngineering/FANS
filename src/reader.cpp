@@ -50,7 +50,7 @@ void Reader::ComputeVolumeFractions(){
 }
 
 
-void Reader :: ReadInputFile(char fn[]){
+void Reader::ReadInputFile(char fn[]){
     try{
     
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);

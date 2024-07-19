@@ -24,7 +24,7 @@ public:
     MicroSimulation(int sim_id);
     // solve takes a python dict data, and the timestep dt as inputs, and returns a python dict
     py::dict solve(py::dict macro_write_data, double dt);
-    py::dict initialize();
+    void initialize();
 
     void set_state(py::list state);
     py::list get_state() const;
@@ -34,6 +34,9 @@ private:
     std::vector<double> g0;
     double _state;
     char* out_temp_path;
+    Reader reader;
     Matmodel<1>* matmodel;
     Solver<1>* solver;
+    Matmodel<3>* matmodel2;
+    Solver<3>* solver2;
 };

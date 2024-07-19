@@ -52,7 +52,7 @@ public:
     void compute_residual(RealArray& r_matrix, RealArray& u_matrix);
 
 
-    void postprocess(Reader reader, char const resultsFileName[], int suffix);      //!< Computes Strain and stress
+    std::vector<double> postprocess(Reader reader, char const resultsFileName[], int suffix);      //!< Computes Strain and stress
     void postprocessHyperElastic(HyperElastic* hyperElastic, Reader reader, char const resultsFileName[], int suffix);
 
     void convolution();
@@ -407,7 +407,7 @@ std::vector<double> Solver<howmany>::postprocess(Reader reader, char const resul
 
     double* temp_array = new double[n_str];
 
-    std::memcpy(temp_array, average_stress, n_str * sizeof(double));
+    std::memcpy(temp_array, stress_average, n_str * sizeof(double));
     std::vector<double> average_stress_vector(n_str);
     std::copy(temp_array, temp_array + n_str, average_stress_vector.begin());
     delete[] temp_array;    
@@ -467,7 +467,7 @@ std::vector<double> Solver<howmany>::postprocess(Reader reader, char const resul
     if(hyperElastic != NULL){
         postprocessHyperElastic(hyperElastic, reader, resultsFileName, suffix);
     }
-    return average_stress_vector
+    return average_stress_vector;
 }
 
 

@@ -43,13 +43,13 @@ void MicroSimulation::initialize()
   strcpy(out_temp_path, output_path);   
 
 
-    Reader reader;
     reader.ReadInputFile(input_temp_path);
 
     if(reader.problemType == "thermal"){
 
         for (int i = 0; i < world_size; i++){
     	    if(i == world_rank){
+                printf("Made it here");
             	reader.ReadMS(1);
       	    }
       	    MPI_Barrier(MPI_COMM_WORLD);
@@ -83,37 +83,34 @@ void MicroSimulation::initialize()
 
 
         if(reader.matmodel == "MechLinear"){
-            matmodel = new MechLinear(reader.l_e, reader.materialProperties);
+            matmodel2 = new MechLinear(reader.l_e, reader.materialProperties);
         }else if(reader.matmodel == "HyperElastic"){
-            matmodel = new HyperElastic(reader.l_e, reader.materialProperties);
+            matmodel2 = new HyperElastic(reader.l_e, reader.materialProperties);
         }else{
             throw invalid_argument(reader.matmodel + " is not a valid matmodel");
         }
 
         if(reader.method == "fp"){
-            solver = new SolverFP<3>(reader, matmodel);
+            solver2 = new SolverFP<3>(reader, matmodel2);
         }else if(reader.method == "cg"){
-            solver = new SolverCG<3>(reader, matmodel);
+            solver2 = new SolverCG<3>(reader, matmodel2);
         }else{
             throw invalid_argument(reader.method + " is not a valid method");
         }
     }
-
-    // add micro_scalar_data and micro_vector_data to micro_write_data
-    micro_write_data["effective_stress"] = 0;
 }
 
 // Solve
 py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 {
-
+    std::vector<double> average_stress;
     // Create a pybind style Numpy array from macro_write_data["micro_vector_data"], which is a Numpy array
     py::array_t<double> macro_vector_data = macro_data["g0"].cast<py::array_t<double>>();
-    _g0 = std::vector<double>(macro_vector_data.data(), macro_vector_data.data() + macro_vector_data.size()); // convert numpy array to std::vector.
+    std::vector<double> _g0 = std::vector<double>(macro_vector_data.data(), macro_vector_data.data() + macro_vector_data.size()); // convert numpy array to std::vector.
 
     vector<double> g0_all = _g0;
     uint n_loads = g0_all.size() / matmodel->n_str;
-    if (g0_all.size() % matmodel->n_str != 0) throw invalid_argument("Invalid length of loading g0");a
+    if (g0_all.size() % matmodel->n_str != 0) throw invalid_argument("Invalid length of loading g0");
 
     vector<double> g0(matmodel->n_str);
     for(int i_load = 0; i_load < n_loads; i_load++){
@@ -123,7 +120,7 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 
         matmodel->setGradient(g0);
         solver->solve();
-        std::vector<double> average_stress = solver->postprocess(reader, out_temp_path, i_load);
+        average_stress = solver->postprocess(reader, out_temp_path, i_load);
         
     }
 
@@ -139,19 +136,15 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 // This function needs to set the complete state of a micro simulation
 void MicroSimulation::set_state(py::list state)
 {
-    _micro_scalar_data = state[0].cast<double>();
-    _state = state[1].cast<double>();
 }
 
 // This function needs to return variables which can fully define the state of a micro simulation
 py::list MicroSimulation::get_state() const
 {
-    std::vector<double> state{_micro_scalar_data, _state};
-    py::list state_python = py::cast(state);
-    return state_python;
+
 }
 
-PYBIND11_MODULE(micro_dummy, m) {
+PYBIND11_MODULE(FANS_pybind, m) {
     // optional docstring
     m.doc() = "pybind11 micro dummy plugin";
 
