@@ -11,6 +11,7 @@ project(FANS
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
+include(FetchContent)
 
 # set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -93,6 +94,12 @@ find_package(MPI REQUIRED)
 
 find_package(FFTW3 REQUIRED COMPONENTS SINGLE DOUBLE LONGDOUBLE MPI)
 
+FetchContent_Declare(
+  pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11.git
+  GIT_TAG v2.12.0
+)
+FetchContent_MakeAvailable(pybind11)
+
 # ##############################################################################
 # TARGETS
 # ##############################################################################
@@ -121,6 +128,14 @@ add_custom_command(
         ${CMAKE_CURRENT_SOURCE_DIR}/test/$<TARGET_FILE_NAME:FANS_main>
         COMMENT "Create a symlink for FANS executable to ${CMAKE_CURRENT_SOURCE_DIR}/test/"
 )
+
+if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    set(FANS_ENABLE_MICROMANAGER_DEFAULT ON)
+endif ()
+option(FANS_ENABLE_MICROMANAGER "Enable python bindings for micro manager." ${FANS_ENABLE_MICROMANAGER_DEFAULT})
+if (FANS_ENABLE_MICROMANAGER)
+    add_subdirectory(python)
+endif ()
 
 # ##############################################################################
 # HEADERS
