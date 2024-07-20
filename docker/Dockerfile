@@ -1,22 +1,28 @@
-# Dockerfile for building FANS
-#
-# How to use:
-# Build image (for example with tag FANS_build_image):
-#   docker build -t FANS_build_image .
-# Run image and map FANS directory into the container:
-#   docker run -it -v $FE_DIR:/FANS --name FANS_build_container FANS_build_image
-# Inside the container you can then invoke cmake and start building the source, 
-# as described in the README.md.
+# Dockerfile for building FANS (see README.md for instructions)
 
 # during build time, don't ask for user input (has to be included in every stage
 # to take effect
 ARG DEBIAN_FRONTEND=noninteractive
+ARG UBUNTU_VERSION=noble
 
 ################################################################################
-FROM ubuntu:22.04 AS fans_base
+
+FROM ubuntu:${UBUNTU_VERSION} AS fans_base
 ARG DEBIAN_FRONTEND
 
+# context: https://askubuntu.com/questions/1513927/ubuntu-24-04-docker-images-now-includes-user-ubuntu-with-uid-gid-1000
+# Weird behaviour: when not using bash -c '...', for focal and jammy I had to 
+# escape the & sign in the if condition, while for noble I had to not escape it
+# for it to work. Why?
+RUN bash -c 'if id "ubuntu" &>/dev/null; then \
+      touch /var/mail/ubuntu && \
+      chown ubuntu /var/mail/ubuntu && \
+      userdel -r ubuntu && \
+      echo "Deleted user ubuntu."; \
+    fi'
+
 ################################################################################
+
 FROM fans_base AS fans_ci
 ARG DEBIAN_FRONTEND
 
@@ -37,36 +43,16 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 ################################################################################
-FROM fans_ci AS fans_built
+FROM fans_ci AS fans_dev
 ARG DEBIAN_FRONTEND
-
-# copy whole repository into the image
-COPY . /FANS
-RUN rm -rf /FANS/build
-
-WORKDIR /FANS/build
-
-RUN cmake .. && cmake --build . -j && cpack -G "DEB"
-
-# only keep the runtime package
-RUN find ./packages/ -type f ! -name 'fans_*.deb' -delete
-
-################################################################################
-FROM fans_base AS fans
-ARG DEBIAN_FRONTEND
-
-COPY --from=fans_built /FANS/build/packages/ /FANS/build/packages/
-RUN [ $(ls /FANS/build/packages/*.deb | wc -l) -eq 1 ] || (echo "Error: Expected exactly one .deb file" && exit 1)
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
-    /FANS/build/packages/*.deb \
     sudo \
     gosu \
+    time \
     && apt-get clean \
     && apt-get autoremove --purge -y \
     && rm -rf /var/lib/apt/lists/*
-
-RUN rm -rf /FANS
 
 # Create a non-root user
 ENV USER=develop
@@ -90,15 +76,28 @@ ENTRYPOINT ["/entrypoint.sh"]
 CMD ["bash"]
 
 ################################################################################
-FROM fans_ci AS fans_dev
+# These stages are for the standalone FANS container
+################################################################################
+
+FROM fans_base AS fans
 ARG DEBIAN_FRONTEND
+ARG WORKSPACE=/workspace
+ARG BUILD_DIR=build
+
+COPY ${BUILD_DIR}/packages/fans_*.deb ${WORKSPACE}/
+
+RUN [ $(ls ${WORKSPACE}/*.deb | wc -l) -eq 1 ] || (echo "Error: Expected exactly one .deb file" && exit 1)
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
+    ${WORKSPACE}/*.deb \
     sudo \
     gosu \
+    time \
     && apt-get clean \
     && apt-get autoremove --purge -y \
     && rm -rf /var/lib/apt/lists/*
+
+RUN rm -rf ${WORKSPACE}
 
 # Create a non-root user
 ENV USER=develop
