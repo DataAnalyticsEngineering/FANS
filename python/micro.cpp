@@ -106,7 +106,6 @@ void MicroSimulation::initialize()
         {
             if (i == world_rank)
             {
-                printf("Made it here");
                 reader.ReadMS(1);
             }
             MPI_Barrier(MPI_COMM_WORLD);
