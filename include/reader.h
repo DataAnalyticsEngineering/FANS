@@ -39,8 +39,10 @@ class Reader{
         ptrdiff_t local_n1;
         ptrdiff_t local_1_start;
 
+        string output_path;
 
         // void Setup(ptrdiff_t howmany);
+        string ReadFileLocations(char fn[]);
         void ReadInputFile(char fn[]);
         void ReadMS(int hm);
         void ComputeVolumeFractions();

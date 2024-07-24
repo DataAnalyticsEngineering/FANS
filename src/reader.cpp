@@ -49,8 +49,20 @@ void Reader::ComputeVolumeFractions(){
     // }
 }
 
+string Reader::ReadFileLocations(char fn[]){
+    try{
+        ifstream i(fn);
+        json j;
+        i >> j;
+        output_path = j["output_path"].get<string>();
+        return j["input_file"].get<string>();
+    }catch(const std::exception& e){
+        fprintf(stderr, "ERROR trying to read input file '%s' for FANS\n", fn );
+        exit(10);
+    }
+}
 
-void Reader::ReadInputFile(char fn[]){
+void Reader :: ReadInputFile(char fn[]){
     try{
     
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
@@ -67,7 +79,9 @@ void Reader::ReadInputFile(char fn[]){
 
     TOL = j["TOL"].get<double>();
     n_it = j["n_it"].get<int>();
-    // g0 = j["g0"].get<vector<double>>();
+    if (j.contains("g0")){
+        g0 = j["g0"].get<vector<double>>();
+    }
 
     problemType = j["problem_type"].get<string>();
     matmodel = j["matmodel"].get<string>();

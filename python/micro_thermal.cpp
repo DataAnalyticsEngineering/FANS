@@ -10,7 +10,7 @@
 // python3 -c "import micro; micro.MicroSimulation(1)"
 // from the same directory
 
-#include "micro.hpp"
+#include "micro_thermal.hpp"
 
 // Constructor
 MicroSimulation::MicroSimulation(int sim_id) : _sim_id(sim_id), _state(0) {}
@@ -42,47 +42,32 @@ void MicroSimulation::initialize()
     // from main.cpp
     if (reader.problemType == "thermal")
     {
-        throw invalid_argument("Use the thermal simulation instead");
-    }
-    else if (reader.problemType == "mechanical")
-    {
-
-        for (int i = 0; i < world_size; i++)
-        {
-            if (i == world_rank)
-            {
-                reader.ReadMS(3);
-            }
-            MPI_Barrier(MPI_COMM_WORLD);
+        for (int i = 0; i < world_size; i++){
+    	    if(i == world_rank){
+            	reader.ReadMS(1);
+      	    }
+      	    MPI_Barrier(MPI_COMM_WORLD);
         }
         reader.ComputeVolumeFractions();
 
-
-        if (reader.matmodel == "MechLinear")
-        {
-            matmodel = new MechLinear(reader.l_e, reader.materialProperties);
-        }
-        else if (reader.matmodel == "HyperElastic")
-        {
-            matmodel = new HyperElastic(reader.l_e, reader.materialProperties);
-        }
-        else
-        {
+        if(reader.matmodel == "ThermalLinear"){
+            matmodel = new ThermalLinear(reader.l_e, reader.materialProperties);
+        }else{
             throw invalid_argument(reader.matmodel + " is not a valid matmodel");
         }
 
-        if (reader.method == "fp")
-        {
-            solver = new SolverFP<3>(reader, matmodel);
-        }
-        else if (reader.method == "cg")
-        {
-            solver = new SolverCG<3>(reader, matmodel);
-        }
-        else
-        {
+        if(reader.method == "fp"){
+            solver = new SolverFP<1>(reader, matmodel);
+        }else if(reader.method == "cg"){
+            solver = new SolverCG<1>(reader, matmodel);
+        }else{
             throw invalid_argument(reader.method + " is not a valid method");
         }
+    }
+    else if (reader.problemType == "mechanical")
+    {
+        throw invalid_argument("Use the thermal simulation instead");
+        
     }
 }
 
@@ -91,11 +76,12 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 {
     std::vector<double> average_stress;
     std::vector<double> average_strain;
+    // Get the output path from the reader as char
     const char* output_path = reader.output_path.c_str();
     int out_path_length = strlen(output_path) + 1;  // Add 1 for null terminator
-
     out_temp_path = new char[out_path_length];  // Allocate memory for the path
-    strcpy(out_temp_path, output_path); 
+    strcpy(out_temp_path, output_path);
+
     // Create a pybind style Numpy array from macro_write_data["micro_vector_data"], which is a Numpy array
     py::array_t<double> macro_vector_data = macro_data["g0"].cast<py::array_t<double>>();
     std::vector<double> _g0 = std::vector<double>(macro_vector_data.data(), macro_vector_data.data() + macro_vector_data.size()); // convert numpy array to std::vector.
@@ -127,7 +113,7 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 }
 
 
-PYBIND11_MODULE(PyFANS, m)
+PYBIND11_MODULE(PyFANSTHERMAL, m)
 {
     // optional docstring
     m.doc() = "pybind11 micro dummy plugin";

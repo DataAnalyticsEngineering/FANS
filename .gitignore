@@ -60,9 +60,6 @@ Thumbs.db
 # Ignore package manager directories
 pip-wheel-metadata/
 
-# Ignore micro manager files
-output/
-
 # Extra
 *.xdmf
 FANS

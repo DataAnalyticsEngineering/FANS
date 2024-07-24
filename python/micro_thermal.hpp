@@ -34,6 +34,6 @@ private:
     char* in_place_temp_path;
     char* out_temp_path;
     Reader reader;
-    Matmodel<3>* matmodel;
-    Solver<3>* solver;
+    Matmodel<1>* matmodel;
+    Solver<1>* solver;
 };
