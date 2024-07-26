@@ -37,6 +37,8 @@ public:
     ArrayXd err_all;        //!< Absolute error history
     Matrix<double, howmany, Dynamic> fundamentalSolution;
 
+    double* stress;
+    double* strain;
 
     template<int padding, typename F>
     void iterateCubes(F f);
@@ -359,8 +361,8 @@ double Solver<howmany>::compute_error(RealArray& r){
 template<int howmany>
 std::pair<std::vector<double>, std::vector<double>> Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], int suffix){
     int n_str = matmodel->n_str;
-    double* strain = FANS_malloc<double>(local_n0 * n_y * n_z * n_str);
-    double* stress = FANS_malloc<double>(local_n0 * n_y * n_z * n_str);
+    strain = FANS_malloc<double>(local_n0 * n_y * n_z * n_str);
+    stress = FANS_malloc<double>(local_n0 * n_y * n_z * n_str);
     double* stress_average = FANS_malloc<double>(n_str);
     double* strain_average = FANS_malloc<double>(n_str);
     for(int i = 0; i < n_str; i++){

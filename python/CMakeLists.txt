@@ -21,3 +21,9 @@ add_custom_command(
         ${CMAKE_CURRENT_SOURCE_DIR}/../test/$<TARGET_FILE_NAME:PyFANSTHERMAL>
         COMMENT "Create a symlink for FANS python bindings to ${CMAKE_CURRENT_SOURCE_DIR}/../test/"
 )
+
+option(USE_MPI "Use MPI" OFF)
+
+if (USE_MPI)
+        add_definitions(-DUSE_MPI)
+endif()

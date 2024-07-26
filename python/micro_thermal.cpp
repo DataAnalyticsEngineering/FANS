@@ -13,11 +13,11 @@
 #include "micro_thermal.hpp"
 
 // Constructor
-MicroSimulation::MicroSimulation(int sim_id) : _sim_id(sim_id), _state(0) {}
+MicroSimulation::MicroSimulation(int sim_id){
 
-// Initialize
-void MicroSimulation::initialize()
-{
+    #ifdef USE_MPI
+    MPI_Init(NULL, NULL);
+    #endif
     int world_rank, world_size;
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
@@ -103,12 +103,51 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
             solver->solve();
             std::tie(average_stress, average_strain) = solver->postprocess(reader, out_temp_path, i_load);
         }
+ // Retrieve all values from postprocess and store them in a py::dict
+    double *displacement = solver->v_u;
+    std::vector<ssize_t> size_displacement(4);
+    size_displacement[0] = reader.dims[0];
+    size_displacement[1] = reader.dims[1];
+    size_displacement[2] = reader.dims[2];
+    size_displacement[3] = 3;
+
+    // Convert the displacement and residual to a py::array_t<double>
+    py::buffer_info disp_info{
+        displacement, // Pointer to data (nullptr if the array is empty)
+        sizeof(double), // Size of one scalar
+        py::format_descriptor<double>::format(), // Python struct-style format descriptor
+        4, // Number of dimensions
+        size_displacement, // Buffer dimensions
+        {sizeof(double) * size_displacement[1] * size_displacement[2] * size_displacement[3], sizeof(double) * size_displacement[2] * size_displacement[3], sizeof(double) * size_displacement[3], sizeof(double)} // Strides (in bytes) for each index
+    };
+    py::array_t<double> displacement_array(disp_info);
+
+    double* stress = solver->stress;
+    std::vector<ssize_t> size_stress(4);
+    size_stress[0] = reader.dims[0];
+    size_stress[1] = reader.dims[1];
+    size_stress[2] = reader.dims[2];
+    size_stress[3] = matmodel->n_str;
+
+    py::buffer_info info_stress{
+        stress, // Pointer to data (nullptr if the array is empty)
+        sizeof(double), // Size of one scalar
+        py::format_descriptor<double>::format(), // Python struct-style format descriptor
+        4, // Number of dimensions
+        size_stress, // Buffer dimensions
+        {sizeof(double) * size_stress[1] * size_stress[2] * size_stress[3], sizeof(double) * size_stress[2] * size_stress[3], sizeof(double) * size_stress[3], sizeof(double)} // Strides (in bytes) for each index
+    };
+    py::array_t<double> stress_array(info_stress);
 
     // Convert data to a py::dict again to send it back to the Micro Manager
     py::dict micro_write_data;
 
     // add micro_scalar_data and micro_vector_data to micro_write_data
+
+    micro_write_data["stress"] = stress_array;
     micro_write_data["effective_stress"] = average_stress;
+    micro_write_data["displacement"] = displacement_array;
+
     return micro_write_data;
 }
 
@@ -120,6 +159,5 @@ PYBIND11_MODULE(PyFANSTHERMAL, m)
 
     py::class_<MicroSimulation>(m, "MicroSimulation")
         .def(py::init<int>())
-        .def("initialize", &MicroSimulation::initialize)
         .def("solve", &MicroSimulation::solve);
 }
