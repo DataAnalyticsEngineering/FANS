@@ -1,10 +1,6 @@
 // Micro simulation
-// In this file we solve a micro problem with FANS which is controlled by the Micro Manager
-// This dummy is written in C++ and is controllable via Python using pybind11
-//
-// Compile your pybind-11 wrapped code with:
-//
-// c++ -O3 -Wall -shared -std=c++11 -fPIC $(python3 -m pybind11 --includes) micro.cpp -o micro$(python3-config --extension-suffix)
+// In this file we solve a micro problem with FANS which is controlled by the Micro Manager.
+// This file is compiled with pybind11 to be available as a python module
 //
 // To check if python is able to import it, run:
 // python3 -c "import micro; micro.MicroSimulation(1)"
