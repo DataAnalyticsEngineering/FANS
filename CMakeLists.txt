@@ -18,6 +18,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # with -fno-implicit-templates I get linker errors when using std:: stuff
 # TODO: should be developer specific, by using e.g. CMake Presets
 set(CMAKE_CXX_FLAGS "-fmax-errors=1 -O3")
+set(CMAKE_PREFIX_PATH $ENV{CMAKE_PREFIX_PATH})
 
 # IPO
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.9")
@@ -103,7 +104,6 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
     target_compile_options(FANS_FANS PUBLIC -march=armv8-a+simd+fp+crypto)
 elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
     target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
-    message(STATUS "Compiling for x86_64 with AVX2 and FMA.")
 endif ()
 
 add_executable(FANS_main)
