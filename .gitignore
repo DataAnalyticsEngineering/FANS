@@ -11,7 +11,7 @@ CMakeCache.txt
 cmake_install.cmake
 Makefile
 CMakeLists.txt.user*
-*.cmake
+.cmake/
 
 # Ignore compiled binaries and executables
 *.exe
