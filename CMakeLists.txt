@@ -85,7 +85,7 @@ find_package(OpenMP REQUIRED)
 
 find_package(MPI REQUIRED)
 
-find_package(FFTW3 REQUIRED COMPONENTS SINGLE DOUBLE LONGDOUBLE MPI)
+find_package(FFTW3 REQUIRED COMPONENTS DOUBLE MPI)
 
 # ##############################################################################
 # TARGETS
@@ -98,7 +98,6 @@ else ()
     add_library(FANS_FANS SHARED)
 endif ()
 add_library(FANS::FANS ALIAS FANS_FANS)
-target_compile_definitions(FANS_FANS PUBLIC H5_HAVE_PARALLEL)
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
     target_compile_options(FANS_FANS PUBLIC -march=armv8-a+simd+fp+crypto)
@@ -132,17 +131,7 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/solverCG.h
         include/solverFP.h
         include/solver.h
-
 )
-
-# TODO: when switching to a newer CMake version this will all be done by one
-# call to target_link_libraries(FANS_FANS PUBLIC HDF5::HDF5). But CMake 3.16
-## does not yet support this.
-target_include_directories(FANS_FANS PUBLIC
-        ${HDF5_INCLUDE_DIRS}
-)
-
-target_include_directories(FANS_FANS PUBLIC ${FFTW3_INCLUDE_DIRS})
 
 # ##############################################################################
 # SOURCES
@@ -166,15 +155,22 @@ target_link_libraries(FANS_FANS PRIVATE m)
 # TODO: when switching to a newer CMake version this can all be done by one
 # call to target_link_libraries(FANS_FANS PUBLIC HDF5::HDF5). But CMake 3.16
 # does not yet support this.
+target_include_directories(FANS_FANS PUBLIC ${HDF5_INCLUDE_DIRS})
 target_link_libraries(FANS_FANS PUBLIC ${HDF5_CXX_LIBRARIES})
+target_compile_definitions(FANS_FANS PUBLIC ${HDF5_DEFINITIONS})
+if (HDF5_IS_PARALLEL)
+    target_compile_definitions(FANS_FANS PUBLIC H5_HAVE_PARALLEL)
+endif ()
 
 target_link_libraries(FANS_FANS PUBLIC MPI::MPI_CXX)
 
+target_include_directories(FANS_FANS PUBLIC ${FFTW3_INCLUDE_DIRS})
 target_link_libraries(FANS_FANS PUBLIC ${FFTW3_LIBRARIES})
+target_compile_definitions(FANS_FANS PUBLIC ${FFTW3_DEFINITIONS})
 
 target_link_libraries(FANS_FANS PUBLIC Eigen3::Eigen)
 
-target_link_libraries(FANS_FANS PRIVATE OpenMP::OpenMP_CXX)
+target_link_libraries(FANS_FANS PUBLIC OpenMP::OpenMP_CXX)
 
 
 target_link_libraries(FANS_main PRIVATE FANS::FANS)
