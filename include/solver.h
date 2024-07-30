@@ -430,7 +430,7 @@ void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], i
             }
 
             if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "microstructure") != reader.resultsToWrite.end()) {
-                sprintf(name, "%s/microstructure", reader.ms_datasetname); // Writes the micro-structure
+                sprintf(name, "%s/load%i/microstructure", reader.ms_datasetname, suffix); // Writes the micro-structure
                 reader.WriteSlab<unsigned char>(ms, 1, resultsFileName, name);
             }
 
