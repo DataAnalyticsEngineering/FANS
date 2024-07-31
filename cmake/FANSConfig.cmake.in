@@ -15,7 +15,7 @@ find_dependency(HDF5 COMPONENTS CXX)
 find_dependency(Eigen3)
 find_dependency(OpenMP)
 find_dependency(MPI)
-find_dependency(FFTW3 COMPONENTS SINGLE DOUBLE LONGDOUBLE MPI)
+find_dependency(FFTW3 COMPONENTS DOUBLE MPI)
 
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH_save}")
 unset(CMAKE_MODULE_PATH_save)
