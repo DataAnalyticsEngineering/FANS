@@ -56,6 +56,7 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # From https://stackoverflow.com/questions/73248130/how-to-avoid-the-removal-of-the-rpath-during-cmake-install-step
 
+# Set RPATH to be relative, depending on target platform.
 if (APPLE)
     set(RPATH_BASE "@loader_path")
 else ()
@@ -79,7 +80,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 if ("$ENV{SETVARS_COMPLETED}" STREQUAL "1")
     message(
             WARNING
-            "Intel OneAPI environment is active. Might lead to issues with correct MPI lib discovery!"
+            "Intel OneAPI environment is active, which might lead to issues with MPI discovery."
     )
 endif ()
 
