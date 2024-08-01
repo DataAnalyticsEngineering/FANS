@@ -13,13 +13,13 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(FetchContent)
 
-# set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # with -fno-implicit-templates I get linker errors when using std:: stuff
 # TODO: should be developer specific, by using e.g. CMake Presets
-set(CMAKE_CXX_FLAGS "-fmax-errors=1")
+set(CMAKE_CXX_FLAGS "-fmax-errors=1 -O3")
+set(CMAKE_PREFIX_PATH $ENV{CMAKE_PREFIX_PATH})
 
 # IPO
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.9")
@@ -56,18 +56,11 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # From https://stackoverflow.com/questions/73248130/how-to-avoid-the-removal-of-the-rpath-during-cmake-install-step
 
-# Set RPATH to be relative, depending on target platform.
-if (APPLE)
-    set(RPATH_BASE "@loader_path")
-else ()
-    set(RPATH_BASE "$ORIGIN")
-endif ()
-
+# Set RPATH to be relative and honor user overrides, whether at the command line or FetchContent
+set(RPATH_BASE "$ORIGIN")
 file(RELATIVE_PATH REL_PATH_LIB
         "/${CMAKE_INSTALL_BINDIR}/"
         "/${CMAKE_INSTALL_LIBDIR}/")
-
-# Honor user overrides, whether at the command line or FetchContent
 set(CMAKE_INSTALL_RPATH "${RPATH_BASE};${RPATH_BASE}/${REL_PATH_LIB}"
         CACHE STRING "Install RPATH")
 
@@ -85,7 +78,11 @@ if ("$ENV{SETVARS_COMPLETED}" STREQUAL "1")
 endif ()
 
 set(HDF5_ENABLE_PARALLEL ON)
-find_package(HDF5 REQUIRED COMPONENTS CXX)
+set(HDF5_PREFER_PARALLEL ON)
+find_package(HDF5 REQUIRED COMPONENTS C CXX)
+if (NOT HDF5_C_IS_PARALLEL)
+    message(FATAL_ERROR "Parallel HDF5 implementation (mpi) required but not found!")
+endif()
 
 find_package(Eigen3 REQUIRED)
 
@@ -93,13 +90,7 @@ find_package(OpenMP REQUIRED)
 
 find_package(MPI REQUIRED)
 
-find_package(FFTW3 REQUIRED COMPONENTS SINGLE DOUBLE LONGDOUBLE MPI)
-
-FetchContent_Declare(
-  pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11.git
-  GIT_TAG v2.12.0
-)
-FetchContent_MakeAvailable(pybind11)
+find_package(FFTW3 REQUIRED COMPONENTS DOUBLE MPI)
 
 # ##############################################################################
 # TARGETS
@@ -112,7 +103,6 @@ else ()
     add_library(FANS_FANS SHARED)
 endif ()
 add_library(FANS::FANS ALIAS FANS_FANS)
-target_compile_definitions(FANS_FANS PUBLIC H5_HAVE_PARALLEL)
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
     target_compile_options(FANS_FANS PUBLIC -march=armv8-a+simd+fp+crypto)
@@ -130,14 +120,6 @@ add_custom_command(
         COMMENT "Create a symlink for FANS executable to ${CMAKE_CURRENT_SOURCE_DIR}/test/"
 )
 
-if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    set(FANS_ENABLE_MICROMANAGER_DEFAULT ON)
-endif ()
-option(FANS_ENABLE_MICROMANAGER "Enable python bindings for micro manager." ${FANS_ENABLE_MICROMANAGER_DEFAULT})
-if (FANS_ENABLE_MICROMANAGER)
-    add_subdirectory(python)
-endif ()
-
 # ##############################################################################
 # HEADERS
 # ##############################################################################
@@ -154,17 +136,7 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/solverCG.h
         include/solverFP.h
         include/solver.h
-
 )
-
-# TODO: when switching to a newer CMake version this will all be done by one
-# call to target_link_libraries(FANS_FANS PUBLIC HDF5::HDF5). But CMake 3.16
-## does not yet support this.
-target_include_directories(FANS_FANS PUBLIC
-        ${HDF5_INCLUDE_DIRS}
-)
-
-target_include_directories(FANS_FANS PUBLIC ${FFTW3_INCLUDE_DIRS})
 
 # ##############################################################################
 # SOURCES
@@ -188,19 +160,32 @@ target_link_libraries(FANS_FANS PRIVATE m)
 # TODO: when switching to a newer CMake version this can all be done by one
 # call to target_link_libraries(FANS_FANS PUBLIC HDF5::HDF5). But CMake 3.16
 # does not yet support this.
+target_include_directories(FANS_FANS PUBLIC ${HDF5_INCLUDE_DIRS})
 target_link_libraries(FANS_FANS PUBLIC ${HDF5_CXX_LIBRARIES})
+target_compile_definitions(FANS_FANS PUBLIC ${HDF5_DEFINITIONS})
+if (HDF5_C_IS_PARALLEL)
+    target_compile_definitions(FANS_FANS PUBLIC H5_HAVE_PARALLEL)
+endif ()
 
 target_link_libraries(FANS_FANS PUBLIC MPI::MPI_CXX)
 
+target_include_directories(FANS_FANS PUBLIC ${FFTW3_INCLUDE_DIRS})
 target_link_libraries(FANS_FANS PUBLIC ${FFTW3_LIBRARIES})
+target_compile_definitions(FANS_FANS PUBLIC ${FFTW3_DEFINITIONS})
 
 target_link_libraries(FANS_FANS PUBLIC Eigen3::Eigen)
 
-target_link_libraries(FANS_FANS PRIVATE OpenMP::OpenMP_CXX)
+target_link_libraries(FANS_FANS PUBLIC OpenMP::OpenMP_CXX)
 
 find_package(OpenMP REQUIRED)
 
 target_link_libraries(FANS_main PRIVATE FANS::FANS)
+
+FetchContent_Declare(
+  pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11.git
+  GIT_TAG v2.12.0
+)
+FetchContent_MakeAvailable(pybind11)
 
 # ##############################################################################
 # NAMING

@@ -1,11 +1,8 @@
-#!/home/keshav/.pyenv/versions/3.12.4/bin/python3
 import argparse
 import h5py
 import os
 from lxml import etree as ET
 import re
-
-VERBOSE = False
 
 def set_verbose(value):
     global VERBOSE
@@ -15,19 +12,25 @@ def print_verbose(*args, **kwargs):
     if VERBOSE:
         print(*args, **kwargs)
 
-def write_xdmf(h5_filepath, xdmf_filepath=None, cube_length=[1, 1, 1], time_series=False, time_keyword="load"):
+def write_xdmf(h5_filepath, xdmf_filepath=None, microstructure_length=[1, 1, 1], time_series=False, time_keyword="load", verbose=False):
     """
     Function to convert HDF5 files to XDMF format for visualization.
     Args:
         h5_filepath (str): The path to the input HDF5 file.
         xdmf_filepath (str): The path to the output XDMF file. If None, the name of the HDF5 file is used.
-        cube_length (list): The total length of the cube in each dimension.
+        microstructure_length (list): The total length of the cube in each dimension.
         time_series (bool): Whether to treat the data as a time series.
         time_keyword (str): Keyword used to identify temporal datasets.
+        verbose (bool): Whether to enable verbose output.
     """
     
+    set_verbose(verbose)
+    
     if xdmf_filepath is None:
-        xdmf_filepath = os.path.splitext(h5_filepath)[0] + '.xdmf'
+        xdmf_filename = os.path.basename(os.path.splitext(h5_filepath)[0] + '.xdmf')
+        xdmf_filepath = os.path.join(os.getcwd(), xdmf_filename)
+    
+    h5_filepath = os.path.abspath(h5_filepath)
 
     def dataset_to_xdmf(dset, grid, time=None):
         dimensions = len(dset.shape)  # Number of dimensions in the dataset.
@@ -127,7 +130,7 @@ def write_xdmf(h5_filepath, xdmf_filepath=None, cube_length=[1, 1, 1], time_seri
 
         for (grid_size, time), dsets in list(grid_dict.items()):
             Nx, Ny, Nz = grid_size
-            DX, DY, DZ = cube_length[0] / Nx, cube_length[1] / Ny, cube_length[2] / Nz
+            DX, DY, DZ = microstructure_length[0] / Nx, microstructure_length[1] / Ny, microstructure_length[2] / Nz
             grid_name = f"{Nx}x{Ny}x{Nz}"
 
             if time_series:
@@ -168,14 +171,15 @@ if __name__ == "__main__":
         description=(
             "Convert HDF5 files with 3D spaciotemporal microstructure data to XDMF representation for visualization.\n\n"
             "This script reads an input HDF5 file containing 3D microstructural field data and converts it into an XDMF file. "
-            "The resulting XDMF file can be used for visualization in software like ParaView."
+            "The resulting XDMF file can be used for visualization in ParaView."
         ),
         formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument(
         'h5_filepath', 
         type=str, 
-        help='Path to the input HDF5 file.'
+        nargs='+',
+        help='Path(s) to the input HDF5 file(s).'
     )
     parser.add_argument(
         '-x', '--xdmf_filepath', 
@@ -189,7 +193,7 @@ if __name__ == "__main__":
         help='Enable verbose output.'
     )
     parser.add_argument(
-        '-c', '--cube_length', 
+        '-c', '--microstructure_length', 
         type=float, 
         nargs=3, 
         default=[1.0, 1.0, 1.0], 
@@ -204,7 +208,7 @@ if __name__ == "__main__":
         action='store_true', 
         help=(
             "Treat datasets as a time series based on load groups.\n"
-            "If this flag is set, the script will search for datasets within groups named '<keyword>{number}' and creates a temporal collection in the XDMF file."
+            "If this flag is set, the script will search for datasets within groups named '<keyword>{value}' and creates a temporal collection in the XDMF file."
         )
     )
     parser.add_argument(
@@ -213,11 +217,11 @@ if __name__ == "__main__":
         default="load",
         help=(
             "Keyword used to identify temporal datasets. Default is 'load'.\n"
-            "This keyword should be followed by a number to denote the time in the group names."
+            "This keyword should be followed by a value to denote the time in the group names."
         )
     )
 
     args = parser.parse_args()
-    set_verbose(args.verbose)
 
-    write_xdmf(args.h5_filepath, args.xdmf_filepath, args.cube_length, args.time_series, args.time_keyword)
+    for h5_filepath in args.h5_filepath:
+        write_xdmf(h5_filepath, args.xdmf_filepath, args.microstructure_length, args.time_series, args.time_keyword, args.verbose)
