@@ -120,6 +120,20 @@ add_custom_command(
         COMMENT "Create a symlink for FANS executable to ${CMAKE_CURRENT_SOURCE_DIR}/test/"
 )
 
+FetchContent_Declare(
+  pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11.git
+  GIT_TAG v2.12.0
+)
+FetchContent_MakeAvailable(pybind11)
+
+if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    set(FANS_ENABLE_MICROMANAGER_DEFAULT ON)
+endif ()
+option(FANS_ENABLE_MICROMANAGER "Enable python bindings for micro manager." ${FANS_ENABLE_MICROMANAGER_DEFAULT})
+if (FANS_ENABLE_MICROMANAGER)
+    add_subdirectory(python)
+endif ()
+
 # ##############################################################################
 # HEADERS
 # ##############################################################################
@@ -181,11 +195,6 @@ find_package(OpenMP REQUIRED)
 
 target_link_libraries(FANS_main PRIVATE FANS::FANS)
 
-FetchContent_Declare(
-  pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11.git
-  GIT_TAG v2.12.0
-)
-FetchContent_MakeAvailable(pybind11)
 
 # ##############################################################################
 # NAMING
