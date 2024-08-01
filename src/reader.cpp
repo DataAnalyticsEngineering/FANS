@@ -88,7 +88,8 @@ void Reader :: ReadInputFile(char fn[]){
         }
     }
     if (world_rank == 0){
-        printf("# microstructure: \t '%s'\n", ms_filename);
+        printf("# microstructure file name: \t '%s'\n", ms_filename);
+        printf("# microstructure dataset name: \t '%s'\n", ms_datasetname);
         printf("# FANS Tolerance: \t %10.5e\n# Max iterations: \t %6i\n", TOL, n_it);
     }
 

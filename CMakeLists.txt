@@ -77,11 +77,7 @@ if ("$ENV{SETVARS_COMPLETED}" STREQUAL "1")
 endif ()
 
 set(HDF5_ENABLE_PARALLEL ON)
-set(HDF5_PREFER_PARALLEL ON)
-find_package(HDF5 REQUIRED COMPONENTS C CXX)
-if (NOT HDF5_C_IS_PARALLEL)
-    message(FATAL_ERROR "Parallel HDF5 implementation (mpi) required but not found!")
-endif()
+find_package(HDF5 REQUIRED COMPONENTS CXX)
 
 find_package(Eigen3 REQUIRED)
 
@@ -162,7 +158,7 @@ target_link_libraries(FANS_FANS PRIVATE m)
 target_include_directories(FANS_FANS PUBLIC ${HDF5_INCLUDE_DIRS})
 target_link_libraries(FANS_FANS PUBLIC ${HDF5_CXX_LIBRARIES})
 target_compile_definitions(FANS_FANS PUBLIC ${HDF5_DEFINITIONS})
-if (HDF5_C_IS_PARALLEL)
+if (HDF5_IS_PARALLEL)
     target_compile_definitions(FANS_FANS PUBLIC H5_HAVE_PARALLEL)
 endif ()
 
