@@ -15,14 +15,14 @@
     "method": "cg",
     "TOL": 1e-6,
     "n_it": 100,
-    "g0":   [
-                [[1,     0,     0,     0,     0,     0]],
-                [[0,     1,     0,     0,     0,     0]],
-                [[0,     0,     1,     0,     0,     0]],
-                [[0,     0,     0,     1,     0,     0]],
-                [[0,     0,     0,     0,     1,     0]],
-                [[0,     0,     0,     0,     0,     1]] 
-            ],
+    "macroscale_loading":   [
+                                [[1,     0,     0,     0,     0,     0]],
+                                [[0,     1,     0,     0,     0,     0]],
+                                [[0,     0,     1,     0,     0,     0]],
+                                [[0,     0,     0,     1,     0,     0]],
+                                [[0,     0,     0,     0,     1,     0]],
+                                [[0,     0,     0,     0,     0,     1]] 
+                            ],
 
-    "results": ["microstructure", "stress_average", "strain_average", "stress", "strain", "displacement"] 
+    "results": ["microstructure", "stress_average", "strain_average", "stress", "strain", "displacement", "absolute_error"] 
 }

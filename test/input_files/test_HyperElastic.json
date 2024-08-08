@@ -16,10 +16,10 @@
 
     "method": "cg",
     "TOL": 1e-10,
-    "n_it": 500,
-    "g0":   [
-                [[0.010, -0.010, 0, 0.0, 0, 0]]
-            ],
+    "n_it": 5000,
+    "macroscale_loading":   [
+                                [[0.01, 0, 0, 0.0, 0, 0]]
+                            ],
 
-    "results": []
+    "results": ["stress", "strain", "displacement", "plastic_flag", "absolute_error"]
 }
