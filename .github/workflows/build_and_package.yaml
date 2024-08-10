@@ -1,0 +1,59 @@
+name: Build FANS and create Debian packages
+on:
+  workflow_dispatch:
+
+env:
+  FANS_DIR: /FANS
+  FANS_IMG: unistuttgartdae/fans-ci
+  FANS_CONTAINER: fans-ci
+  FANS_BUILD_DIR: build
+
+jobs:
+  fans-ci:
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+        ubuntu-version: [noble, jammy, focal]
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Pull Docker image
+        run: docker pull --platform linux/${{ matrix.arch }} ${FANS_IMG}:${{ matrix.ubuntu-version }}
+
+      - name: Create and start container
+        run: |
+          docker create \
+            --name ${FANS_CONTAINER} \
+            -i -t \
+            -u `id -u`:`id -g` \
+            -v /etc/localtime:/etc/localtime:ro \
+            -v /etc/timezone:/etc/timezone:ro \
+            -v ${{ github.workspace }}:${FANS_DIR} \
+            -e FANS_DIR=${FANS_DIR} \
+            -w ${FANS_DIR} \
+            ${FANS_IMG}:${{ matrix.ubuntu-version }}
+          docker start ${FANS_CONTAINER}
+
+      - name: Build FANS
+        run: |
+          docker exec ${FANS_CONTAINER} \
+            bash .github/workflows/build.sh ${FANS_BUILD_DIR}
+            
+      - name: Package FANS
+        run: |
+          docker exec \
+            -w ${FANS_DIR}/${FANS_BUILD_DIR} \
+            ${FANS_CONTAINER} \
+            cpack -G "DEB"
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: fans-packages-${{ matrix.ubuntu-version }}-${{ matrix.arch }}
+          path: ${{ github.workspace }}/${{ env.FANS_BUILD_DIR }}/packages/*.deb

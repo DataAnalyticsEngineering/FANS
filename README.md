@@ -32,6 +32,7 @@ To build fans, you additionally need these packages:
 ```
 libhdf5-dev libopenmpi-dev libeigen3-dev libfftw3-dev libfftw3-mpi-dev
 ```
+If for some reason you are unable to install these packages directly on your host machine, have a look at the [set of Docker images](docker/) to create and work with FANS within an isolated environment.
 
 ### Building the Project
 
