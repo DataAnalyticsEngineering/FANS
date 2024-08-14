@@ -9,13 +9,14 @@ Both images are built for linux/amd64 and linux/arm64 as well as for the three m
 To set up a development container with your current working directory (in there, use `git clone` to obtain the latest FANS version) mounted into it, type:
 ```bash
 git clone https://github.tik.uni-stuttgart.de/DAE/FANS.git
+cd FANS
 
 docker create --name fans-dev -it \
   -e HOST_UID=$(id -u) \
   -e HOST_GID=$(id -g) \
   -v /etc/localtime:/etc/localtime:ro \
   -v /etc/timezone:/etc/timezone:ro \
-  -v $PWD/:/workspace/ \
+  -v $PWD/:/FANS/ \
   unistuttgartdae/fans-dev
 ```
 The `-e` options provide the entrypoint script of the container with your host user ID and GID, such that the user ID and GID inside the container can be adapted to match yours. This is done to not mess up file permissions in the mounted volumes. The two volume mounts of `/etc/localtime` and `/etc/timezone` are required to have the host date and time inside the container.
@@ -24,21 +25,25 @@ The following workflow is suggested: You would work on the code as usual on your
 ```bash
 docker start fans-dev
 docker attach fans-dev
-cd /workspace/FANS
+
+cd /FANS
 mkdir build
 cd build
 cmake ..
 cmake --build . -j
+
+cd ../test
 ./FANS
-../test/run.sh
+./run_tests.sh
+cat nohup_test_*.log
 ```
 
 ## FANS Usage Within a Container
 By building inside the container, FANS is linked against the container's libs and therefore must run inside the container. After attaching to the container you can then continue to use FANS as described in the main [README](../README.md#usage). Just remember that any input and output files need to visible to the container and thus must lie somewhere inside the mounted volumes.
 
-Special care has to be taken if you need to use FANS within scripts, as Docker's interactive mode (`-i`) is not suitable in this case. Instead you need to use `docker exec`. One basically replaces the original `FANS` call by `docker exec -u develop -w /workspace/test fans-dev [original call]`. For example in conjunction with nohup:
+Special care has to be taken if you need to use FANS within scripts, as Docker's interactive mode (`-i`) is not suitable in this case. Instead you need to use `docker exec`. One basically replaces the original `FANS` call by `docker exec -u develop -w /FANS/test fans-dev [original call]`. For example in conjunction with nohup:
 ```bash
 docker start fans-dev
-nohup /usr/bin/time -v docker exec -u develop -w /workspace/test fans-dev [original call] &
+nohup /usr/bin/time -v docker exec -u develop -w /FANS/test fans-dev [original call] &
 docker stop fans-dev
 ```
