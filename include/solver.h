@@ -353,9 +353,13 @@ double Solver<howmany>::compute_error(RealArray& r){
             printf( "it %3lu .... err %16.8e  / %8.4e, ratio: %4.8e, FFT time: %2.6f sec\n", iter, err, err/err0, err/err_all[iter-1], double(buftime)/CLOCKS_PER_SEC  );
         }
     }
+<<<<<<< HEAD
 
     return err;     // returns absolute error
     // return err_rel; // returns relative error
+=======
+    return err;
+>>>>>>> v_u is initialized to 0 in the solver constructor only
 }
 
 template<int howmany>
