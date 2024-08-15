@@ -1,7 +1,5 @@
-# Dockerfile for building FANS (see README.md for instructions)
-
-# during build time, don't ask for user input (has to be included in every stage
-# to take effect
+# During build time, don't ask for user input (has to be included in every stage
+# to take effect)
 ARG DEBIAN_FRONTEND=noninteractive
 ARG UBUNTU_VERSION=noble
 
@@ -10,10 +8,7 @@ ARG UBUNTU_VERSION=noble
 FROM ubuntu:${UBUNTU_VERSION} AS fans_base
 ARG DEBIAN_FRONTEND
 
-# context: https://askubuntu.com/questions/1513927/ubuntu-24-04-docker-images-now-includes-user-ubuntu-with-uid-gid-1000
-# Weird behaviour: when not using bash -c '...', for focal and jammy I had to 
-# escape the & sign in the if condition, while for noble I had to not escape it
-# for it to work. Why?
+# Context: https://askubuntu.com/questions/1513927/ubuntu-24-04-docker-images-now-includes-user-ubuntu-with-uid-gid-1000
 RUN bash -c 'if id "ubuntu" &>/dev/null; then \
       touch /var/mail/ubuntu && \
       chown ubuntu /var/mail/ubuntu && \
@@ -27,19 +22,22 @@ FROM fans_base AS fans_ci
 ARG DEBIAN_FRONTEND
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
-# basic packages
+# Build basics
     software-properties-common \
-    git \
-# build basics
     build-essential \
+# CMake + git for FetchContent + file for CPack
     cmake \
+    git \
     file \
-# packages required to build FANS \
+# FANS dependencies \
     libhdf5-dev \
     libopenmpi-dev \
     libeigen3-dev \
     libfftw3-dev \
     libfftw3-mpi-dev \
+# Clean up
+    && apt-get clean \
+    && apt-get autoremove --purge -y \
     && rm -rf /var/lib/apt/lists/*
 
 ################################################################################
@@ -48,9 +46,19 @@ FROM fans_ci AS fans_dev
 ARG DEBIAN_FRONTEND
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
+# Packages required for setting up the non-root user
     sudo \
     gosu \
+# Some additional packages for convenience
     time \
+    htop \
+    vim \
+    python3 \
+    python3-pip \
+    python3-venv \
+    python-is-python3 \
+    python3-dev \
+# Clean up
     && apt-get clean \
     && apt-get autoremove --purge -y \
     && rm -rf /var/lib/apt/lists/*
@@ -70,7 +78,18 @@ RUN adduser --disabled-password \
     && echo ${USER} ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/${USER} \
     && chmod 0440 /etc/sudoers.d/${USER}
 
-# entrypoint script changes uid and gid to match given host uid and gid
+# Create a python venv for test/h52xdmf.py script
+USER ${USER}
+
+ARG FANS_venv=FANS_venv
+RUN python -m venv /home/${USER}/venvs/${FANS_venv} && \
+    echo "\nsource /home/${USER}/venvs/${FANS_venv}/bin/activate\n" >> /home/${USER}/.bashrc && \
+    . /home/${USER}/venvs/${FANS_venv}/bin/activate && \
+    python -m pip install --no-cache-dir h5py lxml
+
+USER root
+
+# Entrypoint script changes UID and GID to match given host UID and GID
 COPY --chmod=755 docker/Dockerfile_user_env_entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
