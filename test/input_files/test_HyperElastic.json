@@ -6,7 +6,7 @@
     "ms_L": [1.0, 1.0, 1.0],
 
     "problem_type": "mechanical",
-    "matmodel": "HyperElastic",
+    "matmodel": "PseudoPlasticLinearHardening",
     "material_properties":{
         "bulk_modulus": [62.5000, 222.222],
         "shear_modulus": [28.8462, 166.6667],

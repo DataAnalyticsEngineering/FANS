@@ -6,7 +6,7 @@
     "ms_L": [1.0, 1.0, 1.0],
 
     "problem_type": "thermal",
-    "matmodel": "ThermalLinear",
+    "matmodel": "LinearThermalIsotropic",
     "material_properties":{
         "conductivity": [1, 10]
     },

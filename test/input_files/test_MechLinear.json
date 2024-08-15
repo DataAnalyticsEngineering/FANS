@@ -6,14 +6,14 @@
     "ms_L": [1.0, 1.0, 1.0],
 
     "problem_type": "mechanical",
-    "matmodel": "MechLinear",
+    "matmodel": "LinearElasticIsotropic",
     "material_properties":{
         "young_modulus": [1, 10],
         "poisson_ratio": [0, 0.3]
     },
 
     "method": "cg",
-    "TOL": 1e-6,
+    "TOL": 1e-10,
     "n_it": 100,
     "macroscale_loading":   [
                                 [[1,     0,     0,     0,     0,     0]],

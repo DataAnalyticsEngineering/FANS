@@ -465,6 +465,10 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }
+<<<<<<< HEAD
+=======
+
+>>>>>>> material model refactor
     matmodel->postprocess(*this, reader, resultsFileName, load_idx, time_idx);
 }
 
