@@ -10,7 +10,7 @@
     "material_properties":{
         "bulk_modulus": [62.5000, 222.222],
         "shear_modulus": [28.8462, 166.6667],
-        "critical_stress": [0.1, 10000],
+        "yield_stress": [0.1, 10000],
         "hardening_parameter": [0.0, 0.0]
     },
 
