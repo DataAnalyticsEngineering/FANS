@@ -4,6 +4,5 @@ repos:
   rev: 'v18.1.8'
   hooks:
   - id: clang-format
-    types_or: [c, c++]
+    types_or: [c++]
     exclude: "include/json.hpp"
-    
