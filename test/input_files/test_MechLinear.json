@@ -24,5 +24,6 @@
                                 [[0,     0,     0,     0,     0,     1]] 
                             ],
 
-    "results": ["microstructure", "stress_average", "strain_average", "stress", "strain", "displacement", "absolute_error"] 
+    "results": ["microstructure", "displacement", "stress", "strain",
+                "stress_average", "strain_average",  "absolute_error", "phase_stress_average", "phase_strain_average"] 
 }
