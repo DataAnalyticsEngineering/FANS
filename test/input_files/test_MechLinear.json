@@ -8,8 +8,8 @@
     "problem_type": "mechanical",
     "matmodel": "LinearElasticIsotropic",
     "material_properties":{
-        "young_modulus": [1, 10],
-        "poisson_ratio": [0, 0.3]
+        "bulk_modulus": [62.5000, 222.222],
+        "shear_modulus": [28.8462, 166.6667]
     },
 
     "method": "cg",
