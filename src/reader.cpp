@@ -16,12 +16,9 @@ using namespace std;
 using nlohmann::json;
 using namespace nlohmann;
 
-
 void Reader::ComputeVolumeFractions(){
-
     if (world_rank == 0)
         printf("# Volume fractions\n");
-
     long vol_frac[n_mat];
     double v_frac[n_mat];
     for(int i=0; i < n_mat; i++){
@@ -37,18 +34,7 @@ void Reader::ComputeVolumeFractions(){
         if (world_rank == 0)
             printf("# material %4i    vol. frac. %10.4f%%  \n", i, 100.*v_frac[i]);
     }
-    // for(auto it = materialProperties.begin(); it != materialProperties.end(); it++){
-    //     vector<double> prop = materialProperties[it->first];
-    //     double vol_av = 0.;
-    //     for(int i=0; i < n_mat; i++){
-    //         vol_av += v_frac[i] * prop[i];
-    //     }
-    //     cout << "# " << it->first << ":    ";  //printf only works for c-strings
-    //     printf("minimum : %f, maximum: %f, mean: %f\n", 
-    //         *min_element(prop.begin(), prop.end()), *max_element(prop.begin(), prop.end()), vol_av);
-    // }
 }
-
 
 void Reader :: ReadInputFile(char fn[]){
     try{
@@ -67,15 +53,22 @@ void Reader :: ReadInputFile(char fn[]){
 
     TOL = j["TOL"].get<double>();
     n_it = j["n_it"].get<int>();
-    g0 = j["g0"].get<vector<double>>();
+    g0 = j["macroscale_loading"].get<vector<vector<vector<double>>>>();
 
     problemType = j["problem_type"].get<string>();
     matmodel = j["matmodel"].get<string>();
     method = j["method"].get<string>();
     
     json j_mat = j["material_properties"];
+    resultsToWrite = j["results"].get<vector<string>>();    // Read the results_to_write field
+
+    if (world_rank == 0){
+        printf("# microstructure file name: \t '%s'\n", ms_filename);
+        printf("# microstructure dataset name: \t '%s'\n", ms_datasetname);
+        printf("# FANS Tolerance: \t %10.5e\n# Max iterations: \t %6i\n", TOL, n_it);
+    }
+
     for (auto it = j_mat.begin(); it != j_mat.end(); ++it){
-        
         materialProperties[it.key()] = it.value().get<vector<double>>();
         n_mat = materialProperties[it.key()].size();
 
@@ -87,25 +80,12 @@ void Reader :: ReadInputFile(char fn[]){
         printf("\n");
         }
     }
-    if (world_rank == 0){
-        printf("# microstructure file name: \t '%s'\n", ms_filename);
-        printf("# microstructure dataset name: \t '%s'\n", ms_datasetname);
-        printf("# FANS Tolerance: \t %10.5e\n# Max iterations: \t %6i\n", TOL, n_it);
-    }
-
-    // Read the results_to_write field
-    resultsToWrite = j["results"].get<vector<string>>();
 
     }catch(const std::exception& e){
         fprintf(stderr, "ERROR trying to read input file '%s' for FANS\n", fn );
         exit(10);
     }
 }
-
-//    printf("# Macro-scale Gradient - (");
-//    for (const auto& number : g0) {
-//        printf("%10.5f ", number);}
-//    printf(")\n");
 
 void Reader::safe_create_group( hid_t file, const char * const name )
 {
@@ -150,7 +130,6 @@ void Reader::safe_create_group( hid_t file, const char * const name )
     }
 }
 
-
 void Reader :: ReadMS(int hm){
 	
     hid_t       file_id, dset_id;         /* file and dataset identifiers */
@@ -179,15 +158,6 @@ void Reader :: ReadMS(int hm){
     //H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);   // "set Data Transfer Property List" (x means transfer)
     plist_id = H5P_DEFAULT;
 
-
-    // read physical dimensions: Not needed. Added ms_L to json file
-//    double* L = FANS_malloc<double>(3);
-//    char name_L[5096];
-//    sprintf(name_L,"%s_L", ms_datasetname);
-//    dset_id = H5Dopen2(file_id, name_L, plist_id);
-//    data_type = H5Dget_type(dset_id);
-//    status = H5Dread(dset_id, data_type, H5S_ALL, H5S_ALL, plist_id, L);
-
     dset_id = H5Dopen2(file_id, ms_datasetname, plist_id);
 
     hid_t dspace = H5Dget_space(dset_id);
@@ -209,6 +179,7 @@ void Reader :: ReadMS(int hm){
         // if(dims[0] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_x is not a multiple of 2\n");
         // if(dims[1] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_y is not a multiple of 2\n");
         // if(dims[2] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_z is not a multiple of 2\n");
+        if (dims[0]/4 < world_size) throw std::runtime_error("[ FANS3D_Grid ] ERROR: Please decrease the number of processes or increase the grid size to ensure that each process has at least 4 boxels in the x direction.");
         printf("Voxel length: [%1.8f, %1.8f, %1.8f]\n", l_e[0], l_e[1],l_e[2]);
     }
 
@@ -254,6 +225,8 @@ void Reader :: ReadMS(int hm){
     H5Pclose(plist_id);
     H5Fclose(file_id);
     //H5Tclose(data_type);
+
+    this->ComputeVolumeFractions();
 }
 
 

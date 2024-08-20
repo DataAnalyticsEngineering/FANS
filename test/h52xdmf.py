@@ -12,7 +12,7 @@ def print_verbose(*args, **kwargs):
     if VERBOSE:
         print(*args, **kwargs)
 
-def write_xdmf(h5_filepath, xdmf_filepath=None, microstructure_length=[1, 1, 1], time_series=False, time_keyword="load", verbose=False):
+def write_xdmf(h5_filepath, xdmf_filepath=None, microstructure_length=[1, 1, 1], time_series=False, time_keyword="time_step", verbose=False):
     """
     Function to convert HDF5 files to XDMF format for visualization.
     Args:
@@ -207,16 +207,16 @@ if __name__ == "__main__":
         '-t', '--time-series', 
         action='store_true', 
         help=(
-            "Treat datasets as a time series based on load groups.\n"
+            "Treat datasets as a time series based on time_step groups.\n"
             "If this flag is set, the script will search for datasets within groups named '<keyword>{value}' and creates a temporal collection in the XDMF file."
         )
     )
     parser.add_argument(
         '-k', '--time-keyword', 
         type=str, 
-        default="load",
+        default="time_step",
         help=(
-            "Keyword used to identify temporal datasets. Default is 'load'.\n"
+            "Keyword used to identify temporal datasets. Default is 'time_step'.\n"
             "This keyword should be followed by a value to denote the time in the group names."
         )
     )

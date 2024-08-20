@@ -60,7 +60,7 @@ For convenience we added some basic utilities to our `fans-dev` image including 
 ### Attaching Visual Studio Code
 You can attach VS Code to the newly created container in order to actually work inside the container. This has the benefit that IntelliSense and other static analysis tools have access to all the headers of FANS' dependencies which would not be possible when developing on the host and only using the container for building FANS.
 
-To attach VS Code you need to install the `Remomte Development Extension Pack` and the `Docker` Extension. Then open the Docker menu, right click our newly created `fans-dev` container and select "Start" (if not running already) and then "Attach Visual Studio Code".
+To attach VS Code you need to install the `Remote Development Extension Pack` and the `Docker` Extension. Then open the Docker menu, right click our newly created `fans-dev` container and select "Start" (if not running already) and then "Attach Visual Studio Code".
 
 After attaching VS Code you unfortunately are user `root` in VS Code due to the way the UID and GID mapping is implemented: The container starts as root, executes the entrypoint script which changes UID and GID and only then drops privileges using `gosu`. VS Code though skips the entrypoint script and thus doesn't switch to the non-root user `develop`. You however can do so manually by typing `gosu develop bash` in your terminal sessions inside VS Code.
 

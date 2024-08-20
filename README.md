@@ -16,6 +16,38 @@ You can either build FANS yourself, or use one of our prebuilt packages (see [Ta
 
 ### Prerequisites
 
+Before proceeding with the installation, ensure that your system has the necessary dependencies. The prerequisites of FANS can be installed using Spack for a streamlined setup on high-performance computing systems, or through traditional package management for personal use.
+
+#### Spack Installation (Recommended for Clusters/Supercomputers)
+
+Spack is a package manager designed for high-performance computing environments. It simplifies the installation of complex software stacks, making it ideal for setting up FANS on large clusters or supercomputers.
+
+1. **Install Spack**: If you don’t have Spack installed, you can set it up with the following commands:
+    ```bash
+    git clone https://github.com/spack/spack.git
+    cd spack/bin
+    source ./spack
+    ```
+
+2. **Install Dependencies**: Once Spack is set up, you can install the required dependencies:
+    ```bash
+    spack install cmake
+    spack install mpi
+    spack install hdf5 +cxx +mpi
+    spack install eigen
+    spack install fftw +mpi
+    ```
+    You can also use alternative and optimized FFTW implementations depending on your system's architecture like amdfftw (For AMD systems) or cray-fftw (For Cray systems) or fujitsu-fftw (For Fujitsu systems).
+    
+3. **Load Dependencies** Once dependencies are installed, you can load them before building:
+    ```
+    spack load cmake mpi hdf5 eigen fftw
+    ```
+
+#### Traditional Installation
+
+If you're setting up FANS on a personal computer or in a non-HPC environment, follow these instructions:
+
 Please ensure you have the following dependencies installed on your system:
 
 - CMake (version 3.0 or higher)
@@ -38,7 +70,7 @@ If for some reason you are unable to install these packages directly on your hos
 
 1. Clone the repository:
     ```sh
-    git clone https://github.tik.uni-stuttgart.de/SanathKeshav/FANS.git
+    git clone https://github.tik.uni-stuttgart.de/DAE/FANS.git
     cd FANS
     ```
 2. Configure the project using CMake:
@@ -52,7 +84,7 @@ If for some reason you are unable to install these packages directly on your hos
     ```sh
     cmake --build . -j
     ```
-The compilation will symlink the generated FANS binary into the `test/` directory for convenience.
+The compilation will symlink the generated `FANS` binary into the `test/` directory for convenience.
 
 ### Build Options
 This project supports the following CMake build options:
@@ -84,16 +116,11 @@ After compiling, you can install FANS (system-wide) using the following options:
 
 ## Usage
 
-To run the FANS solver, you need to provide a JSON input file specifying the problem parameters. Here is the command to run FANS:
+To run the FANS solver, you need to provide a JSON input file specifying the problem parameters. 
 
-```sh
-nohup /usr/bin/time -v mpiexec -n 1 ./FANS path/to/your/input_file.json &
-```
-
-## Input File Format
+### Input File Format
 
 The input file is in JSON format and contains several fields to define the problem settings:
-- `comment`: Optional field for comments.
 - `ms_filename`: Path to the microstructure file (HDF5 format).
 - `ms_datasetname`: Path to the dataset inside the HDF5 file.
 - `ms_L`: List defining the domain size.
@@ -105,13 +132,80 @@ The input file is in JSON format and contains several fields to define the probl
 - `n_it`: Maximum number of iterations.
 - `g0`: Macroscale loading vector.
 
-## Example
+### Example
 
 To run a linear elastic mechanical homogenization problem for a single load case on a microstructure image of size `256 x 256 x 256` with a single spherical inclusion,
 
 ```sh
 mpiexec -n 1 ./FANS input_files/sphere_mech.json
 ```
+
+## Contributing
+
+We welcome contributions to FANS! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated. Please follow the guidelines below to ensure smooth collaboration.
+
+### How to Contribute
+
+1. **Fork and Clone**: Fork the repository on GitHub and clone your fork locally.
+    ```bash
+    git clone https://github.com/your-username/FANS.git
+    cd FANS
+    ```
+
+2. **Create a Branch**: Create a branch for your work, using a descriptive name.
+    ```bash
+    git checkout -b feature/my-feature
+    ```
+
+3. **Make Changes**: Implement your changes, adhering to the [Code Style Guidelines](#code-style-guidelines).
+
+4. **Write Tests**: Ensure new features or bug fixes are covered by tests.
+
+5. **Commit and Push**: Commit your changes with a clear message, then push to your fork.
+    ```bash
+    git add .
+    git commit -m "Describe your changes"
+    git push origin feature/my-feature
+    ```
+
+6. **Create a Pull Request**: Open a pull request to the `develop` branch. Include relevant details, such as the issue being fixed or the feature being added.
+
+### Code Style Guidelines
+
+- **C++ Standard**: Use C++17 or later.
+- **Indentation**: 4 spaces, no tabs.
+- **Naming**: 
+    - Functions: `camelCase`
+    - Classes: `PascalCase`
+    - Variables: `snake_case`
+    - Constants: `ALL_CAPS`
+- **Documentation**: Use Doxygen-style comments.
+
+### Branching and Merging
+
+- **`main`**: Latest stable release.
+- **`develop`**: Active development. Base your feature branches off `develop`.
+- **Feature branches**: Branch off `develop` and submit pull requests back to `develop`.
+- **Release branches**: Merged into `main` for new releases.
+
+### Issue Reporting
+
+Use GitHub Issues to report bugs or request features. Include a clear description, steps to reproduce, and relevant details (e.g., OS, compiler).
+
+### Code of Conduct
+
+Please review our [Code of Conduct](CODE_OF_CONDUCT.md) to ensure a respectful and inclusive community.
+
+### Contributor License Agreement (CLA)
+
+By contributing, you agree that your contributions will be licensed under the project's license. You may be asked to sign a Contributor License Agreement (CLA).
+
+Thank you for contributing to FANS! Your efforts help make this project better for everyone.
+
+
+## Acknowledgements
+Funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) under Germany’s Excellence Strategy - EXC 2075 – 390740016. Contributions by Felix Fritzen are funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) within the Heisenberg program - DFG-FR2702/8 - 406068690; DFG-FR2702/10 - 517847245 and through NFDI-MatWerk - NFDI 38/1 - 460247524. We acknowledge the support by the Stuttgart Center for Simulation Science (SimTech).
+
 
 
 

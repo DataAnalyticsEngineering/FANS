@@ -17,7 +17,7 @@ class Reader{
         map<string, vector<double>> materialProperties;
         double TOL;
         int n_it;
-        vector<double> g0;
+        vector<vector<vector<double>>> g0;
         string problemType;
         string matmodel;
         string method;
@@ -133,8 +133,12 @@ void Reader::WriteSlab(T *data, int _howmany, const char* file_name, const char*
     hid_t data_type;
     if(std::is_same<T, double>()){
         data_type = H5T_NATIVE_DOUBLE;
+    } else if(std::is_same<T, float>()){
+        data_type = H5T_NATIVE_FLOAT;
     } else if(std::is_same<T, unsigned char>()){
         data_type = H5T_NATIVE_UCHAR;
+    } else if(std::is_same<T, int>()){
+        data_type = H5T_NATIVE_INT;
     } else {
         throw std::invalid_argument("Conversion of this data type to H5 data type not yet implemented");
     }

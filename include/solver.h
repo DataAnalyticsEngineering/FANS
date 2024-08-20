@@ -1,5 +1,5 @@
-#ifndef FE_FANS3D_THERMAL_H
-#define FE_FANS3D_THERMAL_H
+#ifndef SOLVER_H
+#define SOLVER_H
 
 #include "matmodel.h"
 
@@ -9,6 +9,8 @@ template<int howmany>
 class Solver{
 public:
     Solver(Reader reader, Matmodel<howmany>* matmodel);
+    
+    Reader reader;
 
     const int world_rank;
     const int world_size;
@@ -41,8 +43,6 @@ public:
     template<int padding, typename F>
     void iterateCubes(F f);
 
-    void Compute_Reference_ElementStiffness();     //!< Computes Element Stiffness on reference element with reference kappa
-
     void solve();
     virtual void internalSolve(){};         //important to have "{}" here, otherwise we get an error about undefined reference to vtable
     
@@ -51,9 +51,7 @@ public:
     template<int padding>
     void compute_residual(RealArray& r_matrix, RealArray& u_matrix);
 
-
-    void postprocess(Reader reader, char const resultsFileName[], int suffix);      //!< Computes Strain and stress
-    void postprocessHyperElastic(HyperElastic* hyperElastic, Reader reader, char const resultsFileName[], int suffix);
+    void postprocess(Reader reader, const char resultsFileName[], int load_idx, int time_idx);      //!< Computes Strain and stress
 
     void convolution();
     double compute_error(RealArray& r);
@@ -68,6 +66,7 @@ protected:
 
 template <int howmany>
 Solver<howmany> :: Solver(Reader reader, Matmodel<howmany>* mat) : 
+    reader(reader),
 	matmodel(mat),
     world_rank(reader.world_rank),
     world_size(reader.world_size),
@@ -92,6 +91,13 @@ Solver<howmany> :: Solver(Reader reader, Matmodel<howmany>* mat) :
     rhat((std::complex<double>*) v_r, local_n1 * n_x * (n_z / 2 + 1) * howmany),   //actual initialization is below
     buffer_padding(fftw_alloc_real(n_y * (n_z + 2) * howmany))
 {   
+    v_u_real.setZero();
+    for(ptrdiff_t i = local_n0 * n_y * n_z * howmany; i < (local_n0 + 1) * n_y * n_z * howmany; i++){
+        this->v_u[i] = 0;
+    }
+    
+    matmodel->initializeInternalVariables( local_n0 * n_y * n_z, 8);
+    
     if (world_rank == 0){
         printf ("\n# Start creating Fundamental Solution(s) \n");
     }
@@ -202,7 +208,7 @@ void Solver<howmany> :: compute_residual_basic(RealArray& r_matrix, RealArray& u
                 ue(howmany*i + j, 0) = u[howmany*idx[i] + j] - u[howmany*idx[0] + j];
             }
         }
-        Matrix<double, howmany*8, 1>& res_e = f(ue, ms[idx[0]]);
+        Matrix<double, howmany*8, 1>& res_e = f(ue, ms[idx[0]], idx[0]);
 
         for(int i = 0; i < 8; i++){
             for(int j = 0; j < howmany; j++){
@@ -222,8 +228,8 @@ void Solver<howmany> :: compute_residual_basic(RealArray& r_matrix, RealArray& u
 template<int howmany>
 template<int padding>
 void Solver<howmany> :: compute_residual(RealArray& r_matrix, RealArray& u_matrix){
-    compute_residual_basic<padding>(r_matrix, u_matrix, [&](Matrix<double, howmany*8, 1>& ue, int mat_index) -> Matrix<double, howmany*8, 1>& {
-        return matmodel->element_residual(ue, mat_index);
+    compute_residual_basic<padding>(r_matrix, u_matrix, [&](Matrix<double, howmany*8, 1>& ue, int mat_index, ptrdiff_t element_idx) -> Matrix<double, howmany*8, 1>& {
+        return matmodel->element_residual(ue, mat_index, element_idx);
     });
 }
 
@@ -339,177 +345,123 @@ double Solver<howmany>::compute_error(RealArray& r){
     double err_rel = (iter == 0 ? 100 : err/err0);
 
     if(world_rank == 0){
-        // ofstream os("error.out");
-        // os << fixed << setprecision(16);
         if (iter == 0){
             printf("Before 1st iteration: %16.8e\n", err0);
         }else if(iter == 1){
             printf( "it %3lu .... err %16.8e  / %8.4e, ratio: ------------- , FFT time: %2.6f sec\n", iter, err, err/err0, double(buftime)/CLOCKS_PER_SEC  );
-            // os << iter << "\t" << err << "\t" << err/err0 << "\t" << err/err0 << "\n";
         }else{
             printf( "it %3lu .... err %16.8e  / %8.4e, ratio: %4.8e, FFT time: %2.6f sec\n", iter, err, err/err0, err/err_all[iter-1], double(buftime)/CLOCKS_PER_SEC  );
-            // os << iter << "\t" << err << "\t" << err/err0 << "\t" << err/err_all[iter-1] << "\n";
         }
-        // os.close();
     }
-    return err_rel;
+
+    return err;     // returns absolute error
+    // return err_rel; // returns relative error
 }
 
-
 template<int howmany>
-void Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], int suffix){
+void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], int load_idx, int time_idx) {
     int n_str = matmodel->n_str;
-    double* strain = FANS_malloc<double>(local_n0 * n_y * n_z * n_str);
-    double* stress = FANS_malloc<double>(local_n0 * n_y * n_z * n_str);
-    double* stress_average = FANS_malloc<double>(n_str);
-    double* strain_average = FANS_malloc<double>(n_str);
-    for(int i = 0; i < n_str; i++){
-        stress_average[i] = 0;
-        strain_average[i] = 0;
-    }
+    VectorXd strain = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
+    VectorXd stress = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
+    VectorXd stress_average = VectorXd::Zero(n_str);
+    VectorXd strain_average = VectorXd::Zero(n_str);
+
+    // Initialize per-phase accumulators
+    int n_mat = reader.n_mat;
+    vector<VectorXd> phase_stress_average(n_mat, VectorXd::Zero(n_str));
+    vector<VectorXd> phase_strain_average(n_mat, VectorXd::Zero(n_str));
+    vector<int> phase_counts(n_mat, 0);
 
     MPI_Sendrecv(v_u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
-                 v_u + local_n0 * n_y * n_z  * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     Matrix<double, howmany*8, 1> ue;
-
-    iterateCubes<0>([&](ptrdiff_t *idx, ptrdiff_t *idxPadding){
-
-        for(int i = 0; i < 8; i++){
-            for(int j = 0; j < howmany; j++){
-                ue(howmany*i + j, 0) = v_u[howmany*idx[i] + j];
+    int mat_index;
+    iterateCubes<0>([&](ptrdiff_t *idx, ptrdiff_t *idxPadding) {
+        for (int i = 0; i < 8; ++i) {
+            for (int j = 0; j < howmany; ++j) {
+                ue(howmany * i + j, 0) = v_u[howmany * idx[i] + j];
             }
         }
-        matmodel->getStrainStress(&strain[n_str * idx[0]], &stress[n_str * idx[0]], ue, ms[idx[0]]);
+        mat_index = ms[idx[0]];
 
-        for(int i = 0; i < n_str; i++){
-            stress_average[i] += stress[n_str * idx[0] + i];
-            strain_average[i] += strain[n_str * idx[0] + i];
-        }
+        matmodel->getStrainStress(strain.segment(n_str * idx[0], n_str).data(), stress.segment(n_str * idx[0], n_str).data(), ue, mat_index, idx[0]);
+        stress_average += stress.segment(n_str * idx[0], n_str);
+        strain_average += strain.segment(n_str * idx[0], n_str);
+
+        phase_stress_average[mat_index] += stress.segment(n_str * idx[0], n_str);
+        phase_strain_average[mat_index] += strain.segment(n_str * idx[0], n_str);
+        phase_counts[mat_index]++;
     });
 
-    MPI_Allreduce(MPI_IN_PLACE, stress_average, n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    MPI_Allreduce(MPI_IN_PLACE, strain_average, n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    if (world_rank == 0){
+    MPI_Allreduce(MPI_IN_PLACE, stress_average.data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, strain_average.data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    stress_average /= (n_x * n_y * n_z);
+    strain_average /= (n_x * n_y * n_z);
+
+    // Reduce per-phase accumulations across all processes
+    for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
+        MPI_Allreduce(MPI_IN_PLACE, phase_stress_average[mat_index].data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(MPI_IN_PLACE, phase_strain_average[mat_index].data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(MPI_IN_PLACE, &phase_counts[mat_index], 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+        // Compute average for each phase
+        if (phase_counts[mat_index] > 0) {
+            phase_stress_average[mat_index] /= phase_counts[mat_index];
+            phase_strain_average[mat_index] /= phase_counts[mat_index];
+        }
+    }
+
+    if (world_rank == 0) {
         printf("# Effective Stress .. (");
-        for(int i = 0; i < n_str; i++){
-            stress_average[i] /= (n_x * n_y * n_z);
-            printf("%f ", stress_average[i]);
-        }
-        printf(") \n");
+        for (int i = 0; i < n_str; ++i) printf("%+f ", stress_average[i]); printf(") \n");
         printf("# Effective Strain .. (");
-        for(int i = 0; i < n_str; i++){
-            strain_average[i] /= (n_x * n_y * n_z);
-            printf("%f ", strain_average[i]);
-        }
-        printf(") \n\n");
+        for (int i = 0; i < n_str; ++i) printf("%+f ", strain_average[i]); printf(") \n\n");
     }
 
-    
-
-    for (int i = 0; i < world_size; i++){
-    	if(i == world_rank){
+    // Write results to results h5 file
+    auto writeData = [&](const char* resultName, const char* resultPrefix, auto* data, hsize_t size) {
+        if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), resultName) != reader.resultsToWrite.end()) {
             char name[5096];
+            sprintf(name, "%s/load%i/time_step%i/%s", reader.ms_datasetname, load_idx, time_idx, resultPrefix);
+            hsize_t dims[1] = {size};
+            reader.WriteData(data, resultsFileName, name, dims, 1);
+        }
+    };
 
-            if (world_rank == 0){
-                if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "stress_average") != reader.resultsToWrite.end()) {
-                        sprintf(name, "%s/load%i/stress_average", reader.ms_datasetname, suffix); // Writes the stress average
-                        hsize_t dims[1] = {static_cast<hsize_t>(n_str)};  // Dimension for 1D array
-                        reader.WriteData<double>(stress_average, resultsFileName, name, dims, 1);
+    auto writeSlab = [&](const char* resultName, const char* resultPrefix, auto* data, int size) {
+        if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), resultName) != reader.resultsToWrite.end()) {
+            char name[5096];
+            sprintf(name, "%s/load%i/time_step%i/%s", reader.ms_datasetname, load_idx, time_idx, resultPrefix);
+            reader.WriteSlab(data, size, resultsFileName, name);
+        }
+    };
+
+    for (int i = 0; i < world_size; ++i) {
+        if (i == world_rank) {
+            if (world_rank == 0) {
+                writeData("stress_average", "stress_average", stress_average.data(), n_str);
+                writeData("strain_average", "strain_average", strain_average.data(), n_str);
+                writeData("absolute_error", "absolute_error", err_all.data(), iter + 1);
+
+                for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
+                    char stress_name[512];
+                    char strain_name[512];
+                    sprintf(stress_name, "phase_stress_average_phase%d", mat_index);
+                    sprintf(strain_name, "phase_strain_average_phase%d", mat_index);
+                    writeData("phase_stress_average", stress_name, phase_stress_average[mat_index].data(), n_str);
+                    writeData("phase_strain_average", strain_name, phase_strain_average[mat_index].data(), n_str);
                 }
-                if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "strain_average") != reader.resultsToWrite.end()) {
-                        sprintf(name, "%s/load%i/strain_average", reader.ms_datasetname, suffix); // Writes the strain average
-                        hsize_t dims[1] = {static_cast<hsize_t>(n_str)};  // Dimension for 1D array
-                        reader.WriteData<double>(strain_average, resultsFileName, name, dims, 1);
-                }
-                if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "absolute_error") != reader.resultsToWrite.end()) {
-                        sprintf(name, "%s/load%i/absolute_error", reader.ms_datasetname, suffix); // Writes the absolute error
-                        hsize_t dims[1] = {static_cast<hsize_t>(iter+1)};  // Dimension for 1D array
-                        reader.WriteData<double>(err_all.data(), resultsFileName, name, dims, 1);
-                }
             }
-
-            if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "microstructure") != reader.resultsToWrite.end()) {
-                sprintf(name, "%s/load%i/microstructure", reader.ms_datasetname, suffix); // Writes the micro-structure
-                reader.WriteSlab<unsigned char>(ms, 1, resultsFileName, name);
-            }
-
-            if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "displacement") != reader.resultsToWrite.end()) {
-                sprintf(name, "%s/load%i/displacement", reader.ms_datasetname, suffix); // Writes the nodal displacement
-                reader.WriteSlab<double>(v_u, howmany, resultsFileName, name);
-            }
-
-            if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "residual") != reader.resultsToWrite.end()) {
-                sprintf(name, "%s/load%i/residual", reader.ms_datasetname, suffix); // Writes the nodal residual
-                reader.WriteSlab<double>(v_r, howmany, resultsFileName, name);
-            }
-
-            if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "strain") != reader.resultsToWrite.end()) {
-                sprintf(name, "%s/load%i/strain", reader.ms_datasetname, suffix); // Writes the strain
-                reader.WriteSlab<double>(strain, n_str, resultsFileName, name);
-            }
-
-            if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "stress") != reader.resultsToWrite.end()) {
-                sprintf(name, "%s/load%i/stress", reader.ms_datasetname, suffix); // Writes the stress
-                reader.WriteSlab<double>(stress, n_str, resultsFileName, name);
-            }
-      	}
-      	MPI_Barrier(MPI_COMM_WORLD);
+            writeSlab("microstructure", "microstructure", ms, 1);
+            writeSlab("displacement", "displacement", v_u, howmany);
+            writeSlab("residual", "residual", v_r, howmany);
+            writeSlab("strain", "strain", strain.data(), n_str);
+            writeSlab("stress", "stress", stress.data(), n_str);
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
     }
-    
-    // not very elegant -> redo as inherited mat specific postprocessing function
-    HyperElastic* hyperElastic = dynamic_cast<HyperElastic*>(this->matmodel);
-    if(hyperElastic != NULL){
-        postprocessHyperElastic(hyperElastic, reader, resultsFileName, suffix);
-    }
+    matmodel->postprocess(*this, reader, resultsFileName, load_idx, time_idx);
 }
 
-
-template<int howmany>
-void Solver<howmany>::postprocessHyperElastic(HyperElastic* hyperElastic, Reader reader, char const resultsFileName[], int suffix){
-
-    auto plasticflag = FANS_malloc<unsigned char>(local_n0 * n_y * n_z);
-    long n_plastic = 0, n_elastic = 0;
-    Matrix<double, 3*8, 1> ue;
-
-    //not necessary if this method is called after the normal preprocessing, but better to be safe
-    MPI_Sendrecv(v_u, n_y * n_z * 3, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
-                 v_u + local_n0 * n_y * n_z  * 3, n_y * n_z * 3, MPI_DOUBLE, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    iterateCubes<0>([&](ptrdiff_t *idx, ptrdiff_t *idxPadding){
-
-        for(int i = 0; i < 8; i++){
-            for(int j = 0; j < 3; j++){
-                ue(3*i + j, 0) = v_u[3*idx[i] + j];
-            }
-        }
-        int mat_index = ms[idx[0]];
-        if(hyperElastic->isElastic(ue, mat_index)){
-            plasticflag[idx[0]] = mat_index;
-            n_elastic++;
-        } else {
-            plasticflag[idx[0]] = hyperElastic->n_mat + mat_index;
-            n_plastic++;
-        }
-    });
-
-    MPI_Allreduce(MPI_IN_PLACE, &n_plastic, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
-    MPI_Allreduce(MPI_IN_PLACE, &n_elastic, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
-
-    if (world_rank == 0){
-        printf("Number of Plastic elements is %li out of %li \n",n_plastic,n_plastic+n_elastic);
-        printf("Number of Elastic elements is %li out of %li \n",n_elastic,n_plastic+n_elastic);
-    }
-
-    for (int i = 0; i < world_size; i++){
-    	if(i == world_rank){
-        	char name[5096];
-            if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "plastic_flag") != reader.resultsToWrite.end()) {
-                sprintf(name, "%s/load%i/plastic_flag", reader.ms_datasetname, suffix); // Writes the nodal displacement
-                reader.WriteSlab<unsigned char>(plasticflag, 1, resultsFileName, name);
-            }
-      	}
-      	MPI_Barrier(MPI_COMM_WORLD);
-    }
-}
 #endif

@@ -1,0 +1,23 @@
+{
+    "ms_filename": "microstructures/sphere32.h5",
+    "ms_datasetname": "/sphere/32x32x32/ms",
+    "ms_L": [1.0, 1.0, 1.0],
+
+    "problem_type": "thermal",
+    "matmodel": "LinearThermalIsotropic",
+    "material_properties":{
+        "conductivity": [1, 10]
+    },
+
+    "method": "cg",
+    "TOL": 1e-10,
+    "n_it": 100,
+    "macroscale_loading":   [
+                                [[1, 0, 0]],
+                                [[0, 1, 0]],
+                                [[0, 0, 1]]
+                            ],
+
+    "results": ["stress_average", "strain_average", "absolute_error", "phase_stress_average", "phase_strain_average",
+                "microstructure", "displacement", "stress", "strain"]
+}
