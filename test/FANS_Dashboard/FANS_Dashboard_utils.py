@@ -106,6 +106,17 @@ def extract_and_organize_data(file_path, hierarchy, quantities_to_load, microstr
     
     return organized_data
 
+
+
+
+
+
+
+
+
+
+
+
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
@@ -172,52 +183,3 @@ def plot_subplots(data1, data2, labels, title="Subplot Grid", nrows=None, ncols=
 
     # Show the plot
     fig.show()
-
-def compute_additional_stress_measures(data):
-    """
-    Computes von Mises stress, hydrostatic stress, and deviatoric stress directly from the stress tensor in Mandel notation.
-    Adds these measures to the `data` dictionary for all microstructures and load cases using vectorized operations.
-
-    Parameters:
-    - data: dictionary, contains strain and stress matrices as well as other simulation data
-
-    Returns:
-    - updated_data: dictionary, the original data dictionary with added von Mises, hydrostatic, and deviatoric stress
-    """
-
-    for microstructure, loads in data.items():
-        for load_case, measures in loads.items():
-            if 'stress_average' in measures:
-                # Extract the stress matrix in Mandel notation
-                stress_matrix = measures['stress_average']
-
-                # Compute the hydrostatic stress (mean of diagonal components)
-                hydrostatic_stress = np.mean(stress_matrix[:, :3], axis=1)
-                
-                # Deviatoric stress components (s11, s22, s33)
-                deviatoric_stress = stress_matrix[:, :3] - hydrostatic_stress[:, np.newaxis]
-
-                # Shear components (s12, s23, s13) from Mandel notation
-                deviatoric_shear = stress_matrix[:, 3:6]
-
-                # Compute von Mises stress using vectorized operations
-                von_mises_stress = np.sqrt(
-                    0.5 * (
-                        (deviatoric_stress[:, 0] - deviatoric_stress[:, 1])**2 +
-                        (deviatoric_stress[:, 1] - deviatoric_stress[:, 2])**2 +
-                        (deviatoric_stress[:, 2] - deviatoric_stress[:, 0])**2 +
-                        6 * (deviatoric_shear[:, 0]**2 + deviatoric_shear[:, 1]**2 + deviatoric_shear[:, 2]**2)
-                    )
-                )
-
-                # Reconstruct the deviatoric stress matrix in Mandel notation
-                deviatoric_stress_matrix = np.zeros_like(stress_matrix)
-                deviatoric_stress_matrix[:, :3] = deviatoric_stress  # Deviatoric normal stresses
-                deviatoric_stress_matrix[:, 3:6] = deviatoric_shear  # Deviatoric shear stress components
-
-                # Store the computed stresses in the data dictionary
-                measures['von_mises_stress'] = von_mises_stress
-                measures['hydrostatic_stress'] = hydrostatic_stress
-                measures['deviatoric_stress'] = deviatoric_stress_matrix
-
-    return data
