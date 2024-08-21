@@ -15,4 +15,4 @@ command time -v mpiexec -n $num_processes ./FANS input_files/test_LinearElasticI
 
 command time -v mpiexec -n $num_processes ./FANS input_files/test_PseudoPlasticLinearHardening.json test_PseudoPlasticLinearHardening.h5 > test_PseudoPlasticLinearHardening.log 2>&1
 
-nohup time -v mpiexec -n $num_processes ./FANS input_files/test_VonMisesPlasticLinearIsotropicHardening.json test_VonMisesPlasticLinearIsotropicHardening.h5 > test_VonMisesPlasticLinearIsotropicHardening.log 2>&1 &
+command time -v mpiexec -n $num_processes ./FANS input_files/test_VonMisesPlasticLinearIsotropicHardening.json test_VonMisesPlasticLinearIsotropicHardening.h5 > test_VonMisesPlasticLinearIsotropicHardening.log 2>&1

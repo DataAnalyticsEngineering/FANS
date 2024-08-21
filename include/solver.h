@@ -383,19 +383,9 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
                 ue(howmany * i + j, 0) = v_u[howmany * idx[i] + j];
             }
         }
-<<<<<<< HEAD
-<<<<<<< HEAD
         mat_index = ms[idx[0]];
 
         matmodel->getStrainStress(strain.segment(n_str * idx[0], n_str).data(), stress.segment(n_str * idx[0], n_str).data(), ue, mat_index, idx[0]);
-=======
-        matmodel->getStrainStress(strain.segment(n_str * idx[0], n_str).data(), stress.segment(n_str * idx[0], n_str).data(), ue, ms[idx[0]], idx[0]);
->>>>>>> added VonMisesPlasticLinearIsotropicHardening
-=======
-        mat_index = ms[idx[0]];
-
-        matmodel->getStrainStress(strain.segment(n_str * idx[0], n_str).data(), stress.segment(n_str * idx[0], n_str).data(), ue, mat_index, idx[0]);
->>>>>>> phase-wise stress and strain averages can be written to the h5 file
         stress_average += stress.segment(n_str * idx[0], n_str);
         strain_average += strain.segment(n_str * idx[0], n_str);
 
@@ -471,13 +461,6 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-
->>>>>>> material model refactor
-=======
->>>>>>> phase-wise stress and strain averages can be written to the h5 file
     matmodel->postprocess(*this, reader, resultsFileName, load_idx, time_idx);
 }
 
