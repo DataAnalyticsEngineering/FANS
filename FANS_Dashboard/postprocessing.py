@@ -19,12 +19,8 @@ def compute_rank2tensor_measures(tensor_matrix, measures_to_compute=None):
                            - 'deviatoric': Computes the deviatoric stress/strain.
                            - 'principal': Computes the principal stresses/strains (eigenvalues).
                            - 'max_shear': Computes the maximum shear stress/strain.
-                           - 'I1': Computes the first invariant (trace of the tensor).
-                           - 'I2': Computes the second invariant.
-                           - 'I3': Computes the third invariant (determinant of the tensor).
-                           - 'J1': Computes the first invariant of the deviatoric tensor (should be zero for deviatoric tensors).
-                           - 'J2': Computes the second invariant of the deviatoric tensor.
-                           - 'J3': Computes the third invariant of the deviatoric tensor.
+                           - 'I_invariants': Computes the I1, I2, I3 invariants.
+                           - 'J_invariants': Computes the J1, J2, J3 invariants of the deviatoric tensor.
                            - 'eigenvalues': Computes the eigenvalues of the stress/strain tensor.
                            - 'eigenvectors': Computes the eigenvectors of the stress/strain tensor.
                            - 'lode_angle': Computes the Lode angle, useful in advanced plasticity models.
@@ -65,24 +61,26 @@ def compute_rank2tensor_measures(tensor_matrix, measures_to_compute=None):
         )
         result['von_mises'] = von_mises.reshape(original_shape)
 
-    # Compute J2 if requested or if lode_angle is requested (since J2 is needed for lode_angle)
-    if 'J2' in measures_to_compute or 'lode_angle' in measures_to_compute:
-        J2 = 0.5 * np.sum(deviatoric**2 + 2 * deviatoric_shear**2, axis=1)
-        result['J2'] = J2.reshape(original_shape)
+    # Compute I1, I2, I3 invariants if requested
+    if 'I_invariants' in measures_to_compute:
+        I1 = np.sum(tensor_matrix[:, :3], axis=1)
+        I2 = tensor_matrix[:, 0]*tensor_matrix[:, 1] + tensor_matrix[:, 1]*tensor_matrix[:, 2] + tensor_matrix[:, 2]*tensor_matrix[:, 0] - \
+             tensor_matrix[:, 3]**2 - tensor_matrix[:, 4]**2 - tensor_matrix[:, 5]**2
+        if 'full_tensor' not in locals():
+            full_tensor = mandel_to_matrix(tensor_matrix)
+        I3 = np.linalg.det(full_tensor)
+        result['I_invariants'] = np.stack([I1, I2, I3], axis=-1).reshape(original_shape + (3,))
 
-    # Compute J1 (should be zero for purely deviatoric tensors)
-    if 'J1' in measures_to_compute:
+    # Compute J1, J2, J3 invariants if requested
+    if 'J_invariants' in measures_to_compute or 'lode_angle' in measures_to_compute:
         J1 = np.sum(deviatoric_tensor[:, :3], axis=1)
-        result['J1'] = J1.reshape(original_shape)
-
-    # Compute full deviatoric tensor and J3 if requested
-    if 'J3' in measures_to_compute:
+        J2 = 0.5 * np.sum(deviatoric**2 + 2 * deviatoric_shear**2, axis=1)
         full_deviatoric_tensor = mandel_to_matrix(deviatoric_tensor)
         J3 = np.linalg.det(full_deviatoric_tensor)
-        result['J3'] = J3.reshape(original_shape)
+        result['J_invariants'] = np.stack([J1, J2, J3], axis=-1).reshape(original_shape + (3,))
 
-    # Compute principal stresses/strains and maximum shear stress/strain
-    if any(measure in measures_to_compute for measure in ['principal', 'max_shear', 'eigenvalues', 'eigenvectors', 'I3']):
+    # Principal stresses/strains, maximum shear, eigenvalues, and eigenvectors
+    if any(measure in measures_to_compute for measure in ['principal', 'max_shear', 'eigenvalues', 'eigenvectors']):
         full_tensor = mandel_to_matrix(tensor_matrix)
         eigenvalues, eigenvectors = np.linalg.eigh(full_tensor)
         if 'principal' in measures_to_compute:
@@ -97,9 +95,9 @@ def compute_rank2tensor_measures(tensor_matrix, measures_to_compute=None):
 
     # Lode angle calculation
     if 'lode_angle' in measures_to_compute:
-        if 'J2' not in result:  # Compute J2 if not already computed
+        if 'J2' not in locals():  # Compute J2 if not already computed
             J2 = 0.5 * np.sum(deviatoric**2 + 2 * deviatoric_shear**2, axis=1)
-        if 'J3' not in result:  # Compute J3 if not already computed
+        if 'J3' not in locals():  # Compute J3 if not already computed
             full_deviatoric_tensor = mandel_to_matrix(deviatoric_tensor)
             J3 = np.linalg.det(full_deviatoric_tensor)
         # Handle very small J2 values to prevent division by zero
@@ -108,25 +106,8 @@ def compute_rank2tensor_measures(tensor_matrix, measures_to_compute=None):
         cos_3theta = np.clip(sqrt_3_3 * (J3 / safe_J2**(3/2)), -1, 1)
         lode_angle = (1.0 / 3.0) * np.arccos(cos_3theta)
         result['lode_angle'] = lode_angle.reshape(original_shape)
-
-    # Invariants I1, I2, I3
-    if 'I1' in measures_to_compute:
-        I1 = np.sum(tensor_matrix[:, :3], axis=1)
-        result['I1'] = I1.reshape(original_shape)
-
-    if 'I2' in measures_to_compute:
-        I2 = tensor_matrix[:, 0]*tensor_matrix[:, 1] + tensor_matrix[:, 1]*tensor_matrix[:, 2] + tensor_matrix[:, 2]*tensor_matrix[:, 0] - \
-             tensor_matrix[:, 3]**2 - tensor_matrix[:, 4]**2 - tensor_matrix[:, 5]**2
-        result['I2'] = I2.reshape(original_shape)
-
-    if 'I3' in measures_to_compute:
-        if 'full_tensor' not in locals():
-            full_tensor = mandel_to_matrix(tensor_matrix)
-        I3 = np.linalg.det(full_tensor)
-        result['I3'] = I3.reshape(original_shape)
-
+        
     return result
-
 
 
 def mandel_to_matrix(mandel_tensor):
