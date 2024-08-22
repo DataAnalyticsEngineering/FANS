@@ -191,7 +191,11 @@ FANS
 run.sh
 *.h5
 data_gen/
+test/input_files/*.json
+test/input_files/**/*.json
 
+# Dedicated folder for personal projects
+**/scratch/
 
 # Test microstructure files
 !sphere.h5
