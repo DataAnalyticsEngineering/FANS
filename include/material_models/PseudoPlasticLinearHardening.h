@@ -27,7 +27,7 @@ public:
             eps_crit[i] = sqrt(2./3.) * yield_stress[i] / (2.*shear_modulus[i]);
             E_s[i] = (3.*shear_modulus[i]) / (3.*shear_modulus[i] + hardening_parameter[i]);
 
-            Ce[i] = 3*bulk_modulus[i] * topLeft + 
+            Ce[i] = 3*bulk_modulus[i] * topLeft +
                     2*shear_modulus[i] * (-1./3 * topLeft + Matrix<double, 6, 6>::Identity());
         }
         kapparef_mat = 0.5 * (Ce[0] + Ce[1]); // Note: only works for two materials
@@ -41,14 +41,14 @@ public:
         treps = eps.block<3, 1>(i, 0).sum();
         dev_eps.head<3>() = eps.block<3, 1>(i, 0) - (1.0 / 3.0) * treps * Matrix<double, 3, 1>::Ones();
         dev_eps.tail<3>() = eps.block<3, 1>(i + 3, 0);
-        
+
         norm_dev_eps = dev_eps.norm();
         buf1 = bulk_modulus[mat_index] * treps;
 
         if (norm_dev_eps <= eps_crit[mat_index]) {
             buf2 = 2.0 * shear_modulus[mat_index];
             plastic_flag[element_idx](i / n_str) = mat_index;
-        } else {           
+        } else {
             buf2 = (b*yield_stress[mat_index] + a*E_s[mat_index]*hardening_parameter[mat_index]*
                     (norm_dev_eps - eps_crit[mat_index])) / norm_dev_eps;
             plastic_flag[element_idx](i / n_str) = this->n_mat + mat_index;
@@ -76,7 +76,7 @@ private:
 };
 
 void PseudoPlasticLinearHardening::postprocess(Solver<3>& solver, Reader& reader, const char* resultsFileName, int load_idx, int time_idx) {
-    
+
     VectorXf element_plastic_flag = VectorXf::Zero(solver.local_n0 * solver.n_y * solver.n_z);
     for (ptrdiff_t elem_idx = 0; elem_idx < solver.local_n0 * solver.n_y * solver.n_z; ++elem_idx) {
         element_plastic_flag(elem_idx) = plastic_flag[elem_idx].cast<float>().mean();

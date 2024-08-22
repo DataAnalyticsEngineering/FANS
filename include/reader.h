@@ -46,12 +46,12 @@ class Reader{
         void ComputeVolumeFractions();
         // void ReadHDF5(char file_name[], char dset_name[]);
         void safe_create_group( hid_t file, const char * const name );
-        
+
         template<typename T>
         void WriteSlab(T *data, int _howmany, const char* file_name, const char* dset_name);
 
         template<typename T>
-        void WriteData(T *data, const char* file_name, const char* dset_name, hsize_t* dims, int rank);        
+        void WriteData(T *data, const char* file_name, const char* dset_name, hsize_t* dims, int rank);
 };
 
 template<typename T>
@@ -66,7 +66,7 @@ void Reader::WriteData(T *data, const char* file_name, const char* dset_name, hs
         throw std::invalid_argument("Conversion of this data type to H5 data type not yet implemented");
     }
 
-    hid_t	    plist_id;                
+    hid_t	    plist_id;
     hid_t       file_id;
     plist_id = H5Pcreate(H5P_FILE_ACCESS);
 
@@ -142,7 +142,7 @@ void Reader::WriteSlab(T *data, int _howmany, const char* file_name, const char*
     } else {
         throw std::invalid_argument("Conversion of this data type to H5 data type not yet implemented");
     }
-	
+
     hid_t       file_id, dset_id;         /* file and dataset identifiers */
     hid_t       filespace, memspace;      /* file and memory dataspace identifiers */
     hid_t	    plist_id;                 /* property list identifier */
@@ -150,8 +150,8 @@ void Reader::WriteSlab(T *data, int _howmany, const char* file_name, const char*
     int         rank = 4;
     hsize_t     dimsf[rank];                 /* dataset dimensions */
     hsize_t	    count[rank];	          /* hyperslab selection parameters */
-    hsize_t	    offset[rank]; 
- 
+    hsize_t	    offset[rank];
+
     plist_id = H5Pcreate(H5P_FILE_ACCESS);
     // H5Pset_fapl_mpio(plist_id, comm, info);
 
@@ -177,7 +177,7 @@ void Reader::WriteSlab(T *data, int _howmany, const char* file_name, const char*
     dimsf[2] = this->dims[2];
     dimsf[3] = _howmany;
 
-    filespace = H5Screate_simple(rank, dimsf, NULL); 
+    filespace = H5Screate_simple(rank, dimsf, NULL);
 
     //dset_name = "test123";
     safe_create_group(file_id, dset_name);
@@ -202,7 +202,7 @@ void Reader::WriteSlab(T *data, int _howmany, const char* file_name, const char*
         // dset_id = H5Dcreate(file_id, dset_name, data_type, filespace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
         // H5Pclose(dcpl_id);
     }
-    
+
     count[0] = local_n0;
     count[1] = dimsf[1];
     count[2] = dimsf[2];
@@ -218,7 +218,7 @@ void Reader::WriteSlab(T *data, int _howmany, const char* file_name, const char*
 
     plist_id = H5Pcreate(H5P_DATASET_XFER);
     //H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
-    
+
     status = H5Dwrite(dset_id, data_type, memspace, filespace, plist_id, data);
 
     H5Dclose(dset_id);

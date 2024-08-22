@@ -23,7 +23,7 @@ public:
         topLeft.topLeftCorner(3, 3).setConstant(1);
 
         for (int i = 0; i < n_mat; ++i) {
-            Ce[i] = 3 * bulk_modulus[i] * topLeft + 
+            Ce[i] = 3 * bulk_modulus[i] * topLeft +
                     2 * shear_modulus[i] * (-1.0 / 3.0 * topLeft + Matrix<double, 6, 6>::Identity());
             two_G_plus_H[i] = 2 * shear_modulus[i] + (2.0 / 3.0) * hardening_parameter[i];
         }
@@ -84,7 +84,7 @@ private:
     vector<double> shear_modulus;
     vector<double> yield_stress;
     vector<double> hardening_parameter;
-    vector<double> two_G_plus_H;  
+    vector<double> two_G_plus_H;
     double sqrt_two_over_three;
 
     // Internal variables

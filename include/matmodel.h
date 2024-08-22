@@ -38,7 +38,7 @@ public:
 
     virtual void postprocess(Solver<howmany>& solver, Reader& reader, const char* resultsFileName, int load_idx, int time_idx) {}
 
-    virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) {}    
+    virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) {}
 protected:
 
     double l_e_x;
@@ -123,7 +123,7 @@ Matrix<double, howmany*8, 1>& Matmodel<howmany>::element_residual(Matrix<double,
 }
 template<int howmany>
 void Matmodel<howmany>::getStrainStress(double* strain, double* stress, Matrix<double, howmany*8, 1>& ue, int mat_index, ptrdiff_t element_idx){
-    
+
     eps.template topRows<n_str>().noalias() = g0.template topRows<n_str>() + B_el_mean * ue;
     get_sigma(0, mat_index, element_idx);
 
@@ -151,7 +151,7 @@ Matrix<double, howmany*8, howmany*8> Matmodel<howmany> :: Compute_Reference_Elem
     }
     //before: 8 groups of howmany      after: howmany groups of 8
     for (int i = 0; i < howmany*8; ++i) {
-        for (int j = 0; j < howmany*8; ++j) {    
+        for (int j = 0; j < howmany*8; ++j) {
             Reference_ElementStiffness((i % howmany) * 8 + i / howmany, (j % howmany) * 8 + j / howmany) = tmp(i, j);
         }
     }
@@ -181,7 +181,7 @@ inline Matrix<double, 6, 24> MechModel::Compute_B(const double x, const double y
     Matrix<double, 6, 24> out = Matrix<double, 6, 24>::Zero();
     Matrix<double, 3, 8> B_tmp = Matmodel<3>::Compute_basic_B(x, y, z);
     const double sqrt_half = 7.071067811865476e-01;
-    
+
 
     for(int q=0; q<8; q++)
     {

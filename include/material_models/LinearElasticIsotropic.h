@@ -18,9 +18,9 @@ public:
             lambda[i] = bulk_modulus[i] - (2.0 / 3.0) * mu[i];
         }
 
-        double lambda_ref = (*max_element(lambda.begin(), lambda.end()) + 
+        double lambda_ref = (*max_element(lambda.begin(), lambda.end()) +
                              *min_element(lambda.begin(), lambda.end())) / 2;
-        double mu_ref = (*max_element(mu.begin(), mu.end()) + 
+        double mu_ref = (*max_element(mu.begin(), mu.end()) +
                          *min_element(mu.begin(), mu.end())) / 2;
 
         kapparef_mat = Matrix<double, 6, 6>::Zero();
@@ -36,7 +36,7 @@ public:
 
             phase_kappa.topLeftCorner(3, 3).setConstant(lambda[i]);
             phase_kappa += 2 * mu[i] * Matrix<double, 6, 6>::Identity();
-            
+
             for (int p = 0; p < 8; ++p) {
                 phase_stiffness[i] += B_int[p].transpose() * phase_kappa * B_int[p] * v_e * 0.1250;
             }

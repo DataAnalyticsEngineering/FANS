@@ -9,7 +9,7 @@ template<int howmany>
 class Solver{
 public:
     Solver(Reader reader, Matmodel<howmany>* matmodel);
-    
+
     Reader reader;
 
     const int world_rank;
@@ -26,12 +26,12 @@ public:
     const int n_it;                              //!< Max number of FANS iterations
     const double TOL;                            //!< Tolerance on relative error norm
     Matmodel<howmany>* matmodel;                 //!< Material Model
-    
+
     unsigned char *ms;      // Micro-structure Binary
     double *v_r;            //!< Residual vector
     double *v_u;
     double *buffer_padding;
-    
+
     RealArray v_r_real;     //can't do the "classname()" intialization here, and Map doesn't have a default constructor
     RealArray v_u_real;
     Map<VectorXcd> rhat;
@@ -45,7 +45,7 @@ public:
 
     void solve();
     virtual void internalSolve(){};         //important to have "{}" here, otherwise we get an error about undefined reference to vtable
-    
+
     template<int padding, typename F>
     void compute_residual_basic(RealArray& r_matrix, RealArray& u_matrix, F f);
     template<int padding>
@@ -65,39 +65,39 @@ protected:
 
 
 template <int howmany>
-Solver<howmany> :: Solver(Reader reader, Matmodel<howmany>* mat) : 
+Solver<howmany> :: Solver(Reader reader, Matmodel<howmany>* mat) :
     reader(reader),
 	matmodel(mat),
     world_rank(reader.world_rank),
     world_size(reader.world_size),
-    n_x(reader.dims[0]), 
-    n_y(reader.dims[1]), 
+    n_x(reader.dims[0]),
+    n_y(reader.dims[1]),
     n_z(reader.dims[2]),
     local_n0(reader.local_n0),
     local_n1(reader.local_n1),
     local_0_start(reader.local_0_start),
     local_1_start(reader.local_1_start),
 
-    n_it(reader.n_it), 
+    n_it(reader.n_it),
     TOL(reader.TOL),
     ms(reader.ms),
 
     v_r(fftw_alloc_real(std::max(reader.alloc_local * 2, (local_n0 + 1) * n_y * (n_z + 2) * howmany))),
     v_r_real(v_r, n_z * howmany, local_n0 * n_y, OuterStride<>((n_z + 2) * howmany)),
-    
+
     v_u(fftw_alloc_real((local_n0 + 1) * n_y * n_z * howmany)),
     v_u_real(v_u, n_z * howmany, local_n0 * n_y, OuterStride<>(n_z * howmany)),
 
     rhat((std::complex<double>*) v_r, local_n1 * n_x * (n_z / 2 + 1) * howmany),   //actual initialization is below
     buffer_padding(fftw_alloc_real(n_y * (n_z + 2) * howmany))
-{   
+{
     v_u_real.setZero();
     for(ptrdiff_t i = local_n0 * n_y * n_z * howmany; i < (local_n0 + 1) * n_y * n_z * howmany; i++){
         this->v_u[i] = 0;
     }
-    
+
     matmodel->initializeInternalVariables( local_n0 * n_y * n_z, 8);
-    
+
     if (world_rank == 0){
         printf ("\n# Start creating Fundamental Solution(s) \n");
     }
@@ -132,7 +132,7 @@ Solver<howmany> :: Solver(Reader reader, Matmodel<howmany>* mat) :
                 A(6, 0) = etaz(i_z)*etay(local_1_start + i_y);
                 A(7, 0) = etax(i_x)*etay(local_1_start + i_y)*etaz(i_z);
                 AA = A.real() * A.real().transpose() + A.imag() * A.imag().transpose();
-                
+
                 for(int i = 0; i < howmany; i++){
                     for(int j = i; j < howmany; j++){
                         block(i, j) = (Ker0.template block<8, 8>(8*i, 8*j).array() * AA.array()).sum();
@@ -194,7 +194,7 @@ void Solver<howmany> :: compute_residual_basic(RealArray& r_matrix, RealArray& u
         r[i] = 0;
     }
 
-    //int MPI_Sendrecv(void *sendbuf, int sendcount, MPI_Datatype sendtype, int dest, int sendtag, void *recvbuf, 
+    //int MPI_Sendrecv(void *sendbuf, int sendcount, MPI_Datatype sendtype, int dest, int sendtag, void *recvbuf,
     //          int recvcount, MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm, MPI_Status *status)
     MPI_Sendrecv(u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
                  u + local_n0 * n_y * n_z  * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -320,7 +320,7 @@ void Solver<howmany>::convolution(){
     // discussion of real times complex: https://forum.kde.org/viewtopic.php?f=74&t=85678
 
     clock_t dtime = clock(); fftw_execute(planfft); fft_time += clock() - dtime; buftime = clock() - dtime;
-        
+
     Matrix<complex<double>, howmany, howmany> tmp;
     for(ptrdiff_t i = 0; i < (local_n1 * n_x * (n_z/2 + 1)) / 2; i++){
 

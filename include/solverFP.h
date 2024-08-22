@@ -17,7 +17,7 @@ public:
     SolverFP(Reader reader, Matmodel<howmany>* matmodel);
 
     void internalSolve();
-    
+
 protected:
     using Solver<howmany>::iter;
 };
@@ -26,7 +26,7 @@ template<int howmany>
 SolverFP<howmany> :: SolverFP(Reader reader, Matmodel<howmany>* matmodel) : Solver<howmany>(reader, matmodel)
 {
     this->CreateFFTWPlans(this->v_r, (fftw_complex*) this->v_r, this->v_r);
-}   
+}
 
 template<int howmany>
 void SolverFP<howmany> :: internalSolve() {
