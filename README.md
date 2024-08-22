@@ -17,7 +17,7 @@ Fourier Accelerated Nodal Solvers (FANS) is an FFT-based homogenization solver d
 
 Before proceeding with the installation, ensure that your system has the necessary dependencies. The prerequisites of FANS can be installed using Spack for a streamlined setup on high-performance computing systems, or through traditional package management for personal use.
 
-#### Spack Installation (Recommended for Clusters/Supercomputers)
+### Spack Installation (Recommended for Clusters/Supercomputers)
 
 Spack is a package manager designed for high-performance computing environments. It simplifies the installation of complex software stacks, making it ideal for setting up FANS on large clusters or supercomputers.
 
@@ -47,7 +47,7 @@ Spack is a package manager designed for high-performance computing environments.
     spack load cmake mpi hdf5 eigen fftw
     ```
 
-#### Traditional Installation
+### Traditional Installation
 
 If you're setting up FANS on a personal computer or in a non-HPC environment, follow these instructions:
 
@@ -157,16 +157,6 @@ To run a linear elastic mechanical homogenization problem for a single load case
 ```bash
 mpiexec -n 1 ./FANS input_files/sphere_mech.json
 ```
-
-### Code of Conduct
-
-Please review our [Code of Conduct](CODE_OF_CONDUCT.md) to ensure a respectful and inclusive community.
-
-### Contributor License Agreement (CLA)
-
-By contributing, you agree that your contributions will be licensed under the project's license. You may be asked to sign a Contributor License Agreement (CLA).
-
-Thank you for contributing to FANS! Your efforts help make this project better for everyone.
 
 ## Acknowledgements
 
