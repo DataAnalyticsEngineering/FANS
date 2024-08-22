@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 def plot_subplots(data1, data2, labels_x=None, labels_y=None, subplot_titles=None, title="Subplot Grid", nrows=None, ncols=None,
-                  linewidth=1, markersize=4, linecolor="blue", markercolor="red", aspect_ratio=None, fontsize=12):
+                  linewidth=1, markersize=4, linecolor="blue", markercolor="red", fontsize=12):
     """
     Plot a grid of subplots using Plotly, handling both single-component (scalar vs scalar) and multi-component data.
 
@@ -20,7 +20,6 @@ def plot_subplots(data1, data2, labels_x=None, labels_y=None, subplot_titles=Non
     - markersize: int, size of the markers (optional, default=4)
     - linecolor: string, color of the lines (optional, default="blue")
     - markercolor: string, color of the markers (optional, default="red")
-    - aspect_ratio: tuple, aspect ratio of the subplots as (x, y) (optional, default=None)
     - fontsize: int, font size for axis labels, subplot titles, and tick labels (optional, default=12)
     """
     # Validate data shapes
@@ -104,21 +103,12 @@ def plot_subplots(data1, data2, labels_x=None, labels_y=None, subplot_titles=Non
     for annotation in fig['layout']['annotations']:
         annotation['font'] = dict(size=fontsize)
 
-    # Set aspect ratio if provided
-    if aspect_ratio:
-        fig.update_layout(
-            # xaxis=dict(scaleanchor="y", scaleratio=aspect_ratio[0]/aspect_ratio[1]),
-            # yaxis=dict(scaleanchor="x", scaleratio=aspect_ratio[1]/aspect_ratio[0])
-        )
-
-
-
-    # # Increase the DPI/quality of the plots by setting higher resolution dimensions
-    # fig.update_layout(
-    #     height=1200,
-    #     width=1800,
-    #     autosize=False,
-    # )
+    # Increase the DPI/quality of the plots by setting higher resolution dimensions
+    fig.update_layout(
+        height=1200,
+        width=1800,
+        autosize=False,
+    )
 
     # Show the plot
     fig.show()
