@@ -66,12 +66,16 @@ def write_xdmf(h5_filepath, xdmf_filepath=None, microstructure_length=[1, 1, 1],
         else:
             attr_name = dset.name
         
+        ### Careful: This is a hack to fix the attribute center for displacement datasets
+        attr_center = "Node" if "displacement" in dset.name else "Cell"
+        ### Be very careful with this hack. It is not a general solution.
+
         attr = ET.SubElement(
             grid,
             "Attribute",
             Name=attr_name,
             AttributeType=element,
-            Center="Cell",
+            Center=attr_center,
         )
 
         data_item = ET.SubElement(
@@ -199,16 +203,8 @@ if __name__ == "__main__":
         default=[1.0, 1.0, 1.0], 
         metavar=('Lx', 'Ly', 'Lz'),
         help=(
-            "Cube length in x, y, z dimensions.\n"
+            "Microstructure length in x, y, z dimensions.\n"
             "Provide three floats. Default is [1.0, 1.0, 1.0]."
-        )
-    )
-    parser.add_argument(
-        '-t', '--time-series', 
-        action='store_true', 
-        help=(
-            "Treat datasets as a time series based on time_step groups.\n"
-            "If this flag is set, the script will search for datasets within groups named '<keyword>{value}' and creates a temporal collection in the XDMF file."
         )
     )
     parser.add_argument(
@@ -220,7 +216,15 @@ if __name__ == "__main__":
             "This keyword should be followed by a value to denote the time in the group names."
         )
     )
-
+    parser.add_argument(
+        '-t', '--time-series', 
+        action='store_true', 
+        help=(
+            "Treat datasets as a time series based on '<time-keyword>{value}' groups.\n"
+            "If this flag is set, the script will search for datasets within groups named '<time-keyword>{value}' and creates a temporal collection in the XDMF file."
+        )
+    )
+    
     args = parser.parse_args()
 
     for h5_filepath in args.h5_filepath:

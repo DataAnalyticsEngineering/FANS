@@ -1,6 +1,7 @@
 import h5py
 import numpy as np
 from collections import defaultdict
+from postprocessing import compute_rank2tensor_measures
 
 def recursively_find_structure(group, current_path=""):
     """
@@ -106,118 +107,91 @@ def extract_and_organize_data(file_path, hierarchy, quantities_to_load, microstr
     
     return organized_data
 
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
-def plot_subplots(data1, data2, labels, title="Subplot Grid", nrows=None, ncols=None):
+
+
+
+
+def write_processed_data_to_h5(file_path, processed_data, overwrite=True):
     """
-    Plot a grid of subplots using Plotly, handling both single-component (scalar vs scalar) and multi-component data.
+    Writes processed data back into the HDF5 file at the correct locations.
     
     Parameters:
-    - data1: numpy array, first set of data to plot (e.g., strain, time)
-    - data2: numpy array, second set of data to plot (e.g., stress)
-    - labels: tuple of strings, labels for the x and y axes (e.g., ("Strain", "Stress"))
-    - title: string, title of the overall plot
-    - nrows: int, number of rows in the subplot grid (optional)
-    - ncols: int, number of columns in the subplot grid (optional)
+    - file_path: str, path to the HDF5 file.
+    - processed_data: dict, structured data with computed measures to write back.
+    - overwrite: bool, whether to overwrite existing datasets.
+    
+    Returns:
+    - None
     """
-    # Ensure data1 and data2 are 2D arrays
-    if data1.ndim == 1:
-        data1 = data1[:, np.newaxis]
-    if data2.ndim == 1:
-        data2 = data2[:, np.newaxis]
-    
-    # Set the number of components based on data shape
-    n_components = data1.shape[1]
-    
-    # If nrows or ncols is not specified, determine an optimal grid layout
-    if nrows is None or ncols is None:
-        nrows = int(np.ceil(np.sqrt(n_components)))
-        ncols = int(np.ceil(n_components / nrows))
-    
-    # Create the subplot figure
-    fig = make_subplots(rows=nrows, cols=ncols, subplot_titles=[f'Component {i+1}' for i in range(n_components)])
+    with h5py.File(file_path, 'a') as h5file:
+        for microstructure, loads in processed_data.items():
+            for load_case, data in loads.items():
+                time_steps = data.pop('time_steps', [])
+                for measure_name, data_array in data.items():
+                    for time_step_idx, time_step in enumerate(time_steps):
+                        time_step_group = f"{microstructure}/{load_case}/time_step{time_step}"
+                        dataset_path = f"{time_step_group}/{measure_name}"
+                        
+                        # Ensure the group exists
+                        if time_step_group not in h5file:
+                            raise ValueError(f"Group '{time_step_group}' does not exist in the HDF5 file.")
+                        
+                        # Check if the dataset already exists
+                        if dataset_path in h5file:
+                            if overwrite:
+                                del h5file[dataset_path]
+                                h5file.create_dataset(dataset_path, data=data_array[time_step_idx])
+                            else:
+                                print(f"Dataset exists and overwrite=False: {dataset_path}")
+                        else:
+                            h5file.create_dataset(dataset_path, data=data_array[time_step_idx])
 
-    # Add traces for each component
-    for i in range(n_components):
-        row = i // ncols + 1
-        col = i % ncols + 1
-        fig.add_trace(go.Scatter(
-            x=data1[:, i],
-            y=data2[:, i],
-            mode='lines+markers',
-            marker=dict(symbol='x', size=4),
-            line=dict(width=1),
-            name=f'Component {i+1}'
-        ), row=row, col=col)
 
-    # Update layout with text labels and styling
-    fig.update_layout(
-        height=600,
-        width=900,
-        title_text=title,
-        showlegend=False,
-        template="plotly_white",
-    )
-
-    # Update axes with text labels
-    for i in range(n_components):
-        row = i // ncols + 1
-        col = i % ncols + 1
-        fig.update_xaxes(title_text=labels[0], row=row, col=col, showgrid=True)
-        fig.update_yaxes(title_text=labels[1], row=row, col=col, showgrid=True)
-
-    # Adjust layout for tight spacing
-    fig.update_layout(margin=dict(l=20, r=20, t=50, b=20), title_x=0.5)
-
-    # Show the plot
-    fig.show()
-
-def compute_additional_stress_measures(data):
+def postprocess_and_write_to_h5(file_path, hierarchy, quantities_to_process, measures, 
+                               microstructures_to_load=None, load_cases_to_load=None):
     """
-    Computes von Mises stress, hydrostatic stress, and deviatoric stress directly from the stress tensor in Mandel notation.
-    Adds these measures to the `data` dictionary for all microstructures and load cases using vectorized operations.
+    A higher-level function that extracts specific data from an HDF5 file, processes it to compute various tensor measures,
+    and writes the results back into the HDF5 file using the naming convention 'quantity_measure'.
 
     Parameters:
-    - data: dictionary, contains strain and stress matrices as well as other simulation data
+    - file_path: str
+        Path to the HDF5 file containing the data.
+    - hierarchy: dict
+        The structure of the HDF5 file as identified by the `identify_hierarchy` function.
+    - quantities_to_process: list of str
+        List of quantities (e.g., 'stress_average', 'strain_average') to extract from the HDF5 file and process.
+    - measures: list of str
+        List of tensor measures to compute for the extracted quantities. 
+        Available options can be found in the `compute_rank2tensor_measures` function in the `postprocessing` module.
+    - microstructures_to_load: list of str, optional
+        List of microstructures to process. If None, all microstructures found in the hierarchy will be processed.
+    - load_cases_to_load: list of str, optional
+        List of load cases to process. If None, all load cases found in the hierarchy will be processed.
 
     Returns:
-    - updated_data: dictionary, the original data dictionary with added von Mises, hydrostatic, and deviatoric stress
+    - processed_data: dict
+        A dictionary containing the processed data, organized by microstructure and load case. 
+        The computed measures are stored under keys following the 'quantity_measure' naming convention.
+        Additionally, the processed data is also written back into the HDF5 file at the corresponding locations.
     """
+    # Extract the data (loads all time steps if time_steps_to_load is None or empty)
+    extracted_data = extract_and_organize_data(file_path, hierarchy, quantities_to_process, 
+                                               microstructures_to_load, load_cases_to_load)
+    
+    # Process the data and prepare for writing
+    processed_data = defaultdict(lambda: defaultdict(dict))
+    for microstructure, loads in extracted_data.items():
+        for load_case, quantities in loads.items():
+            time_steps = quantities.pop('time_steps', [])
+            for quantity_name, tensor_data in quantities.items():
+                measures_results = compute_rank2tensor_measures(tensor_data, measures)
+                for measure_name, measure_data in measures_results.items():
+                    key = f"{quantity_name}_{measure_name}"
+                    processed_data[microstructure][load_case][key] = measure_data
+            processed_data[microstructure][load_case]['time_steps'] = time_steps
+    
+    # Write the processed data back to the HDF5 file
+    write_processed_data_to_h5(file_path, processed_data)
 
-    for microstructure, loads in data.items():
-        for load_case, measures in loads.items():
-            if 'stress_average' in measures:
-                # Extract the stress matrix in Mandel notation
-                stress_matrix = measures['stress_average']
-
-                # Compute the hydrostatic stress (mean of diagonal components)
-                hydrostatic_stress = np.mean(stress_matrix[:, :3], axis=1)
-                
-                # Deviatoric stress components (s11, s22, s33)
-                deviatoric_stress = stress_matrix[:, :3] - hydrostatic_stress[:, np.newaxis]
-
-                # Shear components (s12, s23, s13) from Mandel notation
-                deviatoric_shear = stress_matrix[:, 3:6]
-
-                # Compute von Mises stress using vectorized operations
-                von_mises_stress = np.sqrt(
-                    0.5 * (
-                        (deviatoric_stress[:, 0] - deviatoric_stress[:, 1])**2 +
-                        (deviatoric_stress[:, 1] - deviatoric_stress[:, 2])**2 +
-                        (deviatoric_stress[:, 2] - deviatoric_stress[:, 0])**2 +
-                        6 * (deviatoric_shear[:, 0]**2 + deviatoric_shear[:, 1]**2 + deviatoric_shear[:, 2]**2)
-                    )
-                )
-
-                # Reconstruct the deviatoric stress matrix in Mandel notation
-                deviatoric_stress_matrix = np.zeros_like(stress_matrix)
-                deviatoric_stress_matrix[:, :3] = deviatoric_stress  # Deviatoric normal stresses
-                deviatoric_stress_matrix[:, 3:6] = deviatoric_shear  # Deviatoric shear stress components
-
-                # Store the computed stresses in the data dictionary
-                measures['von_mises_stress'] = von_mises_stress
-                measures['hydrostatic_stress'] = hydrostatic_stress
-                measures['deviatoric_stress'] = deviatoric_stress_matrix
-
-    return data
+    return processed_data
