@@ -191,7 +191,6 @@ FANS
 run.sh
 *.h5
 data_gen/
-*.json
 
 
 # Test microstructure files
