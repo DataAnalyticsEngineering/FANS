@@ -148,7 +148,7 @@ def write_processed_data_to_h5(file_path, processed_data, overwrite=True):
                             h5file.create_dataset(dataset_path, data=data_array[time_step_idx])
 
 
-def postprocess_and_write_back(file_path, hierarchy, quantities_to_process, measures, 
+def postprocess_and_write_to_h5(file_path, hierarchy, quantities_to_process, measures, 
                                microstructures_to_load=None, load_cases_to_load=None):
     """
     A higher-level function that extracts specific data from an HDF5 file, processes it to compute various tensor measures,

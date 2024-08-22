@@ -6,6 +6,8 @@ def compute_rank2tensor_measures(tensor_matrix, measures_to_compute=None):
     The user can specify which measures to compute. This function supports input tensors with arbitrary leading dimensions,
     as long as the last dimension is 6 (Mandel notation).
 
+    Based on : https://doc.comsol.com/5.5/doc/com.comsol.help.sme/sme_ug_theory.06.16.html
+    
     Parameters:
     - tensor_matrix: numpy array, tensor (stress or strain) in Mandel notation with shape (..., 6).
                      The tensor should be organized as follows: 
