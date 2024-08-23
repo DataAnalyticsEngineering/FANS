@@ -52,6 +52,3 @@ inline V* FANS_malloc(size_t n){
 
 
 //#define EIGEN_RUNTIME_NO_MALLOC
-
-
-

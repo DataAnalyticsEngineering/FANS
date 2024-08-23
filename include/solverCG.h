@@ -66,15 +66,13 @@ void SolverCG<howmany> :: internalSolve (){
     bool islinear = (linearModel == NULL) ? false : true;
 
     s_real.setZero();
-    v_u_real.setZero();
     d_real.setZero();
     for(ptrdiff_t i = local_n0 * n_y * n_z * howmany; i < (local_n0 + 1) * n_y * n_z * howmany; i++){
-        this->v_u[i] = 0;
         d[i] = 0;
     }
 
-    this->template compute_residual<2>(v_r_real, d_real);
-    
+    this->template compute_residual<2>(v_r_real, v_u_real);
+
     iter = 0;
     double err_rel = this->compute_error(v_r_real);
 
@@ -82,7 +80,7 @@ void SolverCG<howmany> :: internalSolve (){
     delta = 1.0L;
 
     while ((iter < this->n_it) && (err_rel > this->TOL)){
-        
+
         deltamid = dotProduct(v_r_real, s_real);
 
         this->convolution();
@@ -95,12 +93,12 @@ void SolverCG<howmany> :: internalSolve (){
 
         if (islinear) {
             Matrix<double, howmany*8, 1> res_e;
-            this->template compute_residual_basic<0>(rnew_real, d_real, 
-            [&](Matrix<double, howmany*8, 1>& ue, int mat_index) -> Matrix<double, howmany*8, 1>& {
+            this->template compute_residual_basic<0>(rnew_real, d_real,
+            [&](Matrix<double, howmany*8, 1>& ue, int mat_index, ptrdiff_t element_idx) -> Matrix<double, howmany*8, 1>& {
                 res_e.noalias() = linearModel->phase_stiffness[mat_index] * ue;
                 return res_e;
             });
-            
+
             double alpha = delta / dotProduct(d_real, rnew_real);
             v_r_real -= alpha * rnew_real;
             v_u_real -= alpha * d_real;

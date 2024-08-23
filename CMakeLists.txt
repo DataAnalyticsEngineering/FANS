@@ -131,6 +131,12 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/solverCG.h
         include/solverFP.h
         include/solver.h
+        include/setup.h
+
+        include/material_models/LinearThermalIsotropic.h
+        include/material_models/LinearElasticIsotropic.h
+        include/material_models/PseudoPlasticLinearHardening.h
+        include/material_models/VonMisesPlasticLinearIsotropicHardening.h
 )
 
 # ##############################################################################
@@ -138,7 +144,6 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
 # ##############################################################################
 
 target_sources(FANS_FANS PRIVATE
-        src/matmodel.cpp
         src/reader.cpp
 )
 

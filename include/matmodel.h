@@ -12,6 +12,8 @@ constexpr int get_n_str(int h){
             return 6;
     }
 }
+template<int howmany>
+class Solver;
 
 template<int howmany>
 class Matmodel{
@@ -30,10 +32,13 @@ public:
     Matmodel(vector<double> l_e);
 
     Matrix<double, howmany*8, howmany*8> Compute_Reference_ElementStiffness();
-    Matrix<double, howmany*8, 1>& element_residual(Matrix<double, howmany*8, 1>& ue, int mat_index);
-    void getStrainStress(double* strain, double* stress, Matrix<double, howmany*8, 1>& ue, int mat_index);
+    Matrix<double, howmany*8, 1>& element_residual(Matrix<double, howmany*8, 1>& ue, int mat_index, ptrdiff_t element_idx);
+    void getStrainStress(double* strain, double* stress, Matrix<double, howmany*8, 1>& ue, int mat_index, ptrdiff_t element_idx);
     void setGradient(vector<double> _g0);
 
+    virtual void postprocess(Solver<howmany>& solver, Reader& reader, const char* resultsFileName, int load_idx, int time_idx) {}
+
+    virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) {}
 protected:
 
     double l_e_x;
@@ -56,7 +61,7 @@ protected:
     virtual Matrix<double, n_str, howmany*8> Compute_B(const double x, const double y, const double z ) = 0;
     void Construct_B();
 
-    virtual void get_sigma(int i, int mat_index) = 0;
+    virtual void get_sigma(int i, int mat_index, ptrdiff_t element_idx) = 0;
 };
 
 template<int howmany>
@@ -106,21 +111,21 @@ Matrix<double, 3, 8> Matmodel<howmany>::Compute_basic_B(const double x, const do
 }
 
 template<int howmany>
-Matrix<double, howmany*8, 1>& Matmodel<howmany>::element_residual(Matrix<double, howmany*8, 1>& ue, int mat_index){
+Matrix<double, howmany*8, 1>& Matmodel<howmany>::element_residual(Matrix<double, howmany*8, 1>& ue, int mat_index, ptrdiff_t element_idx){
 
     eps.noalias() = B * ue + g0;
 
     for (int i = 0; i < 8; ++i) {
-        get_sigma(n_str*i, mat_index);
+        get_sigma(n_str*i, mat_index, element_idx);
     }
     res_e.noalias() = B.transpose() * sigma * v_e * 0.125;
     return res_e;
 }
 template<int howmany>
-void Matmodel<howmany>::getStrainStress(double* strain, double* stress, Matrix<double, howmany*8, 1>& ue, int mat_index){
-    
+void Matmodel<howmany>::getStrainStress(double* strain, double* stress, Matrix<double, howmany*8, 1>& ue, int mat_index, ptrdiff_t element_idx){
+
     eps.template topRows<n_str>().noalias() = g0.template topRows<n_str>() + B_el_mean * ue;
-    get_sigma(0, mat_index);
+    get_sigma(0, mat_index, element_idx);
 
     for (int i = 0; i < n_str; ++i) {
         strain[i] = eps(i, 0);
@@ -146,16 +151,12 @@ Matrix<double, howmany*8, howmany*8> Matmodel<howmany> :: Compute_Reference_Elem
     }
     //before: 8 groups of howmany      after: howmany groups of 8
     for (int i = 0; i < howmany*8; ++i) {
-        for (int j = 0; j < howmany*8; ++j) {    
+        for (int j = 0; j < howmany*8; ++j) {
             Reference_ElementStiffness((i % howmany) * 8 + i / howmany, (j % howmany) * 8 + j / howmany) = tmp(i, j);
         }
     }
     return Reference_ElementStiffness;
 }
-
-
-
-
 
 class ThermalModel : public Matmodel<1>{
 public:
@@ -167,8 +168,6 @@ protected:
 inline Matrix<double, 3, 8> ThermalModel::Compute_B(const double x, const double y, const double z ) {
     return Matmodel<1>::Compute_basic_B(x, y, z);
 }
-
-
 
 class MechModel : public Matmodel<3>{
 public:
@@ -182,7 +181,7 @@ inline Matrix<double, 6, 24> MechModel::Compute_B(const double x, const double y
     Matrix<double, 6, 24> out = Matrix<double, 6, 24>::Zero();
     Matrix<double, 3, 8> B_tmp = Matmodel<3>::Compute_basic_B(x, y, z);
     const double sqrt_half = 7.071067811865476e-01;
-    
+
 
     for(int q=0; q<8; q++)
     {
@@ -199,125 +198,12 @@ inline Matrix<double, 6, 24> MechModel::Compute_B(const double x, const double y
         out(5, 3*q + 2)	= sqrt_half * B_tmp(1, q);
     }
     return out;
-
-    // for(int q=0; q<8; q++)
-    // {
-    //     out(0, q)	    = B_tmp(0, q);
-    //     out(1, 8 + q)	= B_tmp(1, q);
-    //     out(2, 16 + q)	= B_tmp(2, q);
-
-    //     out(3, q)	    = sqrt_half * B_tmp(1, q);
-    //     out(3, 8 + q)	= sqrt_half * B_tmp(0, q);
-    //     out(4, q)	    = sqrt_half * B_tmp(2, q);
-    //     out(4, 16 + q)	= sqrt_half * B_tmp(0, q);
-    //     out(5, 8 + q)	= sqrt_half * B_tmp(2, q);
-    //     out(5, 16 + q)	= sqrt_half * B_tmp(1, q);
-    // }
 }
-
 
 template<int howmany>
 class LinearModel{
 public:
     Matrix<double, howmany*8, howmany*8>* phase_stiffness;
-};
-
-
-
-class ThermalLinear : public ThermalModel, public LinearModel<1>{
-
-public:
-    ThermalLinear(vector<double> l_e, map<string, vector<double>> materialProperties);
-
-    void get_sigma(int i, int mat_index){
-        sigma(i + 0, 0) = conductivity[mat_index]*eps(i + 0, 0);
-        sigma(i + 1, 0) = conductivity[mat_index]*eps(i + 1, 0);
-        sigma(i + 2, 0) = conductivity[mat_index]*eps(i + 2, 0);
-    }
-
-private:
-    vector<double> conductivity;
-};
-
-
-
-class MechLinear : public MechModel, public LinearModel<3>{
-
-public:
-    MechLinear(vector<double> l_e, map<string, vector<double>> materialProperties);
-
-    void get_sigma(int i, int mat_index){
-        double buf1 = lambda[mat_index] * (eps(i, 0) + eps(i + 1, 0) + eps(i + 2, 0));
-        double buf2 = 2*mu[mat_index];
-        sigma(i + 0, 0) = buf1 + buf2 * eps(i + 0, 0);
-        sigma(i + 1, 0) = buf1 + buf2 * eps(i + 1, 0);
-        sigma(i + 2, 0) = buf1 + buf2 * eps(i + 2, 0);
-        sigma(i + 3, 0) =        buf2 * eps(i + 3, 0);
-        sigma(i + 4, 0) =        buf2 * eps(i + 4, 0);
-        sigma(i + 5, 0) =        buf2 * eps(i + 5, 0);
-    }
-
-private:
-    vector<double> lambda;
-    vector<double> mu;
-};
-
-
-class HyperElastic : public MechModel{
-public:
-    HyperElastic(vector<double> l_e, map<string, vector<double>> materialProperties);
-
-    void get_sigma(int i, int mat_index){
-        double treps = eps(i, 0) + eps(i + 1, 0) + eps(i + 2, 0);
-        dev_eps(0, 0) = eps(i + 0, 0) - (1./3)*treps;
-        dev_eps(1, 0) = eps(i + 1, 0) - (1./3)*treps;
-        dev_eps(2, 0) = eps(i + 2, 0) - (1./3)*treps;
-        dev_eps(3, 0) = eps(i + 3, 0);
-        dev_eps(4, 0) = eps(i + 4, 0);
-        dev_eps(5, 0) = eps(i + 5, 0);
-        double norm_dev_eps = dev_eps.lpNorm<2>();
-        double buf1 = bulk_modulus[mat_index] * treps;
-        double buf2;
-
-        if (norm_dev_eps <= eps_crit[mat_index]){
-            buf2 = 2*shear_modulus[mat_index];
-        }else{
-            const static double a = 2./3;
-            const static double b = sqrt(a);
-            buf2 = (b*critical_stress[mat_index] + a*E_s[mat_index]*hardening_parameter[mat_index]*(norm_dev_eps - eps_crit[mat_index])) / norm_dev_eps;
-        }
-        sigma(i + 0, 0) = buf1 + buf2 * dev_eps(0, 0);
-        sigma(i + 1, 0) = buf1 + buf2 * dev_eps(1, 0);
-        sigma(i + 2, 0) = buf1 + buf2 * dev_eps(2, 0);
-        sigma(i + 3, 0) =        buf2 * dev_eps(3, 0);
-        sigma(i + 4, 0) =        buf2 * dev_eps(4, 0);
-        sigma(i + 5, 0) =        buf2 * dev_eps(5, 0);
-    }
-
-
-    bool isElastic(Matrix<double, 24, 1>& ue, int mat_index){
-
-        eps.template topRows<6>().noalias() = g0.template topRows<6>() + B_el_mean * ue;
-        double treps = eps(0, 0) + eps(1, 0) + eps(2, 0);
-        dev_eps(0, 0) = eps(0, 0) - (1./3)*treps;
-        dev_eps(1, 0) = eps(1, 0) - (1./3)*treps;
-        dev_eps(2, 0) = eps(2, 0) - (1./3)*treps;
-        dev_eps(3, 0) = eps(3, 0);
-        dev_eps(4, 0) = eps(4, 0);
-        dev_eps(5, 0) = eps(5, 0);
-        double norm_dev_eps = dev_eps.lpNorm<2>();
-        return norm_dev_eps <= eps_crit[mat_index];
-    }
-
-private:
-    vector<double> bulk_modulus;
-    vector<double> shear_modulus;
-    vector<double> critical_stress;
-    vector<double> hardening_parameter;
-    vector<double> eps_crit;
-    vector<double> E_s;
-
-    Matrix<double, 6, 1> dev_eps;
 };
 
 #endif //MATMODEL_H

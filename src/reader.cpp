@@ -16,12 +16,9 @@ using namespace std;
 using nlohmann::json;
 using namespace nlohmann;
 
-
 void Reader::ComputeVolumeFractions(){
-
     if (world_rank == 0)
         printf("# Volume fractions\n");
-
     long vol_frac[n_mat];
     double v_frac[n_mat];
     for(int i=0; i < n_mat; i++){
@@ -37,22 +34,11 @@ void Reader::ComputeVolumeFractions(){
         if (world_rank == 0)
             printf("# material %4i    vol. frac. %10.4f%%  \n", i, 100.*v_frac[i]);
     }
-    // for(auto it = materialProperties.begin(); it != materialProperties.end(); it++){
-    //     vector<double> prop = materialProperties[it->first];
-    //     double vol_av = 0.;
-    //     for(int i=0; i < n_mat; i++){
-    //         vol_av += v_frac[i] * prop[i];
-    //     }
-    //     cout << "# " << it->first << ":    ";  //printf only works for c-strings
-    //     printf("minimum : %f, maximum: %f, mean: %f\n", 
-    //         *min_element(prop.begin(), prop.end()), *max_element(prop.begin(), prop.end()), vol_av);
-    // }
 }
-
 
 void Reader :: ReadInputFile(char fn[]){
     try{
-    
+
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
@@ -67,15 +53,22 @@ void Reader :: ReadInputFile(char fn[]){
 
     TOL = j["TOL"].get<double>();
     n_it = j["n_it"].get<int>();
-    g0 = j["g0"].get<vector<double>>();
+    g0 = j["macroscale_loading"].get<vector<vector<vector<double>>>>();
 
     problemType = j["problem_type"].get<string>();
     matmodel = j["matmodel"].get<string>();
     method = j["method"].get<string>();
-    
+
     json j_mat = j["material_properties"];
+    resultsToWrite = j["results"].get<vector<string>>();    // Read the results_to_write field
+
+    if (world_rank == 0){
+        printf("# microstructure file name: \t '%s'\n", ms_filename);
+        printf("# microstructure dataset name: \t '%s'\n", ms_datasetname);
+        printf("# FANS Tolerance: \t %10.5e\n# Max iterations: \t %6i\n", TOL, n_it);
+    }
+
     for (auto it = j_mat.begin(); it != j_mat.end(); ++it){
-        
         materialProperties[it.key()] = it.value().get<vector<double>>();
         n_mat = materialProperties[it.key()].size();
 
@@ -87,14 +80,6 @@ void Reader :: ReadInputFile(char fn[]){
         printf("\n");
         }
     }
-    if (world_rank == 0){
-        printf("# microstructure file name: \t '%s'\n", ms_filename);
-        printf("# microstructure dataset name: \t '%s'\n", ms_datasetname);
-        printf("# FANS Tolerance: \t %10.5e\n# Max iterations: \t %6i\n", TOL, n_it);
-    }
-
-    // Read the results_to_write field
-    resultsToWrite = j["results"].get<vector<string>>();
 
     }catch(const std::exception& e){
         fprintf(stderr, "ERROR trying to read input file '%s' for FANS\n", fn );
@@ -102,18 +87,13 @@ void Reader :: ReadInputFile(char fn[]){
     }
 }
 
-//    printf("# Macro-scale Gradient - (");
-//    for (const auto& number : g0) {
-//        printf("%10.5f ", number);}
-//    printf(")\n");
-
 void Reader::safe_create_group( hid_t file, const char * const name )
 {
     // no leading '/' --> exit
     const char DELIMITER = '/';
     if( name[0] != DELIMITER )
         return;
-    
+
     // copy name to buffer
     char buffer[4096];
     strcpy(buffer,name);
@@ -121,7 +101,7 @@ void Reader::safe_create_group( hid_t file, const char * const name )
     str=strchr(str + 1,DELIMITER);
     while( str != NULL )
     {
-        // while another / character is found 
+        // while another / character is found
         long int l=str-buffer; // length of substring
         buffer[l] = '\0'; // temporary 'end of string'
 
@@ -150,9 +130,8 @@ void Reader::safe_create_group( hid_t file, const char * const name )
     }
 }
 
-
 void Reader :: ReadMS(int hm){
-	
+
     hid_t       file_id, dset_id;         /* file and dataset identifiers */
     hid_t       filespace, memspace;      /* file and memory dataspace identifiers */
     hid_t       data_type;
@@ -161,7 +140,7 @@ void Reader :: ReadMS(int hm){
     hsize_t	    offset[3];
     hid_t	    plist_id;                 /* property list identifier */
     herr_t	    status;
-    
+
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Info info  = MPI_INFO_NULL;
@@ -178,15 +157,6 @@ void Reader :: ReadMS(int hm){
     //plist_id = H5Pcreate(H5P_DATASET_XFER);
     //H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);   // "set Data Transfer Property List" (x means transfer)
     plist_id = H5P_DEFAULT;
-
-
-    // read physical dimensions: Not needed. Added ms_L to json file
-//    double* L = FANS_malloc<double>(3);
-//    char name_L[5096];
-//    sprintf(name_L,"%s_L", ms_datasetname);
-//    dset_id = H5Dopen2(file_id, name_L, plist_id);
-//    data_type = H5Dget_type(dset_id);
-//    status = H5Dread(dset_id, data_type, H5S_ALL, H5S_ALL, plist_id, L);
 
     dset_id = H5Dopen2(file_id, ms_datasetname, plist_id);
 
@@ -209,6 +179,7 @@ void Reader :: ReadMS(int hm){
         // if(dims[0] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_x is not a multiple of 2\n");
         // if(dims[1] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_y is not a multiple of 2\n");
         // if(dims[2] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_z is not a multiple of 2\n");
+        if (dims[0]/4 < world_size) throw std::runtime_error("[ FANS3D_Grid ] ERROR: Please decrease the number of processes or increase the grid size to ensure that each process has at least 4 boxels in the x direction.");
         printf("Voxel length: [%1.8f, %1.8f, %1.8f]\n", l_e[0], l_e[1],l_e[2]);
     }
 
@@ -230,7 +201,7 @@ void Reader :: ReadMS(int hm){
     */
 
     alloc_local = fftw_mpi_local_size_many_transposed(rank, n, hm, block0, block1, MPI_COMM_WORLD, &local_n0, &local_0_start, &local_n1, &local_1_start);
-    
+
 
     //Each process defines a dataset in memory which reads a hyperslab from the file
     count[0] = local_n0;
@@ -254,6 +225,8 @@ void Reader :: ReadMS(int hm){
     H5Pclose(plist_id);
     H5Fclose(file_id);
     //H5Tclose(data_type);
+
+    this->ComputeVolumeFractions();
 }
 
 
@@ -264,18 +237,18 @@ void Reader :: ReadMS(int hm){
 // The code above is based on this example: Hyperslab_by_row.c
 
 
-// /*  
+// /*
 //  *  This example writes data to the HDF5 file by rows.
 //  *  Number of processes is assumed to be 1 or multiples of 2 (up to 8)
 //  */
- 
+
 // #include "hdf5.h"
 // #include "stdlib.h"
 
 // #define H5FILE_NAME     "SDS_row.h5"
-// #define DATASETNAME 	"IntArray" 
+// #define DATASETNAME 	"IntArray"
 // #define NX     8                      /* dataset dimensions */
-// #define NY     5 
+// #define NY     5
 // #define RANK   2
 
 // int
@@ -283,7 +256,7 @@ void Reader :: ReadMS(int hm){
 // {
 //     /*
 //      * HDF5 APIs definitions
-//      */ 	
+//      */
 //     hid_t       file_id, dset_id;         /* file and dataset identifiers */
 //     hid_t       filespace, memspace;      /* file and memory dataspace identifiers */
 //     hsize_t     dimsf[2];                 /* dataset dimensions */
@@ -306,9 +279,9 @@ void Reader :: ReadMS(int hm){
 //      */
 //     MPI_Init(&argc, &argv);
 //     MPI_Comm_size(comm, &mpi_size);
-//     MPI_Comm_rank(comm, &mpi_rank);  
- 
-//     /* 
+//     MPI_Comm_rank(comm, &mpi_rank);
+
+//     /*
 //      * Set up file access property list with parallel I/O access
 //      */
 //      plist_id = H5Pcreate(H5P_FILE_ACCESS);
@@ -319,14 +292,14 @@ void Reader :: ReadMS(int hm){
 //      */
 //     file_id = H5Fcreate(H5FILE_NAME, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
 //     H5Pclose(plist_id);
-   
+
 
 //     /*
 //      * Create the dataspace for the dataset.
 //      */
 //     dimsf[0] = NX;
 //     dimsf[1] = NY;
-//     filespace = H5Screate_simple(RANK, dimsf, NULL); 
+//     filespace = H5Screate_simple(RANK, dimsf, NULL);
 
 //     /*
 //      * Create the dataset with default properties and close filespace.
@@ -335,7 +308,7 @@ void Reader :: ReadMS(int hm){
 // 			H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 //     H5Sclose(filespace);
 
-//     /* 
+//     /*
 //      * Each process defines dataset in memory and writes it to the hyperslab
 //      * in the file.
 //      */
@@ -352,7 +325,7 @@ void Reader :: ReadMS(int hm){
 //     H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL, count, NULL);
 
 //     /*
-//      * Initialize data buffer 
+//      * Initialize data buffer
 //      */
 //     data = (int *) malloc(sizeof(int)*count[0]*count[1]);
 //     for (i=0; i < count[0]*count[1]; i++) {
@@ -364,7 +337,7 @@ void Reader :: ReadMS(int hm){
 //      */
 //     plist_id = H5Pcreate(H5P_DATASET_XFER);
 //     H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
-    
+
 //     status = H5Dwrite(dset_id, H5T_NATIVE_INT, memspace, filespace,
 // 		      plist_id, data);
 //     free(data);
@@ -377,8 +350,8 @@ void Reader :: ReadMS(int hm){
 //     H5Sclose(memspace);
 //     H5Pclose(plist_id);
 //     H5Fclose(file_id);
- 
+
 //     MPI_Finalize();
 
 //     return 0;
-// }     
+// }

@@ -44,7 +44,7 @@ jobs:
         run: |
           docker exec ${FANS_CONTAINER} \
             bash .github/workflows/build.sh ${FANS_BUILD_DIR}
-            
+
       - name: Package FANS
         run: |
           docker exec \
