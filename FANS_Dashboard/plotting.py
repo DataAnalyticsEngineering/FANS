@@ -9,14 +9,15 @@ def plot_subplots(
     labels_x=None,
     labels_y=None,
     subplot_titles=None,
-    title="Subplot Grid",
+    title="",
     nrows=None,
     ncols=None,
     linewidth=1,
     markersize=4,
-    linecolor="blue",
-    markercolor="red",
+    linecolor=None,
+    markercolor=None,
     fontsize=12,
+    fig=None,
 ):
     """
     Plot a grid of subplots using Plotly, handling both single-component (scalar vs scalar) and multi-component data.
@@ -32,9 +33,10 @@ def plot_subplots(
     - ncols: int, number of columns in the subplot grid (optional)
     - linewidth: int, line width for the plots (optional, default=1)
     - markersize: int, size of the markers (optional, default=4)
-    - linecolor: string, color of the lines (optional, default="blue")
-    - markercolor: string, color of the markers (optional, default="red")
+    - linecolor: list of strings, colors of the lines for each subplot (optional, default=None, all blue)
+    - markercolor: list of strings, colors of the markers for each subplot (optional, default=None, all blue)
     - fontsize: int, font size for axis labels, subplot titles, and tick labels (optional, default=12)
+    - fig: existing Plotly figure to overlay the new subplots (optional, default=None, creates a new figure)
     """
     # Validate data shapes
     if not isinstance(data1, np.ndarray) or not isinstance(data2, np.ndarray):
@@ -52,6 +54,21 @@ def plot_subplots(
 
     # Set the number of components based on data shape
     n_components = data1.shape[1]
+
+    # Initialize linecolor and markercolor lists if not provided
+    if linecolor is None:
+        linecolor = ["blue"] * n_components
+    elif len(linecolor) != n_components:
+        raise ValueError(
+            f"The length of linecolor must match the number of components ({n_components})."
+        )
+
+    if markercolor is None:
+        markercolor = ["blue"] * n_components
+    elif len(markercolor) != n_components:
+        raise ValueError(
+            f"The length of markercolor must match the number of components ({n_components})."
+        )
 
     # If nrows or ncols is not specified, determine an optimal grid layout
     if nrows is None or ncols is None:
@@ -81,8 +98,9 @@ def plot_subplots(
             f"The length of labels_y must match the number of components ({n_components})."
         )
 
-    # Create the subplot figure
-    fig = make_subplots(rows=nrows, cols=ncols, subplot_titles=subplot_titles)
+    # Create the subplot figure if not provided
+    if fig is None:
+        fig = make_subplots(rows=nrows, cols=ncols, subplot_titles=subplot_titles)
 
     # Add traces for each component
     for i in range(n_components):
@@ -93,8 +111,8 @@ def plot_subplots(
                 x=data1[:, i],
                 y=data2[:, i],
                 mode="lines+markers",
-                marker=dict(symbol="x", size=markersize, color=markercolor),
-                line=dict(width=linewidth, color=linecolor),
+                marker=dict(symbol="x", size=markersize, color=markercolor[i]),
+                line=dict(width=linewidth, color=linecolor[i]),
                 name=f"Component {i+1}",
             ),
             row=row,
@@ -113,6 +131,7 @@ def plot_subplots(
             ticklen=6,
             title_font=dict(size=fontsize),
             tickfont=dict(size=fontsize),
+            automargin=True,
         )
         fig.update_yaxes(
             title_text=labels_y[i],
@@ -125,17 +144,18 @@ def plot_subplots(
             ticklen=6,
             title_font=dict(size=fontsize),
             tickfont=dict(size=fontsize),
+            automargin=True,
         )
 
     # Update layout with the overall plot title and styling
     fig.update_layout(
-        height=600,
-        width=900,
+        height=1000,
+        width=1600,
         title_text=title,
         title_font=dict(size=fontsize),
-        showlegend=False,
+        showlegend=False,  # Legends removed
         template="plotly_white",
-        margin=dict(l=20, r=20, t=50, b=20),
+        margin=dict(l=50, r=50, t=50, b=50),  # Adjust margins to prevent overlap
         title_x=0.5,
         autosize=False,
     )
@@ -161,12 +181,5 @@ def plot_subplots(
     for annotation in fig["layout"]["annotations"]:
         annotation["font"] = dict(size=fontsize)
 
-    # Increase the DPI/quality of the plots by setting higher resolution dimensions
-    fig.update_layout(
-        height=1200,
-        width=1800,
-        autosize=False,
-    )
-
-    # Show the plot
-    fig.show()
+    # Return the figure for further customization or overlaying
+    return fig
