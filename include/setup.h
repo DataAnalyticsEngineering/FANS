@@ -1,5 +1,5 @@
-#include "solverFP.h"
 #include "solverCG.h"
+#include "solverFP.h"
 
 // Thermal models
 #include "material_models/LinearThermalIsotropic.h"
@@ -9,11 +9,12 @@
 #include "material_models/PseudoPlasticLinearHardening.h"
 #include "material_models/VonMisesPlasticLinearIsotropicHardening.h"
 
-template<int howmany>
-Matmodel<howmany>* createMatmodel(const Reader& reader);
+template <int howmany>
+Matmodel<howmany> *createMatmodel(const Reader &reader);
 
-template<>
-Matmodel<1>* createMatmodel(const Reader& reader) {
+template <>
+Matmodel<1> *createMatmodel(const Reader &reader)
+{
     if (reader.matmodel == "LinearThermalIsotropic") {
         return new LinearThermalIsotropic(reader.l_e, reader.materialProperties);
     } else {
@@ -21,8 +22,9 @@ Matmodel<1>* createMatmodel(const Reader& reader) {
     }
 }
 
-template<>
-Matmodel<3>* createMatmodel(const Reader& reader) {
+template <>
+Matmodel<3> *createMatmodel(const Reader &reader)
+{
     if (reader.matmodel == "LinearElasticIsotropic") {
         return new LinearElasticIsotropic(reader.l_e, reader.materialProperties);
     } else if (reader.matmodel == "PseudoPlasticLinearHardening") {
@@ -34,8 +36,9 @@ Matmodel<3>* createMatmodel(const Reader& reader) {
     }
 }
 
-template<int howmany>
-Solver<howmany>* createSolver(const Reader& reader, Matmodel<howmany>* matmodel) {
+template <int howmany>
+Solver<howmany> *createSolver(const Reader &reader, Matmodel<howmany> *matmodel)
+{
     if (reader.method == "fp") {
         return new SolverFP<howmany>(reader, matmodel);
     } else if (reader.method == "cg") {
