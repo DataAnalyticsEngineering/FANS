@@ -4,11 +4,12 @@
 #include "matmodel.h"
 
 class LinearElasticIsotropic : public MechModel, public LinearModel<3> {
-public:
+  public:
     LinearElasticIsotropic(vector<double> l_e, map<string, vector<double>> materialProperties)
-        : MechModel(l_e) {
+        : MechModel(l_e)
+    {
         bulk_modulus = materialProperties["bulk_modulus"];
-        mu = materialProperties["shear_modulus"];
+        mu           = materialProperties["shear_modulus"];
 
         n_mat = bulk_modulus.size();
         lambda.resize(n_mat);
@@ -19,9 +20,11 @@ public:
         }
 
         double lambda_ref = (*max_element(lambda.begin(), lambda.end()) +
-                             *min_element(lambda.begin(), lambda.end())) / 2;
+                             *min_element(lambda.begin(), lambda.end())) /
+                            2;
         double mu_ref = (*max_element(mu.begin(), mu.end()) +
-                         *min_element(mu.begin(), mu.end())) / 2;
+                         *min_element(mu.begin(), mu.end())) /
+                        2;
 
         kapparef_mat = Matrix<double, 6, 6>::Zero();
         kapparef_mat.topLeftCorner(3, 3).setConstant(lambda_ref);
@@ -30,7 +33,7 @@ public:
         phase_stiffness = new Matrix<double, 24, 24>[n_mat];
         Matrix<double, 6, 6> phase_kappa;
 
-        for(int i = 0; i < n_mat; i++){
+        for (int i = 0; i < n_mat; i++) {
             phase_kappa.setZero();
             phase_stiffness[i] = Matrix<double, 24, 24>::Zero();
 
@@ -43,9 +46,10 @@ public:
         }
     }
 
-    void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override {
-        double buf1 = lambda[mat_index] * (eps(i, 0) + eps(i + 1, 0) + eps(i + 2, 0));
-        double buf2 = 2 * mu[mat_index];
+    void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override
+    {
+        double buf1     = lambda[mat_index] * (eps(i, 0) + eps(i + 1, 0) + eps(i + 2, 0));
+        double buf2     = 2 * mu[mat_index];
         sigma(i + 0, 0) = buf1 + buf2 * eps(i + 0, 0);
         sigma(i + 1, 0) = buf1 + buf2 * eps(i + 1, 0);
         sigma(i + 2, 0) = buf1 + buf2 * eps(i + 2, 0);
@@ -54,7 +58,7 @@ public:
         sigma(i + 5, 0) = buf2 * eps(i + 5, 0);
     }
 
-private:
+  private:
     vector<double> bulk_modulus;
     vector<double> lambda;
     vector<double> mu;
