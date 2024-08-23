@@ -17,4 +17,5 @@ jobs:
       with:
         clang-format-version: '13'
         check-path: ${{ matrix.path }}
+        exclude-regex: 'include/json.hpp'
         fallback-style: 'Mozilla' # optional
