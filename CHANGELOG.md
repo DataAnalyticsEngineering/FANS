@@ -1,6 +1,6 @@
 # FANS Changelog
 
-## latest
+## v0.1.1
 
 - Disable sorting of includes in clang-format https://github.com/DataAnalyticsEngineering/FANS/pull/7
 
