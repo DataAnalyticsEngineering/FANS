@@ -1,5 +1,5 @@
-#include "reader.h"
 #include "general.h"
+#include "reader.h"
 
 #include "H5Cpp.h"
 #include "fftw3-mpi.h"
