@@ -1,5 +1,9 @@
 # FANS Changelog
 
+## v0.1.2
+
+- Update TIK GitHub links in the documentation to public GitHub links https://github.com/DataAnalyticsEngineering/FANS/pull/13
+
 ## v0.1.1
 
 - Disable sorting of includes in clang-format https://github.com/DataAnalyticsEngineering/FANS/pull/7

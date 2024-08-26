@@ -14,7 +14,7 @@ Set up a development container with your current working directory (in there, us
 First, clone FANS:
 
 ```bash
-git clone https://github.tik.uni-stuttgart.de/DAE/FANS.git
+git clone https://github.com/DataAnalyticsEngineering/FANS.git
 cd FANS
 ```
 
