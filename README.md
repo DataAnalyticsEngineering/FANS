@@ -78,7 +78,7 @@ Spack is a package manager designed for high-performance computing environments.
 1. Clone the repository:
 
     ```bash
-    git clone https://github.tik.uni-stuttgart.de/DAE/FANS.git
+    git clone https://github.com/DataAnalyticsEngineering/FANS.git
     cd FANS
     ```
 
