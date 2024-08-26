@@ -1,6 +1,6 @@
 # FANS Changelog
 
-## latest
+## v0.1.2
 
 - Update TIK GitHub links in the documentation to public GitHub links https://github.com/DataAnalyticsEngineering/FANS/pull/13
 
