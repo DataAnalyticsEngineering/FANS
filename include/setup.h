@@ -6,7 +6,7 @@
 
 // Mechanical models
 #include "material_models/LinearElasticIsotropic.h"
-#include "material_models/PseudoPlasticLinearHardening.h"
+#include "material_models/PseudoPlastic.h"
 #include "material_models/VonMisesPlasticLinearIsotropicHardening.h"
 
 template <int howmany>
@@ -29,6 +29,8 @@ Matmodel<3> *createMatmodel(const Reader &reader)
         return new LinearElasticIsotropic(reader.l_e, reader.materialProperties);
     } else if (reader.matmodel == "PseudoPlasticLinearHardening") {
         return new PseudoPlasticLinearHardening(reader.l_e, reader.materialProperties);
+    } else if (reader.matmodel == "PseudoPlasticNonLinearHardening") {
+        return new PseudoPlasticNonLinearHardening(reader.l_e, reader.materialProperties);
     } else if (reader.matmodel == "VonMisesPlasticLinearIsotropicHardening") {
         return new VonMisesPlasticLinearIsotropicHardening(reader.l_e, reader.materialProperties);
     } else {
