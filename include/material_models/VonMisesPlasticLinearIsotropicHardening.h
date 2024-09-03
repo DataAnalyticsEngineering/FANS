@@ -9,10 +9,14 @@ class VonMisesPlasticLinearIsotropicHardening : public MechModel {
     VonMisesPlasticLinearIsotropicHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
         : MechModel(l_e)
     {
-        bulk_modulus        = materialProperties["bulk_modulus"];
-        shear_modulus       = materialProperties["shear_modulus"];
-        yield_stress        = materialProperties["yield_stress"];
-        hardening_parameter = materialProperties["hardening_parameter"];
+        try {
+            bulk_modulus        = materialProperties.at("bulk_modulus");
+            shear_modulus       = materialProperties.at("shear_modulus");
+            yield_stress        = materialProperties.at("yield_stress");
+            hardening_parameter = materialProperties.at("isotropic_hardening_parameter");
+        } catch (const std::out_of_range& e) {
+            throw std::runtime_error("Missing material properties for the requested material model.");
+        }
 
         n_mat = bulk_modulus.size();
 
@@ -31,13 +35,19 @@ class VonMisesPlasticLinearIsotropicHardening : public MechModel {
         kapparef_mat = 0.5 * (Ce[0] + Ce[1]); // Note: only works for two materials
     }
 
-    void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) override
+    virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) override
     {
         plastic_strain.resize(num_elements, Matrix<double, 6, Dynamic>::Zero(6, num_gauss_points));
         hardening_variable.resize(num_elements, VectorXd::Zero(num_gauss_points));
 
         plastic_strain_t.resize(num_elements, Matrix<double, 6, Dynamic>::Zero(6, num_gauss_points));
         hardening_variable_t.resize(num_elements, VectorXd::Zero(num_gauss_points));
+    }
+
+    virtual void updateInternalVariables() override
+    {
+        plastic_strain_t     = plastic_strain;
+        hardening_variable_t = hardening_variable;
     }
 
     void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override
@@ -110,9 +120,6 @@ class VonMisesPlasticLinearIsotropicHardening : public MechModel {
 
 void VonMisesPlasticLinearIsotropicHardening::postprocess(Solver<3> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx)
 {
-    plastic_strain_t     = plastic_strain;
-    hardening_variable_t = hardening_variable;
-
     int      n_str                   = 6; // The plastic strain and stress vectors have 6 components each
     VectorXd mean_plastic_strain     = VectorXd::Zero(solver.local_n0 * solver.n_y * solver.n_z * n_str);
     VectorXd mean_hardening_variable = VectorXd::Zero(solver.local_n0 * solver.n_y * solver.n_z);
