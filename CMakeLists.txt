@@ -136,8 +136,7 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/material_models/LinearThermalIsotropic.h
         include/material_models/LinearElasticIsotropic.h
         include/material_models/PseudoPlastic.h
-        include/material_models/VonMisesPlasticLinearIsotropicHardening.h
-        include/material_models/RateIndependentJ2Plasticity.h
+        include/material_models/J2Plasticity.h
 )
 
 # ##############################################################################

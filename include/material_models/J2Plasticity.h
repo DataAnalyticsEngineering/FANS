@@ -1,12 +1,12 @@
-#ifndef RATEINDEPENDENTJ2PLASTICITY_H
-#define RATEINDEPENDENTJ2PLASTICITY_H
+#ifndef J2PLASTICITY_H
+#define J2PLASTICITY_H
 
 #include "matmodel.h"
 #include "solver.h"
 
-class RateIndependentJ2Plasticity : public MechModel {
+class J2Plasticity : public MechModel {
 public:
-    RateIndependentJ2Plasticity(vector<double> l_e, map<string, vector<double>> materialProperties)
+    J2Plasticity(vector<double> l_e, map<string, vector<double>> materialProperties)
         : MechModel(l_e)
     {
         try {
@@ -138,10 +138,32 @@ protected:
     double gamma_n1;
 };
 
-// Derived Class for Linear Isotropic Hardening
-class RateIndependentJ2PlasticityLinearIsotropicHardening : public RateIndependentJ2Plasticity {
+// Derived Class for Rate-Independent J2 Plasticity
+class RateIndependentJ2Plasticity : public J2Plasticity {
 public:
-    RateIndependentJ2PlasticityLinearIsotropicHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
+    RateIndependentJ2Plasticity(vector<double> l_e, map<string, vector<double>> materialProperties)
+        : J2Plasticity(l_e, materialProperties) {}
+};
+
+// Derived Class for Rate-Dependent J2 Plasticity
+class RateDependentJ2Plasticity : public J2Plasticity {
+public:
+    RateDependentJ2Plasticity(vector<double> l_e, map<string, vector<double>> materialProperties)
+        : J2Plasticity(l_e, materialProperties) {
+            eta = materialProperties["viscosity"];
+            dt  = materialProperties["time_step"][0];
+        }
+protected:
+    vector<double> eta; // Viscosity parameter
+    double dt;          // Time step
+};
+
+
+
+// Derived Class for Rate Independent Linear Isotropic Hardening
+class J2Plastic_LinearIsotropicHardening : public RateIndependentJ2Plasticity {
+public:
+    J2Plastic_LinearIsotropicHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
         : RateIndependentJ2Plasticity(l_e, materialProperties)
     {}
 
@@ -156,10 +178,10 @@ public:
     }
 };
 
-// Derived Class for Non-Linear (Exponential law) Isotropic Hardening
-class RateIndependentJ2PlasticityNonLinearIsotropicHardening : public RateIndependentJ2Plasticity {
+// Derived Class for Rate Independent Non-Linear (Exponential law) Isotropic Hardening
+class J2Plastic_NonLinearIsotropicHardening : public RateIndependentJ2Plasticity {
 public:
-    RateIndependentJ2PlasticityNonLinearIsotropicHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
+    J2Plastic_NonLinearIsotropicHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
         : RateIndependentJ2Plasticity(l_e, materialProperties)
     {
         sigma_inf = materialProperties["sigma_inf"];
@@ -194,7 +216,29 @@ private:
 };
 
 
-void RateIndependentJ2Plasticity::postprocess(Solver<3> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx)
+// Derived Class for Rate dependent Linear Isotropic Hardening
+class J2ViscoPlastic_LinearIsotropicHardening : public RateDependentJ2Plasticity {
+public:
+    J2ViscoPlastic_LinearIsotropicHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
+        : RateDependentJ2Plasticity(l_e, materialProperties)
+    {}
+
+    double compute_q_trial(double psi_val, int mat_index) override
+    {
+        return -K[mat_index] * psi_val;
+    }
+
+    double compute_gamma(double f_trial, int mat_index, int i, ptrdiff_t element_idx) override
+    {
+        return f_trial / (2 * shear_modulus[mat_index] + (2 / 3.0) * (K[mat_index] + H[mat_index]) + eta[mat_index]/dt);
+    }
+};
+
+
+
+
+
+void J2Plasticity::postprocess(Solver<3> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx)
 {
     int      n_str                             = 6; // The plastic strain and stress vectors have 6 components each
     VectorXd mean_plastic_strain               = VectorXd::Zero(solver.local_n0 * solver.n_y * solver.n_z * n_str);
@@ -242,4 +286,4 @@ void RateIndependentJ2Plasticity::postprocess(Solver<3> &solver, Reader &reader,
     }
 }
 
-#endif // RATEINDEPENDENTJ2PLASTICITY_H
+#endif // J2PLASTICITY_H

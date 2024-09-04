@@ -203,5 +203,5 @@ test/input_files/**/*.json
 # Test input files
 !test_LinearElasticIsotropic.json
 !test_LinearThermalIsotropic.json
-!test_PseudoPlasticLinearHardening.json
-!test_VonMisesPlasticLinearIsotropicHardening.json
+!test_PseudoPlastic.json
+!test_J2Plasticity.json

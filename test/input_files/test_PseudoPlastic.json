@@ -9,7 +9,9 @@
         "bulk_modulus": [62.5000, 222.222],
         "shear_modulus": [28.8462, 166.6667],
         "yield_stress": [0.1, 10000],
-        "hardening_parameter": [0.0, 0.0]
+        "hardening_parameter": [0.0, 0.0],
+        "hardening_exponent": [0.1, 0.1],
+        "eps_0": [0.01, 0.01]
     },
 
     "method": "cg",
@@ -71,7 +73,7 @@
                                 ]
                             ],
 
-    "results": ["stress_average", "strain_average", "absolute_error", "phase_stress_average", "phase_strain_average",
+    "results": ["stress_average", "strain_average", "absolute_error",   "phase_stress_average", "phase_strain_average",
                 "microstructure", "displacement", "stress", "strain",
                 "plastic_flag"]
 }
