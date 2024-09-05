@@ -12,17 +12,17 @@ public:
         try {
             bulk_modulus  = materialProperties["bulk_modulus"];
             shear_modulus = materialProperties["shear_modulus"];
-            yield_stress  = materialProperties["yield_stress"];
+            yield_stress  = materialProperties["yield_stress"];                  // Initial yield stress
             K             = materialProperties["isotropic_hardening_parameter"]; // Isotropic hardening parameter
             H             = materialProperties["kinematic_hardening_parameter"]; // Kinematic hardening parameter
+            eta           = materialProperties["viscosity"];                     // Viscosity parameter
+            dt            = materialProperties["time_step"][0];                  // Time step
         } catch (const std::out_of_range& e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
-
         n_mat = bulk_modulus.size();
-        sqrt_two_over_three = sqrt(2.0 / 3.0);
 
-        Matrix<double, 6, 6> *Ce      = new Matrix<double, 6, 6>[n_mat];
+        Matrix<double, 6, 6> *Ce     = new Matrix<double, 6, 6>[n_mat];
         Matrix<double, 6, 6> topLeft = Matrix<double, 6, 6>::Zero();
         topLeft.topLeftCorner(3, 3).setConstant(1);
 
@@ -35,11 +35,13 @@ public:
         kapparef_mat /= n_mat;
 
         // Allocate the member matrices/vectors for performance optimization
+        sqrt_two_over_three = sqrt(2.0 / 3.0);
         sigma_trial_n1.setZero();
         dev.setZero();
         qbar_trial_n1.setZero();
         n.setZero();
-        q_bar_n1.setZero();
+        eps_elastic.setZero();
+        dev_minus_qbar.setZero();
     }
 
     virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) override
@@ -63,8 +65,8 @@ public:
     void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override
     {
         // Elastic Predictor
-        const Matrix<double, 6, 1>& eps_elastic = eps.block<6, 1>(i, 0) - plasticStrain_t[element_idx].col(i / n_str);
-        double treps = eps_elastic.head<3>().sum();
+        eps_elastic = eps.block<6, 1>(i, 0) - plasticStrain_t[element_idx].col(i / n_str);
+        treps = eps_elastic.head<3>().sum();
 
         // Compute trial stress
         sigma_trial_n1.head<3>().setConstant(bulk_modulus[mat_index] * treps);
@@ -76,29 +78,24 @@ public:
         dev.head<3>().array() -= sigma_trial_n1.head<3>().mean();
 
         // Compute trial q and q_bar
-        const double q_trial_n1 = compute_q_trial(psi_t[element_idx](i / n_str), mat_index);
-
+        q_trial_n1 = compute_q_trial(psi_t[element_idx](i / n_str), mat_index);
         qbar_trial_n1.head<3>() = -H[mat_index] * (2.0 / 3.0) * psi_bar_t[element_idx].col(i / n_str).head<3>();
         qbar_trial_n1.tail<3>().setZero();  // Lower part is zero
 
         // Calculate the trial yield function
-        const Matrix<double, 6, 1>& dev_minus_qbar = dev - qbar_trial_n1;
-        const double norm_dev_minus_qbar = dev_minus_qbar.norm();
+        dev_minus_qbar = dev - qbar_trial_n1;
+        norm_dev_minus_qbar = dev_minus_qbar.norm();
 
         // Avoid division by zero
-        if (norm_dev_minus_qbar < 1e-12) {
-            n.setZero();
-        } else {
-            n = dev_minus_qbar / norm_dev_minus_qbar;
-        }
-        const double f_trial = norm_dev_minus_qbar - sqrt_two_over_three * (yield_stress[mat_index] - q_trial_n1);
+        n = (norm_dev_minus_qbar < 1e-12) ? n.setZero() : dev_minus_qbar / norm_dev_minus_qbar;
 
+        f_trial = norm_dev_minus_qbar - sqrt_two_over_three * (yield_stress[mat_index] - q_trial_n1);
+
+        // Compute plastic multiplier
         gamma_n1 = (f_trial < 0) ? 0 : compute_gamma(f_trial, mat_index, i, element_idx);
 
         // Update stress and internal variables
         sigma_trial_n1 -= gamma_n1 * 2 * shear_modulus[mat_index] * n;
-        q_bar_n1 = qbar_trial_n1 + gamma_n1 * H[mat_index] * (2 / 3.0) * n;
-
         plasticStrain_n1[element_idx].col(i / n_str) = plasticStrain_t[element_idx].col(i / n_str) + gamma_n1 * n;
         psi[element_idx](i / n_str) += gamma_n1 * sqrt_two_over_three;
         psi_bar[element_idx].col(i / n_str) -= gamma_n1 * n;
@@ -114,12 +111,14 @@ public:
     void postprocess(Solver<3> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override;
 
 protected:
+    // Material properties
     vector<double> bulk_modulus;
     vector<double> shear_modulus;
     vector<double> yield_stress;
     vector<double> K;          // Isotropic hardening parameter
     vector<double> H;          // Kinematic hardening parameter
-    double sqrt_two_over_three;
+    vector<double> eta;        // Viscosity parameter
+    double dt;                 // Time step
 
     // Internal variables
     vector<Matrix<double, 6, Dynamic>> plasticStrain_n1;
@@ -134,37 +133,21 @@ protected:
     Matrix<double, 6, 1> dev;
     Matrix<double, 6, 1> qbar_trial_n1;
     Matrix<double, 6, 1> n;
-    Matrix<double, 6, 1> q_bar_n1;
+    Matrix<double, 6, 1> eps_elastic;
+    double treps;
+    double q_trial_n1;
+    double f_trial;
+    Matrix<double, 6, 1> dev_minus_qbar;
+    double norm_dev_minus_qbar;
     double gamma_n1;
+    double sqrt_two_over_three;
 };
 
-// Derived Class for Rate-Independent J2 Plasticity
-class RateIndependentJ2Plasticity : public J2Plasticity {
+// Derived Class Linear Isotropic Hardening
+class J2ViscoPlastic_LinearIsotropicHardening : public J2Plasticity {
 public:
-    RateIndependentJ2Plasticity(vector<double> l_e, map<string, vector<double>> materialProperties)
-        : J2Plasticity(l_e, materialProperties) {}
-};
-
-// Derived Class for Rate-Dependent J2 Plasticity
-class RateDependentJ2Plasticity : public J2Plasticity {
-public:
-    RateDependentJ2Plasticity(vector<double> l_e, map<string, vector<double>> materialProperties)
-        : J2Plasticity(l_e, materialProperties) {
-            eta = materialProperties["viscosity"];
-            dt  = materialProperties["time_step"][0];
-        }
-protected:
-    vector<double> eta; // Viscosity parameter
-    double dt;          // Time step
-};
-
-
-
-// Derived Class for Rate Independent Linear Isotropic Hardening
-class J2Plastic_LinearIsotropicHardening : public RateIndependentJ2Plasticity {
-public:
-    J2Plastic_LinearIsotropicHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
-        : RateIndependentJ2Plasticity(l_e, materialProperties)
+    J2ViscoPlastic_LinearIsotropicHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
+        : J2Plasticity(l_e, materialProperties)
     {}
 
     double compute_q_trial(double psi_val, int mat_index) override
@@ -174,19 +157,32 @@ public:
 
     double compute_gamma(double f_trial, int mat_index, int i, ptrdiff_t element_idx) override
     {
-        return f_trial / (2 * shear_modulus[mat_index] + (2 / 3) * (K[mat_index] + H[mat_index]));
+        return f_trial / (2 * shear_modulus[mat_index] + (2.0 / 3.0) * (K[mat_index] + H[mat_index]) + eta[mat_index]/dt);
     }
 };
 
-// Derived Class for Rate Independent Non-Linear (Exponential law) Isotropic Hardening
-class J2Plastic_NonLinearIsotropicHardening : public RateIndependentJ2Plasticity {
+// Derived Class Non-Linear (Exponential law) Isotropic Hardening
+class J2ViscoPlastic_NonLinearIsotropicHardening : public J2Plasticity {
 public:
-    J2Plastic_NonLinearIsotropicHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
-        : RateIndependentJ2Plasticity(l_e, materialProperties)
+    J2ViscoPlastic_NonLinearIsotropicHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
+        : J2Plasticity(l_e, materialProperties)
     {
-        sigma_inf = materialProperties["sigma_inf"];
-        delta     = materialProperties["delta"];
+        try {
+            sigma_inf = materialProperties["saturation_stress"];            // Saturation stress
+            delta     = materialProperties["saturation_exponent"];          // Saturation exponent
+        } catch (const std::out_of_range& e) {
+            throw std::runtime_error("Missing material properties for the requested material model.");
+        }
+
+        // Precompute constants for optimization
+        denominator.resize(n_mat);
+        sigma_diff.resize(n_mat);
+        for (size_t i = 0; i < n_mat; ++i) {
+            denominator[i] = 2 * shear_modulus[i] + H[i] * (2.0 / 3.0) + eta[i] / dt;
+            sigma_diff[i] = sqrt_two_over_three * (sigma_inf[i] - yield_stress[i]);
+        }
     }
+
 
     double compute_q_trial(double psi_val, int mat_index) override
     {
@@ -195,46 +191,41 @@ public:
 
     double compute_gamma(double f_trial, int mat_index, int i, ptrdiff_t element_idx) override
     {
-        double gamma_n1 = 0;
-        double tol = 1e-10;
-        double gamma_inc = 1;
-        while (gamma_inc > tol) {
-            double g = f_trial - gamma_n1 * (2 * shear_modulus[mat_index] + H[mat_index] * (2 / 3)) -
-                       sqrt_two_over_three * (sigma_inf[mat_index] - yield_stress[mat_index]) *
-                           (-exp(-delta[mat_index] * (psi_t[element_idx](i / n_str) + sqrt_two_over_three * gamma_n1)) + exp(-delta[mat_index] * psi_t[element_idx](i / n_str)));
-            double dg = -(2 * shear_modulus[mat_index] + H[mat_index] * (2 / 3)) -
-                        (2 / 3) * (sigma_inf[mat_index] - yield_stress[mat_index]) * delta[mat_index] * exp(-delta[mat_index] * (psi_t[element_idx](i / n_str) + sqrt_two_over_three * gamma_n1));
+        gamma_n1 = 0;
+        gamma_inc = 1;
+        NR_iter = 0;
+        while (gamma_inc > NR_tol && NR_iter < NR_max_iter) {
+            g = f_trial - gamma_n1 * denominator[mat_index] -
+                sigma_diff[mat_index] *
+                (-exp(-delta[mat_index] * (psi_t[element_idx](i / n_str) + sqrt_two_over_three * gamma_n1)) + exp(-delta[mat_index] * psi_t[element_idx](i / n_str)));
+            dg = -denominator[mat_index] -
+                (2 / 3) * (sigma_inf[mat_index] - yield_stress[mat_index]) * delta[mat_index] * exp(-delta[mat_index] * (psi_t[element_idx](i / n_str) + sqrt_two_over_three * gamma_n1));
             gamma_inc = -g / dg;
             gamma_n1 += gamma_inc;
+            NR_iter++;
         }
         return gamma_n1;
     }
 
-private:
+protected:
+    // Material properties
     vector<double> sigma_inf;  // Saturation stress
     vector<double> delta;      // Saturation exponent
+private:
+    // Newton-Raphson parameters
+    double NR_tol = 1e-10;
+    int NR_max_iter = 10;
+    int NR_iter;
+
+    // Preallocated member variables for reuse
+    double gamma_inc;
+    double g;
+    double dg;
+
+    // Precomputed constants
+    vector<double> denominator;           // 2 * mu + H * (2/3) + eta/dt
+    vector<double> sigma_diff;            // sqrt(2/3) * (sigma_inf - yield_stress)
 };
-
-
-// Derived Class for Rate dependent Linear Isotropic Hardening
-class J2ViscoPlastic_LinearIsotropicHardening : public RateDependentJ2Plasticity {
-public:
-    J2ViscoPlastic_LinearIsotropicHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
-        : RateDependentJ2Plasticity(l_e, materialProperties)
-    {}
-
-    double compute_q_trial(double psi_val, int mat_index) override
-    {
-        return -K[mat_index] * psi_val;
-    }
-
-    double compute_gamma(double f_trial, int mat_index, int i, ptrdiff_t element_idx) override
-    {
-        return f_trial / (2 * shear_modulus[mat_index] + (2 / 3.0) * (K[mat_index] + H[mat_index]) + eta[mat_index]/dt);
-    }
-};
-
-
 
 
 

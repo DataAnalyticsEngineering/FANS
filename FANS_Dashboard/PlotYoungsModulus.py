@@ -85,9 +85,9 @@ def plot_3d_youngs_modulus_surface(C, title="Young's Modulus Surface"):
     fig.show()
 
 
-def demoCubicPlotly():
+def demoCubic():
     """
-    Demonstrates the plotting routine for three cubic materials using Plotly.
+    Demonstrates the Young's modulus surface plotting routine for a cubic material (Copper)
 
     Returns
     -------

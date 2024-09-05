@@ -25,24 +25,21 @@ Matmodel<1> *createMatmodel(const Reader &reader)
 template <>
 Matmodel<3> *createMatmodel(const Reader &reader)
 {
+    // Linear Elastic models
     if (reader.matmodel == "LinearElasticIsotropic") {
         return new LinearElasticIsotropic(reader.l_e, reader.materialProperties);
 
-    // PseudoPlastic models
+    // Pseudo Plastic models
     } else if (reader.matmodel == "PseudoPlasticLinearHardening") {
         return new PseudoPlasticLinearHardening(reader.l_e, reader.materialProperties);
     } else if (reader.matmodel == "PseudoPlasticNonLinearHardening") {
         return new PseudoPlasticNonLinearHardening(reader.l_e, reader.materialProperties);
 
-
     // J2 Plastic models
-    } else if (reader.matmodel == "J2Plastic_LinearIsotropicHardening") {
-        return new J2Plastic_LinearIsotropicHardening(reader.l_e, reader.materialProperties);
-    } else if (reader.matmodel == "J2Plastic_NonLinearIsotropicHardening") {
-        return new J2Plastic_NonLinearIsotropicHardening(reader.l_e, reader.materialProperties);
-
     } else if (reader.matmodel == "J2ViscoPlastic_LinearIsotropicHardening") {
         return new J2ViscoPlastic_LinearIsotropicHardening(reader.l_e, reader.materialProperties);
+    } else if (reader.matmodel == "J2ViscoPlastic_NonLinearIsotropicHardening") {
+        return new J2ViscoPlastic_NonLinearIsotropicHardening(reader.l_e, reader.materialProperties);
 
     } else {
         throw std::invalid_argument(reader.matmodel + " is not a valid matmodel for mechanical problem");
