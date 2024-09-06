@@ -195,9 +195,8 @@ Example input files can be found in the [`test/input_files`](test/input_files)  
 ```
 
 - `macroscale_loading`: This defines the external loading applied to the microstructure. It is an array of arrays, where each sub-array represents a loading condition applied to the system. The format of the loading array depends on the problem type:
-
-  - For `thermal` problems, the array typically has 3 components, representing the temperature gradients in the x, y, and z directions.
-  - For `mechanical` problems, the array must have 6 components, corresponding to the components of the strain tensor in Mandel notation (e.g., [[ε11, ε22, ε33, ε12, ε13, ε23]]).
+- For `thermal` problems, the array typically has 3 components, representing the temperature gradients in the x, y, and z directions.
+- For `mechanical` problems, the array must have 6 components, corresponding to the components of the strain tensor in Mandel notation (e.g., [[ε_11, ε_22, ε_33, √2 ε_12, √2 ε_13, √2 ε_23]]).
 
 In the case of path/time-dependent loading as shown, for example as in plasticity problems, the `macroscale_loading` array can include multiple steps with corresponding loading conditions.
 
