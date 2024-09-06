@@ -19,14 +19,14 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: 'unistuttgartdae/fans-ci:${{ matrix.UBUNTU_VERSION }}'
-      options: '--platform linux/${{ matrix.ARCH }}'
+      options: ${{ github.actor != 'nektos/act' && format('--platform=linux/{0}', matrix.ARCH) || '' }}
     defaults:
       run:
         shell: "bash --login -eo pipefail {0}"
     strategy:
       fail-fast: false
       matrix:
-        ARCH: [amd64, arm64]
+        ARCH: ${{ fromJson(github.actor != 'nektos/act' && '["amd64", "arm64"]' || '["host-arch"]') }}
         UBUNTU_VERSION: [noble, jammy, focal]
     steps:
       - name: Checkout code
