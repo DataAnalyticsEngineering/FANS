@@ -29,13 +29,13 @@ Matmodel<3> *createMatmodel(const Reader &reader)
     if (reader.matmodel == "LinearElasticIsotropic") {
         return new LinearElasticIsotropic(reader.l_e, reader.materialProperties);
 
-    // Pseudo Plastic models
+        // Pseudo Plastic models
     } else if (reader.matmodel == "PseudoPlasticLinearHardening") {
         return new PseudoPlasticLinearHardening(reader.l_e, reader.materialProperties);
     } else if (reader.matmodel == "PseudoPlasticNonLinearHardening") {
         return new PseudoPlasticNonLinearHardening(reader.l_e, reader.materialProperties);
 
-    // J2 Plastic models
+        // J2 Plastic models
     } else if (reader.matmodel == "J2ViscoPlastic_LinearIsotropicHardening") {
         return new J2ViscoPlastic_LinearIsotropicHardening(reader.l_e, reader.materialProperties);
     } else if (reader.matmodel == "J2ViscoPlastic_NonLinearIsotropicHardening") {

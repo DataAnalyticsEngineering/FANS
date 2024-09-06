@@ -39,7 +39,7 @@ class Matmodel {
     virtual void postprocess(Solver<howmany> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) {}
 
     virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) {}
-    virtual void updateInternalVariables(){}
+    virtual void updateInternalVariables() {}
 
   protected:
     double l_e_x;

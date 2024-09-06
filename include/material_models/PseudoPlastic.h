@@ -23,21 +23,18 @@ class PseudoPlastic : public MechModel {
     PseudoPlastic(vector<double> l_e, map<string, vector<double>> materialProperties)
         : MechModel(l_e)
     {
-        try
-        {
+        try {
             bulk_modulus  = materialProperties["bulk_modulus"];
             shear_modulus = materialProperties["shear_modulus"];
             yield_stress  = materialProperties["yield_stress"];
-        }
-        catch(const std::exception& e)
-        {
+        } catch (const std::exception &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
         n_mat = bulk_modulus.size();
 
         // Initialize stiffness matrix (assuming for two materials, otherwise needs extension)
-        Matrix<double, 6, 6>* Ce = new Matrix<double, 6, 6>[n_mat];
-        Matrix<double, 6, 6> topLeft = Matrix<double, 6, 6>::Zero();
+        Matrix<double, 6, 6> *Ce      = new Matrix<double, 6, 6>[n_mat];
+        Matrix<double, 6, 6>  topLeft = Matrix<double, 6, 6>::Zero();
         topLeft.topLeftCorner(3, 3).setConstant(1);
 
         kapparef_mat = Matrix<double, n_str, n_str>::Zero();
@@ -76,13 +73,13 @@ class PseudoPlastic : public MechModel {
     }
 
   protected:
-    vector<double> bulk_modulus;
-    vector<double> shear_modulus;
-    vector<double> yield_stress;
-    vector<double> eps_crit;
-    vector<VectorXi> plastic_flag;
+    vector<double>       bulk_modulus;
+    vector<double>       shear_modulus;
+    vector<double>       yield_stress;
+    vector<double>       eps_crit;
+    vector<VectorXi>     plastic_flag;
     Matrix<double, 6, 1> dev_eps;
-    double treps, norm_dev_eps, buf1, buf2;
+    double               treps, norm_dev_eps, buf1, buf2;
 };
 
 class PseudoPlasticLinearHardening : public PseudoPlastic {
@@ -90,15 +87,11 @@ class PseudoPlasticLinearHardening : public PseudoPlastic {
     PseudoPlasticLinearHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
         : PseudoPlastic(l_e, materialProperties)
     {
-        try
-        {
+        try {
             hardening_parameter = materialProperties["hardening_parameter"];
-        }
-        catch(const std::exception& e)
-        {
+        } catch (const std::exception &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
-
 
         E_s.resize(n_mat);
         eps_crit.resize(n_mat);
@@ -135,8 +128,8 @@ class PseudoPlasticLinearHardening : public PseudoPlastic {
   private:
     vector<double> hardening_parameter;
     vector<double> E_s;
-    double a = 2. / 3;
-    double b = sqrt(a);
+    double         a = 2. / 3;
+    double         b = sqrt(a);
 };
 
 class PseudoPlasticNonLinearHardening : public PseudoPlastic {
@@ -144,13 +137,10 @@ class PseudoPlasticNonLinearHardening : public PseudoPlastic {
     PseudoPlasticNonLinearHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
         : PseudoPlastic(l_e, materialProperties)
     {
-        try
-        {
+        try {
             hardening_exponent = materialProperties["hardening_exponent"];
             eps_0              = materialProperties["eps_0"]; // ε0 parameter
-        }
-        catch(const std::exception& e)
-        {
+        } catch (const std::exception &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
 
@@ -171,7 +161,7 @@ class PseudoPlasticNonLinearHardening : public PseudoPlastic {
         buf1 = bulk_modulus[mat_index] * treps;
         sigma.block<6, 1>(i, 0).setConstant(0);
         if (norm_dev_eps <= eps_crit[mat_index]) {
-            buf2                                 = 2.0 * shear_modulus[mat_index];
+            buf2 = 2.0 * shear_modulus[mat_index];
             sigma.block<3, 1>(i, 0).setConstant(buf1);
             sigma.block<3, 1>(i, 0) += buf2 * dev_eps.head<3>();
             sigma.block<3, 1>(i + 3, 0) = buf2 * dev_eps.tail<3>();
@@ -181,7 +171,7 @@ class PseudoPlasticNonLinearHardening : public PseudoPlastic {
             buf2 = sqrt(2.0 / 3.0) * yield_stress[mat_index] *
                    pow(norm_dev_eps / eps_0[mat_index], hardening_exponent[mat_index]);
             sigma.block<3, 1>(i, 0).setConstant(buf1);
-            sigma.block<6, 1>(i, 0) += buf2 * dev_eps/ dev_eps.norm();
+            sigma.block<6, 1>(i, 0) += buf2 * dev_eps / dev_eps.norm();
 
             plastic_flag[element_idx](i / n_str) = this->n_mat + mat_index;
         }

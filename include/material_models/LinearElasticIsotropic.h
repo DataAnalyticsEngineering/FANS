@@ -8,13 +8,10 @@ class LinearElasticIsotropic : public MechModel, public LinearModel<3> {
     LinearElasticIsotropic(vector<double> l_e, map<string, vector<double>> materialProperties)
         : MechModel(l_e)
     {
-        try
-        {
-            bulk_modulus  = materialProperties["bulk_modulus"];
-            mu            = materialProperties["shear_modulus"];
-        }
-        catch(const std::exception& e)
-        {
+        try {
+            bulk_modulus = materialProperties["bulk_modulus"];
+            mu           = materialProperties["shear_modulus"];
+        } catch (const std::exception &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
 
