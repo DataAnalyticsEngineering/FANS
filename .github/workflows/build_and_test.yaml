@@ -79,14 +79,14 @@ jobs:
         with:
           name: ${{ format('Ubuntu {0}, {1}', matrix.UBUNTU_VERSION, matrix.ARCH) }} CompileCommands
           path: build/compile_commands.json
-      
+
       - name: Compile
         run: |
           docker exec \
             -w ${{ env.FANS_DIR }}/${{ env.FANS_BUILD_DIR }} \
             ${{ env.FANS_CONTAINER }} \
             cmake --build . -j $(nproc) || cmake --build . -j1
-      
+
       - name: Tests
         run: |
           docker exec \
@@ -100,4 +100,3 @@ jobs:
         with:
           name: ${{ format('Ubuntu {0}, {1}', matrix.UBUNTU_VERSION, matrix.ARCH) }} CTest logs
           path: build/Testing/Temporary/LastTest.log
-  
