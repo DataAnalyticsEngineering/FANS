@@ -1,0 +1,76 @@
+name: Build and Test
+# Builds FANS inside various docker containers and runs the tests.
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.event_name }}-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{github.event_name == 'pull_request'}}
+
+jobs:
+  build:
+    name: ${{ format('Ubuntu {0}, {1}', matrix.UBUNTU_VERSION, matrix.ARCH) }}
+    runs-on: ubuntu-latest
+    container:
+      image: 'unistuttgartdae/fans-ci:${{ matrix.UBUNTU_VERSION }}'
+      options: '--platform linux/${{ matrix.ARCH }}'
+    defaults:
+      run:
+        shell: "bash --login -eo pipefail {0}"
+    strategy:
+      fail-fast: false
+      matrix:
+        ARCH: [amd64, arm64]
+        UBUNTU_VERSION: [noble, jammy, focal]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate build directory
+        run: mkdir -p build
+
+      - name: Configure
+        working-directory: build
+        run: |
+          cmake --version
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ format('Ubuntu {0}, {1}', matrix.UBUNTU_VERSION, matrix.ARCH) }} CMakeCache
+          path: build/CMakeCache.txt
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ format('Ubuntu {0}, {1}', matrix.UBUNTU_VERSION, matrix.ARCH) }} CMakeLogs
+          path: 'build/CMakeFiles/*.log'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ format('Ubuntu {0}, {1}', matrix.UBUNTU_VERSION, matrix.ARCH) }} CompileCommands
+          path: build/compile_commands.json
+      
+      - name: Compile
+        working-directory: build
+        run: |
+          cmake --build . -j $(nproc) || cmake --build . -j1
+      
+      - name: Tests
+        env:
+          CTEST_OUTPUT_ON_FAILURE: 1
+        working-directory: build
+        run: ctest
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ format('Ubuntu {0}, {1}', matrix.UBUNTU_VERSION, matrix.ARCH) }} CTest logs
+          path: build/Testing/Temporary/LastTest.log
+  
