@@ -22,6 +22,7 @@ jobs:
       FANS_IMG: unistuttgartdae/fans-ci
       FANS_CONTAINER: fans-ci
       FANS_BUILD_DIR: build
+      FANS_MPI_UID: 1000
     strategy:
       fail-fast: false
       matrix:
@@ -88,10 +89,20 @@ jobs:
               cmake --build . -j $(nproc) || cmake --build . -j1 \
             '
 
+      - name: Adjust user rights
+        run: |
+          docker exec \
+            -w ${{ env.FANS_DIR }} \
+            ${{ env.FANS_CONTAINER }} \
+            bash -c ' \
+              chown -R ${{ env.FANS_MPI_UID }} ${{ env.FANS_BUILD_DIR }}
+            '
+
       - name: Tests
         run: |
           docker exec \
             -w ${{ env.FANS_DIR }}/${{ env.FANS_BUILD_DIR }} \
+            -u ${{ env.FANS_MPI_UID }} \
             -e CTEST_OUTPUT_ON_FAILURE=1 \
             ${{ env.FANS_CONTAINER }} \
             bash -c ' \
