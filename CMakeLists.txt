@@ -252,6 +252,19 @@ install(
 )
 
 # ##############################################################################
+# TESTING
+# ##############################################################################
+
+if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    set(FANS_ENABLE_TESTING_DEFAULT ON)
+endif ()
+option(FANS_ENABLE_TESTING "Enable testing" ${FANS_ENABLE_TESTING_DEFAULT})
+if (FANS_ENABLE_TESTING)
+    enable_testing()
+    add_subdirectory(test)
+endif ()
+
+# ##############################################################################
 # PACKAGING
 # ##############################################################################
 
