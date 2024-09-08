@@ -39,12 +39,8 @@ jobs:
           docker create \
             --name ${{ env.FANS_CONTAINER }} \
             --platform linux/${{ matrix.ARCH }} \
-            -i -t \
-            -u `id -u`:`id -g` \
-            -v /etc/localtime:/etc/localtime:ro \
-            -v /etc/timezone:/etc/timezone:ro \
-            -v ${{ github.workspace }}:${{ env.FANS_DIR }} \
-            -w ${{ env.FANS_DIR }} \
+            --interactive \
+            --volume .:${{ env.FANS_DIR }} \
             ${{ env.FANS_IMG }}:${{ matrix.UBUNTU_VERSION }}
           docker start ${{ env.FANS_CONTAINER }}
 
