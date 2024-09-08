@@ -49,16 +49,19 @@ jobs:
           docker exec \
             -w ${{ env.FANS_DIR }} \
             ${{ env.FANS_CONTAINER }} \
-            bash -c "mkdir -p ${{ env.FANS_BUILD_DIR }}"
+            bash -c ' \
+              mkdir -p ${{ env.FANS_BUILD_DIR }} \
+            '
 
       - name: Configure
         run: |
           docker exec \
             -w ${{ env.FANS_DIR }}/${{ env.FANS_BUILD_DIR }} \
             ${{ env.FANS_CONTAINER }} \
-            bash -c " \
+            bash -c ' \
               cmake --version && \
-              cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .."
+              cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .. \
+            '
 
       - uses: actions/upload-artifact@v4
         if: failure()
@@ -81,7 +84,9 @@ jobs:
           docker exec \
             -w ${{ env.FANS_DIR }}/${{ env.FANS_BUILD_DIR }} \
             ${{ env.FANS_CONTAINER }} \
-            cmake --build . -j $(nproc) || cmake --build . -j1
+            bash -c ' \
+              cmake --build . -j $(nproc) || cmake --build . -j1 \
+            '
 
       - name: Tests
         run: |
@@ -89,7 +94,9 @@ jobs:
             -w ${{ env.FANS_DIR }}/${{ env.FANS_BUILD_DIR }} \
             -e CTEST_OUTPUT_ON_FAILURE=1 \
             ${{ env.FANS_CONTAINER }} \
-            ctest
+            bash -c ' \
+              ctest
+            '
 
       - uses: actions/upload-artifact@v4
         if: failure()
