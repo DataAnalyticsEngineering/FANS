@@ -17,28 +17,55 @@ Fourier Accelerated Nodal Solvers (FANS) is an FFT-based homogenization solver d
 
 Before proceeding with the installation, ensure that your system has the necessary dependencies. The prerequisites of FANS can be installed using Spack for a streamlined setup on high-performance computing systems, or through traditional package management for personal use.
 
-### Traditional Installation
-
-If you're setting up FANS on a personal computer or in a non-HPC environment, follow these instructions:
-
-Please ensure you have the following dependencies installed on your system:
-
-- CMake (version 3.0 or higher)
+The requirements are:
+- A C++ compiler (e.g. GCC)
+- CMake (version 3.0 or higher) (+ GNU file utility for creating .deb packages)
+- Git (for cloning this repo)
 - MPI (mpicc and mpic++)
 - HDF5 with parallel support
 - Eigen3
 - FFTW3 with MPI support
 
-Specifically, to run FANS, you at least need the following packages:
+### Traditional Installation
 
+If you're setting up FANS on a personal computer or in a non-HPC environment, use the apt package manager. For the build toolchain:
 ```bash
-openmpi-bin libc6 libfftw3-double3 libfftw3-mpi3 libgcc-s1 libgomp1 libhdf5-103 libopenmpi3 libstdc++6
+apt-get install \
+    software-properties-common \
+    build-essential \
+    cmake \
+    file \
+    git
+```
+For the FANS dependencies:
+```bash
+apt-get install \
+    libhdf5-dev \
+    libopenmpi-dev \
+    libeigen3-dev \
+    libfftw3-dev \
+    libfftw3-mpi-dev
+```
+Also we recommend to install these commonly used tools with FANS and setup a virtualenv for the `h52xdmf.py` script:
+```bash
+apt-get install \
+    time \
+    htop \
+    python3 \
+    python3-pip \
+    python3-venv \
+    python-is-python3 \
+    python3-dev
+
+python -m venv ~/venvs/FANS
+source ~/venvs/FANS/bin/activate
+python -m pip install h5py lxml
 ```
 
-To build fans, you additionally need these packages:
+For a minimal installation, to just run a prebuilt FANS, you at least need the following packages:
 
-```bash
-libhdf5-dev libopenmpi-dev libeigen3-dev libfftw3-dev libfftw3-mpi-dev
+```
+openmpi-bin libc6 libfftw3-double3 libfftw3-mpi3 libgcc-s1 libgomp1 libhdf5-103 libopenmpi3 libstdc++6
 ```
 
 If for some reason you are unable to install these packages directly on your host machine, have a look at the [set of Docker images](docker/) to create and work with FANS within an isolated environment.
