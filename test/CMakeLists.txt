@@ -6,7 +6,11 @@ set(FANS_EXECUTABLE $<TARGET_FILE:FANS_main>)
 
 # determine MPI process count. The discretization of the test geometry allows for max. 8 processes.
 set(FANS_N_MPI_PROCESSES_MAX 8)
-# ProcessorCount(FANS_CORES_AVAILABLE)
+ProcessorCount(FANS_CORES_AVAILABLE_1)
+cmake_host_system_information(RESULT FANS_CORES_AVAILABLE_2 QUERY NUMBER_OF_PHYSICAL_CORES)
+message(STATUS "ProcessorCount: ${FANS_CORES_AVAILABLE_1}")
+message(STATUS "cmake_host_system_information: ${FANS_CORES_AVAILABLE_2}")
+
 set(FANS_CORES_AVAILABLE 2)
 if (FANS_N_MPI_PROCESSES_MAX LESS FANS_CORES_AVAILABLE)
     set(FANS_N_MPI_PROCESSES ${FANS_N_MPI_PROCESSES_MAX})
