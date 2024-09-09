@@ -15,102 +15,62 @@ concurrency:
 
 jobs:
   build:
-    name: ${{ format('Ubuntu {0}, {1}', matrix.UBUNTU_VERSION, matrix.ARCH) }}
+    name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }}
     runs-on: ubuntu-latest
+    container: unistuttgartdae/fans-ci:${{ matrix.UBUNTU_VERSION }}
+    defaults:
+      run:
+        shell: "bash --login -eo pipefail {0}"
     env:
-      FANS_DIR: /FANS
-      FANS_IMG: unistuttgartdae/fans-ci
-      FANS_CONTAINER: fans-ci
       FANS_BUILD_DIR: build
-      FANS_MPI_UID: 1000
+      FANS_MPI_USER: fans
     strategy:
       fail-fast: false
       matrix:
-        ARCH: [amd64, arm64]
         UBUNTU_VERSION: [noble, jammy, focal]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Create and start container
-        run: |
-          docker create \
-            --name ${{ env.FANS_CONTAINER }} \
-            --platform linux/${{ matrix.ARCH }} \
-            --interactive \
-            --volume .:${{ env.FANS_DIR }} \
-            ${{ env.FANS_IMG }}:${{ matrix.UBUNTU_VERSION }}
-          docker start ${{ env.FANS_CONTAINER }}
-
       - name: Generate build directory
-        run: |
-          docker exec \
-            -w ${{ env.FANS_DIR }} \
-            ${{ env.FANS_CONTAINER }} \
-            bash -c ' \
-              mkdir -p ${{ env.FANS_BUILD_DIR }} \
-            '
+        run: mkdir -p ${{ env.FANS_BUILD_DIR }}
 
       - name: Configure
+        working-directory: ${{ env.FANS_BUILD_DIR }}
         run: |
-          docker exec \
-            -w ${{ env.FANS_DIR }}/${{ env.FANS_BUILD_DIR }} \
-            ${{ env.FANS_CONTAINER }} \
-            bash -c ' \
-              cmake --version && \
-              cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .. \
-            '
+          cmake --version
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
 
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{ format('Ubuntu {0}, {1}', matrix.UBUNTU_VERSION, matrix.ARCH) }} CMakeCache
+          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CMakeCache
           path: ${{ env.FANS_BUILD_DIR }}/CMakeCache.txt
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{ format('Ubuntu {0}, {1}', matrix.UBUNTU_VERSION, matrix.ARCH) }} CMakeLogs
+          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CMakeLogs
           path: '${{ env.FANS_BUILD_DIR }}/CMakeFiles/*.log'
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{ format('Ubuntu {0}, {1}', matrix.UBUNTU_VERSION, matrix.ARCH) }} CompileCommands
+          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CompileCommands
           path: ${{ env.FANS_BUILD_DIR }}/compile_commands.json
 
       - name: Compile
-        run: |
-          docker exec \
-            -w ${{ env.FANS_DIR }}/${{ env.FANS_BUILD_DIR }} \
-            ${{ env.FANS_CONTAINER }} \
-            bash -c ' \
-              cmake --build . -j $(nproc) || cmake --build . -j1 \
-            '
+        working-directory: ${{ env.FANS_BUILD_DIR }}
+        run:
+          cmake --build . -j $(nproc) || cmake --build . -j1
 
       - name: Adjust user rights
-        run: |
-          docker exec \
-            -w ${{ env.FANS_DIR }} \
-            ${{ env.FANS_CONTAINER }} \
-            bash -c ' \
-              chown -R ${{ env.FANS_MPI_UID }} ${{ env.FANS_BUILD_DIR }}
-            '
+        run: chown -R ${{ env.FANS_MPI_USER }} ${{ env.FANS_BUILD_DIR }}
 
       - name: Tests
-        run: |
-          docker exec \
-            -w ${{ env.FANS_DIR }}/${{ env.FANS_BUILD_DIR }} \
-            -u ${{ env.FANS_MPI_UID }} \
-            -e CTEST_OUTPUT_ON_FAILURE=1 \
-            ${{ env.FANS_CONTAINER }} \
-            bash -c ' \
-              ctest
-            '
+        working-directory: ${{ env.FANS_BUILD_DIR }}
+        run: su -c "ctest" ${{ env.FANS_MPI_USER }}
 
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{ format('Ubuntu {0}, {1}', matrix.UBUNTU_VERSION, matrix.ARCH) }} CTest logs
+          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CTest logs
           path: ${{ env.FANS_BUILD_DIR }}/Testing/Temporary/LastTest.log
