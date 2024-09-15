@@ -4,20 +4,9 @@ Fourier Accelerated Nodal Solvers (FANS) is an FFT-based homogenization solver d
 
 <img src="docs/images/FANS_example.png" alt="Example Image" width="400" height="300">
 
-## Table of Contents
+## Dependencies
 
-- [Installation](#installation)
-- [Input File Format](#input-file-format)
-- [Examples](#examples)
-- [Acknowledgements](#acknowledgements)
-
-## Installation
-
-### Prerequisites
-
-Before proceeding with the installation, ensure that your system has the necessary dependencies. The prerequisites of FANS can be installed using Spack for a streamlined setup on high-performance computing systems, or through traditional package management for personal use.
-
-The requirements are:
+FANS has the following dependencies:
 
 - A C++ compiler (e.g. GCC)
 - CMake (version 3.0 or higher) (+ GNU file utility for creating .deb packages)
@@ -27,20 +16,9 @@ The requirements are:
 - Eigen3
 - FFTW3 with MPI support
 
-### Traditional Installation
+### Installing dependencies
 
-If you're setting up FANS on a personal computer or in a non-HPC environment, please use the apt package manager. For the build toolchain:
-
-```bash
-apt-get install \
-    software-properties-common \
-    build-essential \
-    cmake \
-    file \
-    git
-```
-
-For the FANS dependencies:
+Dependencies are installed using a package manager. Using `apt`, the following commands are run:
 
 ```bash
 apt-get install \
@@ -68,13 +46,13 @@ source ~/venvs/FANS/bin/activate
 python -m pip install h5py lxml
 ```
 
-If for some reason you are unable to install these packages directly on your host machine, have a look at the [set of Docker images](docker/) to create and work with FANS within an isolated environment.
+We also provide a [set of Docker images](docker/) to work with FANS within an isolated environment.
 
-### Spack Installation (Recommended for Clusters/Supercomputers)
+### Installing dependencies using Spack
 
-Spack is a package manager designed for high-performance computing environments. It simplifies the installation of complex software stacks, making it ideal for setting up FANS on large clusters or supercomputers.
+Spack is a package manager designed for high-performance computing environments. It simplifies the installation of complex software stacks, making it ideal for setting up FANS on remote systems.
 
-1. **Install Spack**: If you don’t have Spack installed, you can set it up with the following commands:
+1. **Install Spack**: If Spack is not installed, set it up with the following commands:
 
     ```bash
     git clone https://github.com/spack/spack.git
@@ -92,7 +70,7 @@ Spack is a package manager designed for high-performance computing environments.
     spack install fftw +mpi
     ```
 
-    You can also use alternative and optimized FFTW implementations depending on your system's architecture like amdfftw (For AMD systems) or cray-fftw (For Cray systems) or fujitsu-fftw (For Fujitsu systems).
+    Alternatively, optimized FFTW implementations can be used depending on your system's architecture, for example `amdfftw` (For AMD systems) or `cray-fftw` (For Cray systems) or `fujitsu-fftw` (For Fujitsu systems).
 
 3. **Load Dependencies** Once dependencies are installed, you can load them before building:
 
@@ -100,7 +78,7 @@ Spack is a package manager designed for high-performance computing environments.
     spack load cmake mpi hdf5 eigen fftw
     ```
 
-### Building the Project
+## Building FANS
 
 1. Clone the repository:
 
@@ -109,7 +87,7 @@ Spack is a package manager designed for high-performance computing environments.
     cd FANS
     ```
 
-2. Configure the project using CMake:
+2. Configure the build using CMake:
 
     ```bash
     mkdir build
@@ -117,17 +95,17 @@ Spack is a package manager designed for high-performance computing environments.
     cmake ..
     ```
 
-3. Compile the project:
+3. Compile:
 
     ```bash
     cmake --build . -j
     ```
 
-The compilation will symlink the generated `FANS` binary into the `test/` directory for convenience.
+The compilation symlinks the generated `FANS` binary into the `test/` directory for convenience.
 
-### Build Options
+### Configuring a build
 
-This project supports the following CMake build options:
+The following CMake configuration options exist:
 
 - `CMAKE_BUILD_TYPE`: Sets the build type. Common values are Debug, Release, RelWithDebInfo, and MinSizeRel.
 
@@ -135,14 +113,14 @@ This project supports the following CMake build options:
   - Default: OFF
   - Usage: `-DFANS_BUILD_STATIC=ON`
 
-- `CMAKE_INTERPROCEDURAL_OPTIMIZATION`: Enable interprocedural optimization (IPO) for all targets.
+- `CMAKE_INTERPROCEDURAL_OPTIMIZATION`: Enable inter-procedural optimization (IPO) for all targets.
   - Default: ON (if supported)
   - Usage: `-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF`
   - Note: When you run the configure step for the first time, IPO support is automatically checked and enabled if available. A status message will indicate whether IPO is activated or not supported.
 
-### Installing the Project
+## Installing
 
-After compiling, you can install FANS (system-wide) using the following options:
+Install FANS (system-wide) using the following options:
 
 1. Using CMake (sudo required if --prefix is omitted):
 
@@ -160,8 +138,7 @@ After compiling, you can install FANS (system-wide) using the following options:
 
 ## Input File Format
 
-To run the FANS solver, you need to provide a JSON input file specifying the problem parameters.
-Example input files can be found in the [`test/input_files`](test/input_files)  directory. You can use these files as a reference to create your own input file. The input file is in JSON format and contains several fields to define the problem settings...
+FANS requires a JSON input file specifying the problem parameters. Example input files can be found in the [`test/input_files`](test/input_files) directory. It is recommended to use these files as a reference to create your own input file.
 
 ### Microstructure Definition
 
@@ -245,9 +222,9 @@ In the case of path/time-dependent loading as shown, for example as in plasticit
 
 - Additional material model specific results, such as `plastic_flag`, `plastic_strain`, and `hardening_variable`, can be included depending on the problem type and material model.
 
-### Examples
+## Examples
 
-If you would like to run some example tests, you can execute the [`run_tests.sh`](test/run_tests.sh) file. For example to run a linear elastic mechanical homogenization problem for a 6 othonormal load cases on a microstructure image of size `32 x 32 x 32` with a single spherical inclusion,
+Execute the [`run_tests.sh`](test/run_tests.sh) file to run tests, which are also examples. For example, to run a linear elastic mechanical homogenization problem for a 6 othonormal load cases on a microstructure image of size `32 x 32 x 32` with a single spherical inclusion,
 
 ```bash
 mpiexec -n 2 ./FANS input_files/test_LinearElasticIsotropic.json test_results.h5
