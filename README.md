@@ -18,7 +18,7 @@ FANS has the following dependencies:
 
 ### Installing dependencies
 
-Dependencies are installed using a package manager. Using `apt`, the following commands are run:
+We recommend installing the dependencies using a package manager. For example, using `apt`, the following commands are run:
 
 ```bash
 apt-get install \
