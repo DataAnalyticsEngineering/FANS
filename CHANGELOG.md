@@ -1,5 +1,9 @@
 # FANS Changelog
 
+## latest
+
+- Add GitHub Action workflow to build and test FANS https://github.com/DataAnalyticsEngineering/FANS/pull/19
+
 ## v0.1.2
 
 - Update TIK GitHub links in the documentation to public GitHub links https://github.com/DataAnalyticsEngineering/FANS/pull/13
