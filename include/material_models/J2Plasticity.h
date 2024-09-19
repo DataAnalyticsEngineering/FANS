@@ -44,10 +44,22 @@ class J2Plasticity : public MechModel {
         dev_minus_qbar.setZero();
     }
 
+    /**
+     * @brief Initializes internal variables for the J2 plasticity model.
+     *
+     * This function sets up the internal variables required for the J2 plasticity model.
+     * It initializes the plastic strain and other internal variables for the given number
+     * of elements and Gauss points.
+     *
+     * @param num_elements The number of elements in the model.
+     * @param num_gauss_points The number of Gauss points per element.
+     *
+     * @note Variables with the suffix '_t' represent values from the previous time step.
+     */
     virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) override
     {
         // Initialize plastic strain and other internal variables
-        plasticStrain_n1.resize(num_elements, Matrix<double, 6, Dynamic>::Zero(6, num_gauss_points));
+        plasticStrain.resize(num_elements, Matrix<double, 6, Dynamic>::Zero(6, num_gauss_points));
         plasticStrain_t.resize(num_elements, Matrix<double, 6, Dynamic>::Zero(6, num_gauss_points));
         psi.resize(num_elements, VectorXd::Zero(num_gauss_points));
         psi_t.resize(num_elements, VectorXd::Zero(num_gauss_points));
@@ -57,7 +69,7 @@ class J2Plasticity : public MechModel {
 
     virtual void updateInternalVariables() override
     {
-        plasticStrain_t = plasticStrain_n1;
+        plasticStrain_t = plasticStrain;
         psi_t           = psi;
         psi_bar_t       = psi_bar;
     }
@@ -96,7 +108,7 @@ class J2Plasticity : public MechModel {
 
         // Update stress and internal variables
         sigma_trial_n1 -= gamma_n1 * 2 * shear_modulus[mat_index] * n;
-        plasticStrain_n1[element_idx].col(i / n_str) = plasticStrain_t[element_idx].col(i / n_str) + gamma_n1 * n;
+        plasticStrain[element_idx].col(i / n_str) = plasticStrain_t[element_idx].col(i / n_str) + gamma_n1 * n;
         psi[element_idx](i / n_str) += gamma_n1 * sqrt_two_over_three;
         psi_bar[element_idx].col(i / n_str) -= gamma_n1 * n;
 
@@ -121,9 +133,9 @@ class J2Plasticity : public MechModel {
     double         dt;  // Time step
 
     // Internal variables
-    vector<Matrix<double, 6, Dynamic>> plasticStrain_n1;
+    vector<Matrix<double, 6, Dynamic>> plasticStrain;
     vector<Matrix<double, 6, Dynamic>> plasticStrain_t;
-    vector<VectorXd>                   psi; // Accumulated plastic strain
+    vector<VectorXd>                   psi;
     vector<VectorXd>                   psi_t;
     vector<Matrix<double, 6, Dynamic>> psi_bar;
     vector<Matrix<double, 6, Dynamic>> psi_bar_t;
