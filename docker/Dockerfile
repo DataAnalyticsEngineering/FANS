@@ -2,11 +2,13 @@
 # to take effect)
 ARG DEBIAN_FRONTEND=noninteractive
 ARG UBUNTU_VERSION=noble
+ARG USER=fans
 
 ################################################################################
 
 FROM ubuntu:${UBUNTU_VERSION} AS fans_base
 ARG DEBIAN_FRONTEND
+ARG USER
 
 # Context: https://askubuntu.com/questions/1513927/ubuntu-24-04-docker-images-now-includes-user-ubuntu-with-uid-gid-1000
 RUN bash -c 'if id "ubuntu" &>/dev/null; then \
@@ -15,6 +17,9 @@ RUN bash -c 'if id "ubuntu" &>/dev/null; then \
       userdel -r ubuntu && \
       echo "Deleted user ubuntu."; \
     fi'
+
+# Create a non-root user
+RUN useradd -m -s /bin/bash ${USER}
 
 ################################################################################
 
@@ -44,6 +49,8 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
 
 FROM fans_ci AS fans_dev
 ARG DEBIAN_FRONTEND
+ARG USER
+ARG FANS_venv=FANS_venv
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
 # Packages required for setting up the non-root user
@@ -63,31 +70,19 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     && apt-get autoremove --purge -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user
-ENV USER=develop
-ENV UID=1000
-ENV GID=100
-ENV HOME=/home/${USER}
-RUN adduser --disabled-password \
-    --gecos "Non-root user" \
-    --uid ${UID} \
-    --gid ${GID} \
-    --home ${HOME} \
-    ${USER} \
-    #
-    && echo ${USER} ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/${USER} \
-    && chmod 0440 /etc/sudoers.d/${USER}
-
 # Create a python venv for test/h52xdmf.py script
 USER ${USER}
 
-ARG FANS_venv=FANS_venv
 RUN python -m venv /home/${USER}/venvs/${FANS_venv} && \
     echo "\nsource /home/${USER}/venvs/${FANS_venv}/bin/activate\n" >> /home/${USER}/.bashrc && \
     . /home/${USER}/venvs/${FANS_venv}/bin/activate && \
     python -m pip install --no-cache-dir h5py lxml
 
 USER root
+
+# Add fans user to sudoers
+RUN echo ${USER} ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/${USER} \
+    && chmod 440 /etc/sudoers.d/${USER}
 
 # Entrypoint script changes UID and GID to match given host UID and GID
 COPY --chmod=755 docker/Dockerfile_user_env_entrypoint.sh /entrypoint.sh

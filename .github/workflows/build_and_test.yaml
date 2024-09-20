@@ -1,0 +1,76 @@
+name: Build and Test
+# Builds FANS inside various docker containers and runs the tests.
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.event_name }}-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{github.event_name == 'pull_request'}}
+
+jobs:
+  build:
+    name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }}
+    runs-on: ubuntu-latest
+    container: unistuttgartdae/fans-ci:${{ matrix.UBUNTU_VERSION }}
+    defaults:
+      run:
+        shell: "bash --login -eo pipefail {0}"
+    env:
+      FANS_BUILD_DIR: build
+      FANS_MPI_USER: fans
+    strategy:
+      fail-fast: false
+      matrix:
+        UBUNTU_VERSION: [noble, jammy, focal]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate build directory
+        run: mkdir -p ${{ env.FANS_BUILD_DIR }}
+
+      - name: Configure
+        working-directory: ${{ env.FANS_BUILD_DIR }}
+        run: |
+          cmake --version
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CMakeCache
+          path: ${{ env.FANS_BUILD_DIR }}/CMakeCache.txt
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CMakeLogs
+          path: '${{ env.FANS_BUILD_DIR }}/CMakeFiles/*.log'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CompileCommands
+          path: ${{ env.FANS_BUILD_DIR }}/compile_commands.json
+
+      - name: Compile
+        working-directory: ${{ env.FANS_BUILD_DIR }}
+        run:
+          cmake --build . -j $(nproc) || cmake --build . -j1
+
+      - name: Adjust user rights
+        run: chown -R ${{ env.FANS_MPI_USER }} ${{ env.FANS_BUILD_DIR }}
+
+      - name: Tests
+        working-directory: ${{ env.FANS_BUILD_DIR }}
+        run: su -c "ctest" ${{ env.FANS_MPI_USER }}
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CTest logs
+          path: ${{ env.FANS_BUILD_DIR }}/Testing/Temporary/LastTest.log

@@ -247,6 +247,7 @@ void Solver<howmany>::solve()
         printf("# Total Time ...................   %2.6f sec\n", double(tot_time) / CLOCKS_PER_SEC);
         printf("# FFT contribution to total time   %2.6f %% \n", 100. * double(fft_time) / double(tot_time));
     }
+    matmodel->updateInternalVariables();
 }
 
 template <int howmany>
