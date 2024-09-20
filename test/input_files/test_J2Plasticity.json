@@ -4,17 +4,23 @@
     "ms_L": [1.0, 1.0, 1.0],
 
     "problem_type": "mechanical",
-    "matmodel": "VonMisesPlasticLinearIsotropicHardening",
+    "matmodel": "J2ViscoPlastic_NonLinearIsotropicHardening",
     "material_properties":{
         "bulk_modulus": [62.5000, 222.222],
         "shear_modulus": [28.8462, 166.6667],
         "yield_stress": [0.1, 10000],
-        "hardening_parameter": [0.0, 0.0]
+        "isotropic_hardening_parameter": [0.0, 0.0],
+        "kinematic_hardening_parameter": [0.0, 0.0],
+        "viscosity": [1, 1],
+        "time_step": [0.01],
+
+        "saturation_stress": [0.15, 10000],
+        "saturation_exponent": [1000, 1000]
     },
 
     "method": "cg",
     "TOL": 1e-10,
-    "n_it": 500,
+    "n_it": 100,
     "macroscale_loading": [ [   [0.0000, 0, 0, 0, 0, 0],
                                 [0.0001, 0, 0, 0, 0, 0],
                                 [0.0002, 0, 0, 0, 0, 0],
@@ -171,5 +177,5 @@
 
     "results": ["stress_average", "strain_average", "absolute_error", "phase_stress_average", "phase_strain_average",
                 "microstructure", "displacement", "stress", "strain",
-                "plastic_strain", "hardening_variable"]
+                "plastic_strain", "kinematic_hardening_variable", "isotropic_hardening_variable"]
 }

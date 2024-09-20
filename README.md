@@ -10,6 +10,7 @@ Fourier Accelerated Nodal Solvers (FANS) is an FFT-based homogenization solver d
 - [Input File Format](#input-file-format)
 - [Examples](#examples)
 - [Acknowledgements](#acknowledgements)
+- [Contributors](#contributors)
 
 ## Installation
 
@@ -159,8 +160,8 @@ Example input files can be found in the [`test/input_files`](test/input_files)  
 ```
 
 - `problem_type`: This defines the type of physical problem you are solving. Common options include "thermal" problems and "mechanical" problems.
-- `matmodel`: This specifies the material model to be used in the simulation. Examples include `LinearThermalIsotropic` for isotropic linear thermal problems, `LinearElasticIsotropic` for isotropic linear elastic mechanical problems, `PseudoPlasticLinearHardening` for plasticity mimicking model with linear hardening, and `VonMisesPlasticLinearIsotropicHardening` for rate independent J2 plasticity model with linear isotropic hardening.
-- `material_properties`: This provides the necessary material parameters for the chosen material model. For thermal problems, you might specify `conductivity`, while mechanical problems might require `bulk_modulus`, `shear_modulus`, `yield_stress`, and `hardening_parameter`. These properties can be defined as arrays to represent multiple phases within the microstructure.
+- `matmodel`: This specifies the material model to be used in the simulation. Examples include `LinearThermalIsotropic` for isotropic linear thermal problems, `LinearElasticIsotropic` for isotropic linear elastic mechanical problems, `PseudoPlasticLinearHardening`/`PseudoPlasticNonLinearHardening` for plasticity mimicking model with linear/nonlinear hardening, and `J2ViscoPlastic_LinearIsotropicHardening`/`J2ViscoPlastic_NonLinearIsotropicHardening` for rate dependent J2 plasticity model with linear/nonlinear isotropic hardening.
+- `material_properties`: This provides the necessary material parameters for the chosen material model. For thermal problems, you might specify `conductivity`, while mechanical problems might require `bulk_modulus`, `shear_modulus`, and more properties for advanced material models. These properties can be defined as arrays to represent multiple phases within the microstructure.
 
 ### Solver Settings
 
@@ -194,9 +195,8 @@ Example input files can be found in the [`test/input_files`](test/input_files)  
 ```
 
 - `macroscale_loading`: This defines the external loading applied to the microstructure. It is an array of arrays, where each sub-array represents a loading condition applied to the system. The format of the loading array depends on the problem type:
-
-  - For `thermal` problems, the array typically has 3 components, representing the temperature gradients in the x, y, and z directions.
-  - For `mechanical` problems, the array must have 6 components, corresponding to the components of the strain tensor in Mandel notation (e.g., [[ε11, ε22, ε33, ε12, ε13, ε23]]).
+- For `thermal` problems, the array typically has 3 components, representing the temperature gradients in the x, y, and z directions.
+- For `mechanical` problems, the array must have 6 components, corresponding to the components of the strain tensor in Mandel notation (e.g., [[ε_11, ε_22, ε_33, √2 ε_12, √2 ε_13, √2 ε_23]]).
 
 In the case of path/time-dependent loading as shown, for example as in plasticity problems, the `macroscale_loading` array can include multiple steps with corresponding loading conditions.
 
@@ -216,16 +216,23 @@ In the case of path/time-dependent loading as shown, for example as in plasticit
   - `displacement`: The displacement fluctuation field (for mechanical problems) and temperature fluctuation field (for thermal problems).
   - `stress` and `strain`: The stress and strain fields at each voxel in the microstructure.
 
-- Additional material model specific results, such as `plastic_flag`, `plastic_strain`, and `hardening_variable`, can be included depending on the problem type and material model.
+- Additional material model specific results can be included depending on the problem type and material model.
 
 ### Examples
 
 If you would like to run some example tests, you can execute the [`run_tests.sh`](test/run_tests.sh) file. For example to run a linear elastic mechanical homogenization problem for a 6 othonormal load cases on a microstructure image of size `32 x 32 x 32` with a single spherical inclusion,
 
 ```bash
-mpiexec -n 2 ./FANS input_files/test_LinearElasticIsotropic.json test_results.h5
+mpiexec -n 2 ./FANS input_files/test_LinearElastic.json test_results.h5
 ```
 
 ## Acknowledgements
 
 Funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) under Germany’s Excellence Strategy - EXC 2075 – 390740016. Contributions by Felix Fritzen are funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) within the Heisenberg program - DFG-FR2702/8 - 406068690; DFG-FR2702/10 - 517847245 and through NFDI-MatWerk - NFDI 38/1 - 460247524. We acknowledge the support by the Stuttgart Center for Simulation Science (SimTech).
+
+## Contributors
+
+- [Sanath Keshav](https://github.com/sanathkeshav)
+- [Florian Rieg](about:blank)
+- [Ishaan Desai](https://github.com/IshaanDesai)
+- [Moritz Sigg](https://github.com/siggmo)
