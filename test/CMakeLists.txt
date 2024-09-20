@@ -13,10 +13,10 @@ endif()
 message(STATUS "Will use ${FANS_N_MPI_PROCESSES} processes for MPI test cases.")
 
 set(FANS_TEST_CASES
-    LinearThermalIsotropic
-    LinearElasticIsotropic
-    PseudoPlasticLinearHardening
-    VonMisesPlasticLinearIsotropicHardening
+    J2PLasticity
+    LinearElastic
+    LinearThermal
+    PseudoPlastic
 )
 
 list(LENGTH FANS_TEST_CASES N_TESTS)
