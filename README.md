@@ -29,7 +29,7 @@ apt-get install \
     libfftw3-mpi-dev
 ```
 
-Also we recommend to install these commonly used tools with FANS and setup a virtualenv for the `h52xdmf.py` script:
+Also, we recommend to set up a Python virtual environment for the `FANS_Dashboard`:
 
 ```bash
 apt-get install \
