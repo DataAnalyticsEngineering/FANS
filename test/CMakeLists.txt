@@ -13,7 +13,7 @@ endif()
 message(STATUS "Will use ${FANS_N_MPI_PROCESSES} processes for MPI test cases.")
 
 set(FANS_TEST_CASES
-    J2PLasticity
+    J2Plasticity
     LinearElastic
     LinearThermal
     PseudoPlastic
