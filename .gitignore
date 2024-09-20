@@ -201,7 +201,7 @@ test/input_files/**/*.json
 !sphere.h5
 
 # Test input files
-!test_LinearElasticIsotropic.json
-!test_LinearThermalIsotropic.json
-!test_PseudoPlasticLinearHardening.json
-!test_VonMisesPlasticLinearIsotropicHardening.json
+!test_LinearElastic.json
+!test_LinearThermal.json
+!test_PseudoPlastic.json
+!test_J2Plasticity.json

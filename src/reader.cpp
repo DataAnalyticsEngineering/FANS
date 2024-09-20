@@ -204,6 +204,10 @@ void Reader ::ReadMS(int hm)
 
     alloc_local = fftw_mpi_local_size_many_transposed(rank, n, hm, block0, block1, MPI_COMM_WORLD, &local_n0, &local_0_start, &local_n1, &local_1_start);
 
+    if (local_n0 < 4)
+        throw std::runtime_error("[ FANS3D_Grid ] ERROR: Number of voxels in x-direction is less than 4 in process " + to_string(world_rank));
+    MPI_Barrier(MPI_COMM_WORLD);
+
     // Each process defines a dataset in memory which reads a hyperslab from the file
     count[0] = local_n0;
     count[1] = dims[1];
