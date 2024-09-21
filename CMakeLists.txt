@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.0...3.28)
 # ##############################################################################
 
 project(FANS
-        VERSION 0.0.0
+        VERSION 0.1.2
         LANGUAGES C CXX
 )
 
@@ -78,11 +78,7 @@ if ("$ENV{SETVARS_COMPLETED}" STREQUAL "1")
 endif ()
 
 set(HDF5_ENABLE_PARALLEL ON)
-set(HDF5_PREFER_PARALLEL ON)
-find_package(HDF5 REQUIRED COMPONENTS C CXX)
-if (NOT HDF5_C_IS_PARALLEL)
-    message(FATAL_ERROR "Parallel HDF5 implementation (mpi) required but not found!")
-endif()
+find_package(HDF5 REQUIRED COMPONENTS CXX)
 
 find_package(Eigen3 REQUIRED)
 
@@ -150,6 +146,12 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/solverCG.h
         include/solverFP.h
         include/solver.h
+        include/setup.h
+
+        include/material_models/LinearThermalIsotropic.h
+        include/material_models/LinearElasticIsotropic.h
+        include/material_models/PseudoPlastic.h
+        include/material_models/J2Plasticity.h
 )
 
 # ##############################################################################
@@ -157,7 +159,6 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
 # ##############################################################################
 
 target_sources(FANS_FANS PRIVATE
-        src/matmodel.cpp
         src/reader.cpp
 )
 
@@ -177,7 +178,7 @@ target_link_libraries(FANS_FANS PRIVATE m)
 target_include_directories(FANS_FANS PUBLIC ${HDF5_INCLUDE_DIRS})
 target_link_libraries(FANS_FANS PUBLIC ${HDF5_CXX_LIBRARIES})
 target_compile_definitions(FANS_FANS PUBLIC ${HDF5_DEFINITIONS})
-if (HDF5_C_IS_PARALLEL)
+if (HDF5_IS_PARALLEL)
     target_compile_definitions(FANS_FANS PUBLIC H5_HAVE_PARALLEL)
 endif ()
 
@@ -266,6 +267,19 @@ install(
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS
         COMPONENT FANS_Development
 )
+
+# ##############################################################################
+# TESTING
+# ##############################################################################
+
+if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    set(FANS_ENABLE_TESTING_DEFAULT ON)
+endif ()
+option(FANS_ENABLE_TESTING "Enable testing" ${FANS_ENABLE_TESTING_DEFAULT})
+if (FANS_ENABLE_TESTING)
+    enable_testing()
+    add_subdirectory(test)
+endif ()
 
 # ##############################################################################
 # PACKAGING

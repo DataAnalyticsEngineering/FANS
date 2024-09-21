@@ -1,9 +1,13 @@
-name: Build and Push Multi-Architecture Docker Images
+name: Build and push docker images
 
 on: workflow_dispatch
 
 jobs:
   build-and-push:
+    strategy:
+      matrix:
+        ubuntu-version: [noble, jammy, focal]
+
     runs-on: ubuntu-latest
 
     steps:
@@ -22,32 +26,32 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push fans image
+      - name: Build and push fans-ci image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ${{ github.workspace }}
           file: docker/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: |
+            linux/amd64
+            linux/arm64
           push: true
-          tags: unistuttgartdae/fans:latest
-          target: fans
-
-      - name: Build and push fans_ci image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: docker/Dockerfile
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: unistuttgartdae/fans-ci:latest
+          tags: |
+            unistuttgartdae/fans-ci:${{ matrix.ubuntu-version }}
+            ${{ matrix.ubuntu-version == 'noble' && format('unistuttgartdae/fans-ci:latest') || '' }}
           target: fans_ci
+          build-args: UBUNTU_VERSION=${{ matrix.ubuntu-version }}
 
-      - name: Build and push fans_dev image
+      - name: Build and push fans-dev image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ${{ github.workspace }}
           file: docker/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          platforms: |
+            linux/amd64
+            linux/arm64
           push: true
-          tags: unistuttgartdae/fans-dev:latest
+          tags: |
+            unistuttgartdae/fans-dev:${{ matrix.ubuntu-version }}
+            ${{ matrix.ubuntu-version == 'noble' && format('unistuttgartdae/fans-dev:latest') || '' }}
           target: fans_dev
+          build-args: UBUNTU_VERSION=${{ matrix.ubuntu-version }}

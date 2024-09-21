@@ -7,7 +7,7 @@ set(CPACK_OUTPUT_FILE_PREFIX "${CMAKE_BINARY_DIR}/packages")
 set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
 set(CPACK_PACKAGE_VENDOR "MIB DAE Stuttgart")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "FANS - Fourier Accelerated Nodal Solver" CACHE STRING "Extended summary.")
-set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.tik.uni-stuttgart.de/DAE/FANS/")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/DataAnalyticsEngineering/FANS")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "MIB DAE Stuttgart")
 
 set(CPACK_PACKAGE_INSTALL_DIRECTORY ${CPACK_PACKAGE_NAME})

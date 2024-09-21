@@ -1,19 +1,16 @@
-# Dockerfile for building FANS (see README.md for instructions)
-
-# during build time, don't ask for user input (has to be included in every stage
-# to take effect
+# During build time, don't ask for user input (has to be included in every stage
+# to take effect)
 ARG DEBIAN_FRONTEND=noninteractive
 ARG UBUNTU_VERSION=noble
+ARG USER=fans
 
 ################################################################################
 
 FROM ubuntu:${UBUNTU_VERSION} AS fans_base
 ARG DEBIAN_FRONTEND
+ARG USER
 
-# context: https://askubuntu.com/questions/1513927/ubuntu-24-04-docker-images-now-includes-user-ubuntu-with-uid-gid-1000
-# Weird behaviour: when not using bash -c '...', for focal and jammy I had to 
-# escape the & sign in the if condition, while for noble I had to not escape it
-# for it to work. Why?
+# Context: https://askubuntu.com/questions/1513927/ubuntu-24-04-docker-images-now-includes-user-ubuntu-with-uid-gid-1000
 RUN bash -c 'if id "ubuntu" &>/dev/null; then \
       touch /var/mail/ubuntu && \
       chown ubuntu /var/mail/ubuntu && \
@@ -21,100 +18,73 @@ RUN bash -c 'if id "ubuntu" &>/dev/null; then \
       echo "Deleted user ubuntu."; \
     fi'
 
+# Create a non-root user
+RUN useradd -m -s /bin/bash ${USER}
+
 ################################################################################
 
 FROM fans_base AS fans_ci
 ARG DEBIAN_FRONTEND
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
-# basic packages
+# Build basics
     software-properties-common \
-    git \
-# build basics
     build-essential \
+# CMake + git for FetchContent + file for CPack
     cmake \
+    git \
     file \
-# packages required to build FANS \
+# FANS dependencies \
     libhdf5-dev \
     libopenmpi-dev \
     libeigen3-dev \
     libfftw3-dev \
     libfftw3-mpi-dev \
+# Clean up
+    && apt-get clean \
+    && apt-get autoremove --purge -y \
     && rm -rf /var/lib/apt/lists/*
 
 ################################################################################
+
 FROM fans_ci AS fans_dev
 ARG DEBIAN_FRONTEND
+ARG USER
+ARG FANS_venv=FANS_venv
 
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
+# Packages required for setting up the non-root user
     sudo \
     gosu \
+# Some additional packages for convenience
     time \
+    htop \
+    vim \
+    python3 \
+    python3-pip \
+    python3-venv \
+    python-is-python3 \
+    python3-dev \
+# Clean up
     && apt-get clean \
     && apt-get autoremove --purge -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user
-ENV USER=develop
-ENV UID=1000
-ENV GID=100
-ENV HOME=/home/${USER}
-RUN adduser --disabled-password \
-    --gecos "Non-root user" \
-    --uid ${UID} \
-    --gid ${GID} \
-    --home ${HOME} \
-    ${USER} \
-    #
-    && echo ${USER} ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/${USER} \
-    && chmod 0440 /etc/sudoers.d/${USER}
+# Create a python venv for test/h52xdmf.py script
+USER ${USER}
 
-# entrypoint script changes uid and gid to match given host uid and gid
-COPY --chmod=755 docker/Dockerfile_user_env_entrypoint.sh /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+RUN python -m venv /home/${USER}/venvs/${FANS_venv} && \
+    echo "\nsource /home/${USER}/venvs/${FANS_venv}/bin/activate\n" >> /home/${USER}/.bashrc && \
+    . /home/${USER}/venvs/${FANS_venv}/bin/activate && \
+    python -m pip install --no-cache-dir h5py lxml
 
-CMD ["bash"]
+USER root
 
-################################################################################
-# These stages are for the standalone FANS container
-################################################################################
+# Add fans user to sudoers
+RUN echo ${USER} ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/${USER} \
+    && chmod 440 /etc/sudoers.d/${USER}
 
-FROM fans_base AS fans
-ARG DEBIAN_FRONTEND
-ARG WORKSPACE=/workspace
-ARG BUILD_DIR=build
-
-COPY ${BUILD_DIR}/packages/fans_*.deb ${WORKSPACE}/
-
-RUN [ $(ls ${WORKSPACE}/*.deb | wc -l) -eq 1 ] || (echo "Error: Expected exactly one .deb file" && exit 1)
-
-RUN apt-get update -qq && apt-get install -y --no-install-recommends \
-    ${WORKSPACE}/*.deb \
-    sudo \
-    gosu \
-    time \
-    && apt-get clean \
-    && apt-get autoremove --purge -y \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN rm -rf ${WORKSPACE}
-
-# Create a non-root user
-ENV USER=develop
-ENV UID=1000
-ENV GID=100
-ENV HOME=/home/${USER}
-RUN adduser --disabled-password \
-    --gecos "Non-root user" \
-    --uid ${UID} \
-    --gid ${GID} \
-    --home ${HOME} \
-    ${USER} \
-    #
-    && echo ${USER} ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/${USER} \
-    && chmod 0440 /etc/sudoers.d/${USER}
-
-# entrypoint script changes uid and gid to match given host uid and gid
+# Entrypoint script changes UID and GID to match given host UID and GID
 COPY --chmod=755 docker/Dockerfile_user_env_entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 
