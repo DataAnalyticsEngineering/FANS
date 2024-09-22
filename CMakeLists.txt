@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.0...3.28)
 # ##############################################################################
 
 project(FANS
-        VERSION 0.1.2
+        VERSION 0.2.0
         LANGUAGES C CXX
 )
 
@@ -135,8 +135,8 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
 
         include/material_models/LinearThermalIsotropic.h
         include/material_models/LinearElasticIsotropic.h
-        include/material_models/PseudoPlasticLinearHardening.h
-        include/material_models/VonMisesPlasticLinearIsotropicHardening.h
+        include/material_models/PseudoPlastic.h
+        include/material_models/J2Plasticity.h
 )
 
 # ##############################################################################
@@ -250,6 +250,19 @@ install(
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS
         COMPONENT FANS_Development
 )
+
+# ##############################################################################
+# TESTING
+# ##############################################################################
+
+if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+    set(FANS_ENABLE_TESTING_DEFAULT ON)
+endif ()
+option(FANS_ENABLE_TESTING "Enable testing" ${FANS_ENABLE_TESTING_DEFAULT})
+if (FANS_ENABLE_TESTING)
+    enable_testing()
+    add_subdirectory(test)
+endif ()
 
 # ##############################################################################
 # PACKAGING
