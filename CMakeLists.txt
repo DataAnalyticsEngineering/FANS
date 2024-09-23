@@ -9,6 +9,7 @@ project(FANS
         LANGUAGES C CXX
 )
 
+
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 include(FetchContent)
