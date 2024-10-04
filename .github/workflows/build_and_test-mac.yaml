@@ -1,4 +1,4 @@
-name: Build and Test
+name: Build and Test macOS 14 (M1)
 # Builds FANS for macOS 14 on M1 CPU and runs the tests.
 
 on:
