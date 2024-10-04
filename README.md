@@ -37,6 +37,17 @@ apt-get install \
     libfftw3-mpi-dev
 ```
 
+On macOS you can obtain the dependencies using `brew`:
+
+```zsh
+brew install \
+    cmake \
+    hdf5 \
+    openmpi \
+    eigen \
+    fftw
+```
+
 Also, we recommend to set up a Python virtual environment for the `FANS_Dashboard`:
 
 ```bash
