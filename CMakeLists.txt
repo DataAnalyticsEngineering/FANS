@@ -85,7 +85,7 @@ find_package(HDF5 REQUIRED COMPONENTS CXX)
 
 find_package(Eigen3 REQUIRED)
 
-find_package(OpenMP REQUIRED)
+# find_package(OpenMP REQUIRED)
 
 find_package(MPI REQUIRED)
 
