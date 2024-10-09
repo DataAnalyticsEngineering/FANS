@@ -1,7 +1,8 @@
 # FANS Changelog
 
-## latest
+## v0.2.0
 
+- Add integration tests https://github.com/DataAnalyticsEngineering/FANS/pull/20
 - Add GitHub Action workflow to build and test FANS https://github.com/DataAnalyticsEngineering/FANS/pull/19
 
 ## v0.1.2

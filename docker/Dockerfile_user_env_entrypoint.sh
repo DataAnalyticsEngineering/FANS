@@ -8,7 +8,7 @@ set -e
 # USAGE: docker run -e HOST_UID=$(id -u) -e HOST_GID=$(id -g) ...
 # open issue on this topic: https://github.com/docker/roadmap/issues/398
 hostgroup="hostgroup"
-container_user="develop"
+container_user="fans"
 
 if [ "$(id -u -n)" = "root" ]; then
     if [ -n "$HOST_UID" ] && [ -n "$HOST_GID" ]; then
