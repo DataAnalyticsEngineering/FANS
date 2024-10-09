@@ -86,6 +86,8 @@ find_package(HDF5 REQUIRED COMPONENTS CXX)
 
 find_package(Eigen3 REQUIRED)
 
+find_package(OpenMP REQUIRED)
+
 find_package(MPI REQUIRED)
 
 find_package(FFTW3 REQUIRED COMPONENTS DOUBLE MPI)
@@ -177,6 +179,8 @@ target_link_libraries(FANS_FANS PUBLIC ${FFTW3_LIBRARIES})
 target_compile_definitions(FANS_FANS PUBLIC ${FFTW3_DEFINITIONS})
 
 target_link_libraries(FANS_FANS PUBLIC Eigen3::Eigen)
+
+target_link_libraries(FANS_FANS PUBLIC OpenMP::OpenMP_CXX)
 
 
 target_link_libraries(FANS_main PRIVATE FANS::FANS)

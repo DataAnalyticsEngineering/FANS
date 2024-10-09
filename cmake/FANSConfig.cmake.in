@@ -18,6 +18,7 @@ if (NOT HDF5_C_IS_PARALLEL)
     message(FATAL_ERROR "Parallel HDF5 implementation (mpi) required but not found!")
 endif()
 find_dependency(Eigen3)
+find_dependency(OpenMP)
 find_dependency(MPI)
 find_dependency(FFTW3 COMPONENTS DOUBLE MPI)
 
