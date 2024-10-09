@@ -38,7 +38,7 @@ jobs:
           cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DOpenMP_CXX_FLAG="-Xclang -fopenmp"
+            -DOpenMP_CXX_FLAG="-Xclang -fopenmp" \
             -DOpenMP_CXX_INCLUDE_DIR=$(brew --prefix)/opt/libomp/include \
             -DOpenMP_CXX_LIB_NAMES=libomp \
             -DOpenMP_C_FLAG="-Xclang -fopenmp" \
