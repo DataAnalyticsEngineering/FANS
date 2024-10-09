@@ -3,7 +3,7 @@
 We provide a set of docker images for different use cases on our [Dockerhub profile](https://hub.docker.com/u/unistuttgartdae):
 
 - **fans-ci**: Contains the minimum tools to build FANS (including dev packages of dependencies with the required headers), but does not include FANS itself. Meant for a CI workflow.
-- **fans-dev**: Based upon fans-ci, but offers a non-root user (`develop`) and handling of UID and GID to not mess up permissions when volume mounting into the container. Meant as an quick to setup build environment for FANS.
+- **fans-dev**: Based upon fans-ci, but offers a non-root user (`fans`) and handling of UID and GID to not mess up permissions when volume mounting into the container. Meant as an quick to setup build environment for FANS.
 
 Both images are built for linux/amd64 and linux/arm64 as well as for the three most recent Ubuntu LTS versions (focal, jammy, noble). The Ubuntu version can be selected through tags, e.g. `fans-dev:focal`; `noble` is equivalent to the `latest` tag. The architecture is selected automatically depending on your host platform.
 
@@ -75,7 +75,7 @@ You can attach VS Code to the newly created container in order to actually work 
 
 To attach VS Code you need to install the `Remote Development Extension Pack` and the `Docker` Extension. Then open the Docker menu, right click our newly created `fans-dev` container and select "Start" (if not running already) and then "Attach Visual Studio Code".
 
-After attaching VS Code you unfortunately are user `root` in VS Code due to the way the UID and GID mapping is implemented: The container starts as root, executes the entrypoint script which changes UID and GID and only then drops privileges using `gosu`. VS Code though skips the entrypoint script and thus doesn't switch to the non-root user `develop`. You however can do so manually by typing `gosu develop bash` in your terminal sessions inside VS Code.
+After attaching VS Code you unfortunately are user `root` in VS Code due to the way the UID and GID mapping is implemented: The container starts as root, executes the entrypoint script which changes UID and GID and only then drops privileges using `gosu`. VS Code though skips the entrypoint script and thus doesn't switch to the non-root user `fans`. You however can do so manually by typing `gosu fans bash` in your terminal sessions inside VS Code.
 
 For further reading and alternative approaches like a full DevContainer setup have a look at
 
@@ -87,10 +87,10 @@ For further reading and alternative approaches like a full DevContainer setup ha
 
 By building inside the container, FANS is linked against the container's libs and therefore must run inside the container. After attaching to the container you can then continue to use FANS as described in the main [README](../README.md#usage). Just remember that any input and output files need to visible to the container and thus must lie somewhere inside the mounted volumes.
 
-Special care has to be taken if you need to use FANS within scripts on the host, as Docker's interactive mode (`-i`) is not suitable in this case. Instead you need to use `docker exec`. One basically replaces the original `FANS` call by `docker exec -u develop -w /FANS/test fans-dev [original call]`. For example in conjunction with nohup:
+Special care has to be taken if you need to use FANS within scripts on the host, as Docker's interactive mode (`-i`) is not suitable in this case. Instead you need to use `docker exec`. One basically replaces the original `FANS` call by `docker exec -u fans -w /FANS/test fans-dev [original call]`. For example in conjunction with nohup:
 
 ```bash
 docker start fans-dev
-nohup /usr/bin/time -v docker exec -u develop -w /FANS/test fans-dev [original call] &
+nohup /usr/bin/time -v docker exec -u fans -w /FANS/test fans-dev [original call] &
 docker stop fans-dev
 ```
