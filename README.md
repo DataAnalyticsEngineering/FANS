@@ -16,7 +16,7 @@ Fourier Accelerated Nodal Solvers (FANS) is an FFT-based homogenization solver d
 
 FANS has the following dependencies:
 
-- A C++ compiler (e.g. GCC)
+- A C++ compiler with OpenMP support (e.g. GCC, or Clang with OpenMP libraries installed)
 - CMake (version 3.0 or higher) (+ Unix file utility for creating .deb packages)
 - Git (for cloning this repo)
 - MPI (mpicc and mpic++)
