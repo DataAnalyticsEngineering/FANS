@@ -48,6 +48,8 @@ brew install \
     fftw
 ```
 
+If you're facing problems regarding CMake and OpenMP, have a look at this [CMake issue](https://gitlab.kitware.com/cmake/cmake/-/issues/24097) providing a workaround, and this [thread](https://discourse.cmake.org/t/how-to-find-openmp-with-clang-on-macos/8860) in the CMake forums also discussing the issue.
+
 Also, we recommend to set up a Python virtual environment for the `FANS_Dashboard`:
 
 ```bash
