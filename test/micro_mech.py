@@ -1,4 +1,4 @@
-import PyFANS as fans # alternatively PyFANSTHERMAL
+import PyFANS as fans  # alternatively PyFANSTHERMAL
 import numpy as np
 
 """
@@ -11,10 +11,10 @@ cmake -DUSE_MPI=ON ..
 micro = fans.MicroSimulation(1)
 
 
-g0 = {"g0": np.array([1,0,0,0,0,0])}
+g0 = {"g0": np.array([1, 0, 0, 0, 0, 0])}
 
 dt = 0.0001
 
-output = micro.solve(g0, dt) # solve FANS for one load vector g0
+output = micro.solve(g0, dt)  # solve FANS for one load vector g0
 
 print(output)

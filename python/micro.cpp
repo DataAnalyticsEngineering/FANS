@@ -10,7 +10,7 @@
 
 // Constructor
 MicroSimulation::MicroSimulation(int sim_id){
-    // If used with the Micro Manager, MPI cannot be initialized again but 
+    // If used with the Micro Manager, MPI cannot be initialized again but
     // if the python bindings are used standalone, MPI should be initialized
     #ifdef USE_MPI
     MPI_Init(NULL, NULL);
@@ -22,7 +22,7 @@ MicroSimulation::MicroSimulation(int sim_id){
     // initialize fftw mpi
     fftw_mpi_init();
     std::vector<double> average_stress;
-    
+
     // Provide input file containing the path to the input files
     const char* input_path = "input.json";
     int input_path_length = strlen(input_path) + 1;
@@ -34,7 +34,7 @@ MicroSimulation::MicroSimulation(int sim_id){
     const char* input_files_path = input.c_str();
     int input_files_path_length = strlen(input_files_path) + 1;
     in_place_temp_path = new char[input_files_path_length];
-    strcpy(in_place_temp_path, input_files_path);   
+    strcpy(in_place_temp_path, input_files_path);
     reader.ReadInputFile(in_place_temp_path);
 
 
@@ -117,7 +117,7 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
         std::tie(average_stress, average_strain) = solver->postprocess(reader, out_temp_path, i_load);
     }
 
-    // Get the displacement and its size from the solver 
+    // Get the displacement and its size from the solver
     double *displacement = solver->v_u;
     std::vector<ssize_t> size_displacement(4);
     size_displacement[0] = reader.dims[0];
@@ -132,7 +132,7 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
         py::format_descriptor<double>::format(),
         4,
         size_displacement,
-        {sizeof(double) * size_displacement[1] * size_displacement[2] * size_displacement[3], 
+        {sizeof(double) * size_displacement[1] * size_displacement[2] * size_displacement[3],
         sizeof(double) * size_displacement[2] * size_displacement[3], sizeof(double) * size_displacement[3], sizeof(double)}
     };
     py::array_t<double> displacement_array(disp_info);
@@ -147,10 +147,10 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 
     // Convert the stress array to a py::array_t<double>
     py::buffer_info info_stress{
-        stress, 
-        sizeof(double), 
-        py::format_descriptor<double>::format(), 
-        4, 
+        stress,
+        sizeof(double),
+        py::format_descriptor<double>::format(),
+        4,
         size_stress,
         {sizeof(double) * size_stress[1] * size_stress[2] * size_stress[3],
          sizeof(double) * size_stress[2] * size_stress[3], sizeof(double) * size_stress[3], sizeof(double)}
