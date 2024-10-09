@@ -37,11 +37,11 @@ apt-get install \
     libfftw3-mpi-dev
 ```
 
-On macOS you can obtain the dependencies using `brew`:
+On macOS, you can obtain the dependencies using `brew`. Since Clang is the preferred compiler on macOS, you'll need the `libomp` package to enable OpenMP support:
 
 ```zsh
 brew install \
-    cmake \
+    libomp \
     hdf5 \
     openmpi \
     eigen \
