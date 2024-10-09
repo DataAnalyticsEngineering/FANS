@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        UBUNTU_VERSION: [noble, jammy, focal]
+        UBUNTU_VERSION: [noble, jammy]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
