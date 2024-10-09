@@ -40,6 +40,8 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     libeigen3-dev \
     libfftw3-dev \
     libfftw3-mpi-dev \
+# Required for preCICE Micro Manager Python bindings
+    python3-dev \
 # Clean up
     && apt-get clean \
     && apt-get autoremove --purge -y \
@@ -60,11 +62,9 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     time \
     htop \
     vim \
-    python3 \
     python3-pip \
     python3-venv \
     python-is-python3 \
-    python3-dev \
 # Clean up
     && apt-get clean \
     && apt-get autoremove --purge -y \
