@@ -7,6 +7,8 @@
 // from the same directory
 
 #include "micro.hpp"
+#include "setup.h"
+#include "matmodel.h"
 
 // Constructor
 MicroSimulation::MicroSimulation(int sim_id){
@@ -22,8 +24,6 @@ MicroSimulation::MicroSimulation(int sim_id){
     // initialize fftw mpi
     fftw_mpi_init();
 
-    std::vector<double> homogenized_stress;
-
     // Convert the input file path to char* and read the input file
     const char* input_files_path = "input.json";
     int input_files_path_length = strlen(input_files_path) + 1;
@@ -31,62 +31,16 @@ MicroSimulation::MicroSimulation(int sim_id){
     strcpy(in_place_temp_path, input_files_path);
     reader.ReadInputFile(in_place_temp_path);
 
-    // from main.cpp
-    if (reader.problemType == "thermal")
-    {
-        throw invalid_argument("Use the thermal simulation instead");
-    }
-    else if (reader.problemType == "mechanical")
-    {
+    reader.ReadMS(3);
 
-        for (int i = 0; i < world_size; i++)
-        {
-            if (i == world_rank)
-            {
-                reader.ReadMS(3);
-            }
-            MPI_Barrier(MPI_COMM_WORLD);
-        }
-        reader.ComputeVolumeFractions();
-
-
-        if (reader.matmodel == "MechLinear")
-        {
-            matmodel = new MechLinear(reader.l_e, reader.materialProperties);
-        }
-        else if (reader.matmodel == "HyperElastic")
-        {
-            matmodel = new HyperElastic(reader.l_e, reader.materialProperties);
-        }
-        else
-        {
-            throw invalid_argument(reader.matmodel + " is not a valid matmodel");
-        }
-
-        if (reader.method == "fp")
-        {
-            solver = new SolverFP<3>(reader, matmodel);
-        }
-        else if (reader.method == "cg")
-        {
-            solver = new SolverCG<3>(reader, matmodel);
-        }
-        else
-        {
-            throw invalid_argument(reader.method + " is not a valid method");
-        }
-    }
+    // 3 signifies mechanics problems (maybe?) check with Sanath
+    matmodel = createMatmodel<3>(reader);
+    solver   = createSolver(reader, matmodel);
 }
 
 // Solve
 py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 {
-    // Get the output path from the reader as char*
-    const char* output_path = reader.output_path.c_str();
-    int out_path_length = strlen(output_path) + 1;
-    out_temp_path = new char[out_path_length];
-    strcpy(out_temp_path, output_path);
-
     // Create a pybind style Numpy array from macro_write_data["micro_vector_data"], which is a Numpy array
     py::array_t<double> macro_vector_data = macro_data["strains"].cast<py::array_t<double>>();
 

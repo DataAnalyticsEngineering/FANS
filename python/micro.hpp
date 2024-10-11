@@ -25,6 +25,8 @@ public:
     // solve takes a python dict data, and the timestep dt as inputs, and returns a python dict
     py::dict solve(py::dict macro_write_data, double dt);
 
+    std::vector<double> homogenized_stress;
+
 private:
     int _sim_id;
     std::vector<double> g0;
