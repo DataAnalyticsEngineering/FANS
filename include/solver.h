@@ -55,17 +55,17 @@ class Solver {
 
     void postprocess(Reader reader, const char resultsFileName[], int load_idx, int time_idx); //!< Computes Strain and stress
 
-    std::pair<std::vector<double>, std::vector<double>> postprocess(Reader reader, char const resultsFileName[], int suffix);      //!< Computes Strain and stress
-    void postprocessHyperElastic(HyperElastic* hyperElastic, Reader reader, char const resultsFileName[], int suffix);
-
     void   convolution();
     double compute_error(RealArray &r);
     void   CreateFFTWPlans(double *in, fftw_complex *transformed, double *out);
+
+    vector<double> get_homogenized_stress();
 
   protected:
     fftw_plan planfft, planifft;
     clock_t   fft_time, buftime;
     size_t    iter;
+    vector<double> homogenized_stress;
 };
 
 template <int howmany>
@@ -392,18 +392,6 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
     VectorXd stress_average = VectorXd::Zero(n_str);
     VectorXd strain_average = VectorXd::Zero(n_str);
 
-template<int howmany>
-std::pair<std::vector<double>, std::vector<double>> Solver<howmany>::postprocess(Reader reader, char const resultsFileName[], int suffix){
-    int n_str = matmodel->n_str;
-    strain = FANS_malloc<double>(local_n0 * n_y * n_z * n_str);
-    stress = FANS_malloc<double>(local_n0 * n_y * n_z * n_str);
-    double* stress_average = FANS_malloc<double>(n_str);
-    double* strain_average = FANS_malloc<double>(n_str);
-    for(int i = 0; i < n_str; i++){
-        stress_average[i] = 0;
-        strain_average[i] = 0;
-    }
-
     // Initialize per-phase accumulators
     int              n_mat = reader.n_mat;
     vector<VectorXd> phase_stress_average(n_mat, VectorXd::Zero(n_str));
@@ -503,10 +491,16 @@ std::pair<std::vector<double>, std::vector<double>> Solver<howmany>::postprocess
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }
-
     matmodel->postprocess(*this, reader, resultsFileName, load_idx, time_idx);
 
-    return std::make_pair(average_stress_vector, average_strain_vector);
+    // Copy computed average strain to member variable
+    homogenized_stress = stress_average;
+}
+
+template <int howmany>
+std::vector<double> get_homogenized_stress()
+{
+    return homogenous_stress;
 }
 
 #endif

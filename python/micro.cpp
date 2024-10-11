@@ -21,7 +21,8 @@ MicroSimulation::MicroSimulation(int sim_id){
 
     // initialize fftw mpi
     fftw_mpi_init();
-    std::vector<double> average_stress;
+
+    std::vector<double> homogenized_stress;
 
     // Provide input file containing the path to the input files
     const char* input_path = "input.json";
@@ -88,9 +89,6 @@ MicroSimulation::MicroSimulation(int sim_id){
 // Solve
 py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 {
-    std::vector<double> average_stress;
-    std::vector<double> average_strain;
-
     // Get the output path from the reader as char*
     const char* output_path = reader.output_path.c_str();
     int out_path_length = strlen(output_path) + 1;
@@ -98,44 +96,21 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
     strcpy(out_temp_path, output_path);
 
     // Create a pybind style Numpy array from macro_write_data["micro_vector_data"], which is a Numpy array
-    py::array_t<double> macro_vector_data = macro_data["g0"].cast<py::array_t<double>>();
-    std::vector<double> g0_all = std::vector<double>(macro_vector_data.data(), macro_vector_data.data() + macro_vector_data.size()); // convert numpy array to std::vector.
+    py::array_t<double> macro_vector_data = macro_data["strains"].cast<py::array_t<double>>();
+
+    // convert numpy array to std::vector.
+    std::vector<double> g0_all = std::vector<double>(macro_vector_data.data(), macro_vector_data.data() + macro_vector_data.size());
 
     uint n_loads = g0_all.size() / matmodel->n_str;
 
     if (g0_all.size() % matmodel->n_str != 0)
         throw invalid_argument("Invalid length of loading g0");
+
     vector<double> g0(matmodel->n_str);
-    for (int i_load = 0; i_load < n_loads; i_load++)
-    {
-        for (int i = 0; i < matmodel->n_str; ++i)
-        {
-            g0[i] = g0_all[i_load * matmodel->n_str + i];
-        }
-        matmodel->setGradient(g0);
-        solver->solve();
-        std::tie(average_stress, average_strain) = solver->postprocess(reader, out_temp_path, i_load);
-    }
 
-    // Get the displacement and its size from the solver
-    double *displacement = solver->v_u;
-    std::vector<ssize_t> size_displacement(4);
-    size_displacement[0] = reader.dims[0];
-    size_displacement[1] = reader.dims[1];
-    size_displacement[2] = reader.dims[2];
-    size_displacement[3] = 3;
-
-    // Convert the displacement to a py::array_t<double>
-    py::buffer_info disp_info{
-        displacement,
-        sizeof(double),
-        py::format_descriptor<double>::format(),
-        4,
-        size_displacement,
-        {sizeof(double) * size_displacement[1] * size_displacement[2] * size_displacement[3],
-        sizeof(double) * size_displacement[2] * size_displacement[3], sizeof(double) * size_displacement[3], sizeof(double)}
-    };
-    py::array_t<double> displacement_array(disp_info);
+    matmodel->setGradient(g0);
+    solver->solve();
+    homogenized_stress = solver->get_homogenized_stress();
 
     // Get the stress from the solver
     double* stress = solver->stress;
@@ -157,13 +132,16 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
     };
     py::array_t<double> stress_array(info_stress);
 
+    // Numerically calculate the stiffness matrix
+
+
     // Convert data to a py::dict again to send it back to the Micro Manager
     py::dict micro_write_data;
 
     // Add data to micro_write_data
     micro_write_data["stress"] = stress_array;
     micro_write_data["effective_stress"] = average_stress;
-    micro_write_data["displacement"] = displacement_array;
+
     return micro_write_data;
 }
 
