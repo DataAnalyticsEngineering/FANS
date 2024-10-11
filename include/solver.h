@@ -39,7 +39,7 @@ class Solver {
     ArrayXd                          err_all; //!< Absolute error history
     Matrix<double, howmany, Dynamic> fundamentalSolution;
 
-    template<int padding, typename F>
+    template <int padding, typename F>
     void iterateCubes(F f);
 
     void         solve();
@@ -493,13 +493,15 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
     matmodel->postprocess(*this, reader, resultsFileName, load_idx, time_idx);
 
     // Copy computed average strain to member variable
-    homogenized_stress = stress_average;
+    for (int i = 0; i < n_str; ++i) {
+        homogenized_stress.push_back(stress_average[i]);
+    }
 }
 
 template <int howmany>
-std::vector<double> get_homogenized_stress()
+std::vector<double> Solver<howmany>::get_homogenized_stress()
 {
-    return homogenous_stress;
+    return homogenized_stress;
 }
 
 #endif

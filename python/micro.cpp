@@ -24,20 +24,12 @@ MicroSimulation::MicroSimulation(int sim_id){
 
     std::vector<double> homogenized_stress;
 
-    // Provide input file containing the path to the input files
-    const char* input_path = "input.json";
-    int input_path_length = strlen(input_path) + 1;
-    input_temp_path = new char[input_path_length];
-    strcpy(input_temp_path, input_path);
-    string input = reader.ReadFileLocations(input_temp_path);
-
     // Convert the input file path to char* and read the input file
-    const char* input_files_path = input.c_str();
+    const char* input_files_path = "input.json";
     int input_files_path_length = strlen(input_files_path) + 1;
     in_place_temp_path = new char[input_files_path_length];
     strcpy(in_place_temp_path, input_files_path);
     reader.ReadInputFile(in_place_temp_path);
-
 
     // from main.cpp
     if (reader.problemType == "thermal")
@@ -121,7 +113,7 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 
     // Convert the stress array to a py::array_t<double>
     py::buffer_info info_stress{
-        stress,
+        homogenized_stress,
         sizeof(double),
         py::format_descriptor<double>::format(),
         4,
