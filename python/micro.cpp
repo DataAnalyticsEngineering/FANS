@@ -113,7 +113,6 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
     homogenized_stress = solver->get_homogenized_stress();
 
     // Get the stress from the solver
-    double* stress = solver->stress;
     std::vector<ssize_t> size_stress(4);
     size_stress[0] = reader.dims[0];
     size_stress[1] = reader.dims[1];

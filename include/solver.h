@@ -39,9 +39,6 @@ class Solver {
     ArrayXd                          err_all; //!< Absolute error history
     Matrix<double, howmany, Dynamic> fundamentalSolution;
 
-    double* stress;
-    double* strain;
-
     template<int padding, typename F>
     void iterateCubes(F f);
 
@@ -59,13 +56,15 @@ class Solver {
     double compute_error(RealArray &r);
     void   CreateFFTWPlans(double *in, fftw_complex *transformed, double *out);
 
+    vector<double> homogenized_stress;
+
+    // Homogenized stress which will be accessed from the library
     vector<double> get_homogenized_stress();
 
   protected:
     fftw_plan planfft, planifft;
     clock_t   fft_time, buftime;
     size_t    iter;
-    vector<double> homogenized_stress;
 };
 
 template <int howmany>
