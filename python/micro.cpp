@@ -33,7 +33,7 @@ MicroSimulation::MicroSimulation(int sim_id){
 
     reader.ReadMS(3);
 
-    // 3 signifies mechanics problems (maybe?) check with Sanath
+    // 3 signifies mechanics problems
     matmodel = createMatmodel<3>(reader);
     solver   = createSolver(reader, matmodel);
 }
@@ -54,6 +54,7 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 
     vector<double> g0(matmodel->n_str);
 
+    // For a given macro strain, calculate the homogenized stress
     matmodel->setGradient(g0);
     solver->solve();
     homogenized_stress = solver->get_homogenized_stress();
@@ -66,26 +67,78 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
     size_stress[3] = matmodel->n_str;
 
     // Convert the stress array to a py::array_t<double>
-    py::buffer_info info_stress{
-        homogenized_stress,
-        sizeof(double),
-        py::format_descriptor<double>::format(),
-        4,
-        size_stress,
-        {sizeof(double) * size_stress[1] * size_stress[2] * size_stress[3],
-         sizeof(double) * size_stress[2] * size_stress[3], sizeof(double) * size_stress[3], sizeof(double)}
-    };
-    py::array_t<double> stress_array(info_stress);
+    // py::buffer_info info_stress{
+    //     homogenized_stress,
+    //     sizeof(double),
+    //     py::format_descriptor<double>::format(),
+    //     4,
+    //     size_stress,
+    //     {sizeof(double) * size_stress[1] * size_stress[2] * size_stress[3],
+    //      sizeof(double) * size_stress[2] * size_stress[3], sizeof(double) * size_stress[3], sizeof(double)}
+    // };
+    // py::array_t<double> stress_array(info_stress);
 
-    // Numerically calculate the stiffness matrix
+    py::array_t<double> stress_array(homogenized_stress);
 
+    Matrix3d Unitvectors(3, 3);
+    Unitvectors.setIdentity();
+
+    Matrix<double, 3, 3> delta_strains;
+    Matrix<double, 6, 6> perturbed_strains;
+
+    // Indices of a 3x3 matrix relevant for Mandel notation
+    vector<int> ii = {0, 1, 2, 0, 0, 2};
+    vector<int> jj = {0, 1, 2, 1, 2, 2};
+
+    for (int i = 0; i < matmodel->n_str; i++)
+    {
+        delta_strains.setZero();
+        for (int j = 0; j < 3; j++)
+        {
+            for (int k = 0; k < 3; k++)
+            {
+                // Calculate strain perturbations
+                delta_strains(j, k) = (pert_param / 2.0) * (Unitvectors[j] * Unitvectors[k].transpose() + Unitvectors[k] * Unitvectors[j].transpose());
+            }
+        }
+
+        // Construct perturbed strain matrix according to Mandel notation
+        for (int j = 0; j < 3; j++)
+        {
+            perturbed_strains(i, j) = delta_strains(ii(j), jj(j));
+        }
+
+        for (int j = 3; j < 6; j++)
+        {
+            perturbed_strains(i, j) = sqrt(2) * delta_strains(ii(j), jj(j));
+        }
+    }
+
+    // Calculate the homogenized stiffness matrix C using finite differences
+    for (int i = 0; i < matmodel->n_str; i++)
+    {
+        matmodel->setGradient(perturbed_strains[i]);
+        solver->solve();
+        homogenized_stress = solver->get_homogenized_stress();
+        for (int j = 0; j < matmodel->n_str; j++)
+        {
+            C(i, j) = (homogenized_stress(j) - stress_array.data()[j]) / pert_param;
+        }
+    }
 
     // Convert data to a py::dict again to send it back to the Micro Manager
     py::dict micro_write_data;
 
     // Add data to micro_write_data
-    micro_write_data["stress"] = stress_array;
-    micro_write_data["effective_stress"] = average_stress;
+    micro_write_data["stresses1to3"] = stress_array[0:2];
+    micro_write_data["stresses4to6"] = stress_array[3:5];
+    micro_write_data["cmat1"] = {C[0][0], C[0][1], C[0][2]};
+    micro_write_data["cmat2"] = {C[0][3], C[0][4], C[0][5]};
+    micro_write_data["cmat3"] = {C[1][1], C[1][2], C[1][3]};
+    micro_write_data["cmat4"] = {C[1][4], C[1][5], C[2][2]};
+    micro_write_data["cmat5"] = {C[2][3], C[2][4], C[2][5]};
+    micro_write_data["cmat6"] = {C[3][3], C[3][4], C[3][5]};
+    micro_write_data["cmat7"] = {C[4][4], C[4][5], C[5][5]};
 
     return micro_write_data;
 }
