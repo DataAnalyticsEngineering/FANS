@@ -1,11 +1,13 @@
 {
-  "micro_file_name": "PyFANS",
+  "micro_file_name": "MicroFANS",
   "coupling_params": {
-      "parameter_file_name": "mech_linear.hdf5",
-      "read_data_names": {"g0": "vector"},
-      "write_data_names": {"effective_stress": "vector", "displacement": "vector", "stress": "tensor"}
+      "config_file_name": "../../precice-config.xml",
+      "macro_mesh_name": "dummy-mesh",
+      "read_data_names": {"strains1to3": "vector", "strains4to6": "vector"},
+      "write_data_names": {"stresses1to3": "vector", "stresses4to6": "vector"}
   },
   "simulation_params": {
-      "micro_dt": 1.0
-  }
+      "macro_domain_bounds": [-0.9144, 0.9144, -0.4572, 0.4572, 0.0, 0.73152],
+      "micro_dt": 0.5
+    }
 }

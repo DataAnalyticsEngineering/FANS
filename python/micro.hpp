@@ -35,7 +35,8 @@ private:
     Matmodel<3>* matmodel;
     Solver<3>* solver;
 
-    double pert_param = 1e-6; // scalar strain perturbation parameter
+    double pert_param = 1e-3; // scalar strain perturbation parameter
     std::vector<double> homogenized_stress;
+    std::vector<double> unperturbed_stress;
     Matrix<double, 6, 6> C; // Homogenized stiffness matrix C
 };

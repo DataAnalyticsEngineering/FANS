@@ -492,9 +492,11 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
     }
     matmodel->postprocess(*this, reader, resultsFileName, load_idx, time_idx);
 
-    // Copy computed average strain to member variable
+    homogenized_stress.clear(); // Delete old entries
+
+    // Copy computed average stress to member variable
     for (int i = 0; i < n_str; ++i) {
-        homogenized_stress.push_back(stress_average[i]);
+       homogenized_stress.push_back(stress_average[i]);
     }
 }
 
