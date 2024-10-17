@@ -43,7 +43,7 @@ class Solver {
     void iterateCubes(F f);
 
     void         solve();
-    virtual void internalSolve(){}; // important to have "{}" here, otherwise we get an error about undefined reference to vtable
+    virtual void internalSolve() {}; // important to have "{}" here, otherwise we get an error about undefined reference to vtable
 
     template <int padding, typename F>
     void compute_residual_basic(RealArray &r_matrix, RealArray &u_matrix, F f);
