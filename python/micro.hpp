@@ -18,25 +18,24 @@
 
 namespace py = pybind11;
 
-class MicroSimulation
-{
-public:
+class MicroSimulation {
+  public:
     MicroSimulation(int sim_id);
-    py::dict solve(py::dict macro_write_data, double dt);  // API according to the Micro Manager
+    py::dict solve(py::dict macro_write_data, double dt); // API according to the Micro Manager
 
-private:
-    int _sim_id;
+  private:
+    int                 _sim_id;
     std::vector<double> g0;
-    double _state;
-    char* input_temp_path;
-    char* in_place_temp_path;
-    char* out_temp_path;
-    Reader reader;
-    Matmodel<3>* matmodel;
-    Solver<3>* solver;
+    double              _state;
+    char               *input_temp_path;
+    char               *in_place_temp_path;
+    char               *out_temp_path;
+    Reader              reader;
+    Matmodel<3>        *matmodel;
+    Solver<3>          *solver;
 
-    double pert_param = 1e-3; // scalar strain perturbation parameter
-    std::vector<double> homogenized_stress;
-    std::vector<double> unperturbed_stress;
+    double               pert_param = 1e-3; // scalar strain perturbation parameter
+    std::vector<double>  homogenized_stress;
+    std::vector<double>  unperturbed_stress;
     Matrix<double, 6, 6> C; // Homogenized stiffness matrix C
 };
