@@ -43,7 +43,7 @@ class Solver {
     void iterateCubes(F f);
 
     void         solve();
-    virtual void internalSolve(){}; // important to have "{}" here, otherwise we get an error about undefined reference to vtable
+    virtual void internalSolve() {}; // important to have "{}" here, otherwise we get an error about undefined reference to vtable
 
     template <int padding, typename F>
     void compute_residual_basic(RealArray &r_matrix, RealArray &u_matrix, F f);
@@ -496,7 +496,7 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
 
     // Copy computed average stress to member variable
     for (int i = 0; i < n_str; ++i) {
-       homogenized_stress.push_back(stress_average[i]);
+        homogenized_stress.push_back(stress_average[i]);
     }
 }
 
