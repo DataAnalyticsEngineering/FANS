@@ -130,7 +130,7 @@ add_custom_command(
 )
 
 if (FANS_ENABLE_MICROMANAGER)
-    add_subdirectory(python)
+    add_subdirectory(pyfans)
 endif ()
 
 # ##############################################################################
