@@ -49,4 +49,4 @@ inline V *FANS_malloc(size_t n)
 
 #define VERBOSITY 0
 
-//#define EIGEN_RUNTIME_NO_MALLOC
+// #define EIGEN_RUNTIME_NO_MALLOC
