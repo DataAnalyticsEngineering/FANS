@@ -1,7 +1,4 @@
 ---
-Language: Json
-BasedOnStyle: llvm
----
 Language:        Cpp
 AccessModifierOffset: -2
 AlignAfterOpenBracket: Align

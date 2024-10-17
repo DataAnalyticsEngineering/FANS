@@ -21,3 +21,4 @@ repos:
     -   id: clang-format
         args: ['--style=file']
         exclude: "include/json.hpp"
+        extensions: "h,cpp"
