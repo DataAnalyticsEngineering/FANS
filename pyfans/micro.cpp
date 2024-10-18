@@ -122,9 +122,14 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 
     std::cout << "Perturbed strains: " << perturbed_strains << std::endl;
 
+    vector<double> pert_strain;
+
     // Calculate the homogenized stiffness matrix C using finite differences
     for (int i = 0; i < matmodel->n_str; i++) {
-        vector<double> pert_strain({perturbed_strains.row(i).begin(), perturbed_strains.row(i).end()});
+
+        for (int j = 0; j < matmodel->n_str; j++) {
+            pert_strain.push_back(perturbed_strains(i, j));
+        }
 
         for (int j = 0; j < matmodel->n_str; j++) {
             std::cout << "Perturbed strain[" << j << "] = " << pert_strain[j] << std::endl;
@@ -138,6 +143,8 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
         for (int j = 0; j < matmodel->n_str; j++) {
             C(i, j) = (unperturbed_stress[j] - homogenized_stress.data()[j]) / pert_param;
         }
+
+        pert_strain.clear();
     }
 
     std::cout << "Homogenized stiffness matrix C: " << C << std::endl;
