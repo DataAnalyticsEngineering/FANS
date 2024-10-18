@@ -56,6 +56,11 @@ class Solver {
     double compute_error(RealArray &r);
     void   CreateFFTWPlans(double *in, fftw_complex *transformed, double *out);
 
+    vector<double> homogenized_stress;
+
+    // Homogenized stress which will be accessed from the library
+    vector<double> get_homogenized_stress();
+
   protected:
     fftw_plan planfft, planifft;
     clock_t   fft_time, buftime;
@@ -486,6 +491,19 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
         MPI_Barrier(MPI_COMM_WORLD);
     }
     matmodel->postprocess(*this, reader, resultsFileName, load_idx, time_idx);
+
+    homogenized_stress.clear(); // Delete old entries
+
+    // Copy computed average stress to member variable
+    for (int i = 0; i < n_str; ++i) {
+        homogenized_stress.push_back(stress_average[i]);
+    }
+}
+
+template <int howmany>
+std::vector<double> Solver<howmany>::get_homogenized_stress()
+{
+    return homogenized_stress;
 }
 
 #endif
