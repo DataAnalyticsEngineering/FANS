@@ -56,6 +56,12 @@ class Solver {
     double compute_error(RealArray &r);
     void   CreateFFTWPlans(double *in, fftw_complex *transformed, double *out);
 
+    VectorXd homogenized_stress;
+    VectorXd get_homogenized_stress();
+
+    MatrixXd homogenized_tangent;
+    MatrixXd get_homogenized_tangent(double pert_param);
+
   protected:
     fftw_plan planfft, planifft;
     clock_t   fft_time, buftime;
@@ -435,21 +441,20 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
     if (world_rank == 0) {
         printf("# Effective Stress .. (");
         for (int i = 0; i < n_str; ++i)
-            printf("%+f ", stress_average[i]);
+            printf("%+.12f ", stress_average[i]);
         printf(") \n");
         printf("# Effective Strain .. (");
         for (int i = 0; i < n_str; ++i)
-            printf("%+f ", strain_average[i]);
+            printf("%+.12f ", strain_average[i]);
         printf(") \n\n");
     }
 
     // Write results to results h5 file
-    auto writeData = [&](const char *resultName, const char *resultPrefix, auto *data, hsize_t size) {
+    auto writeData = [&](const char *resultName, const char *resultPrefix, auto *data, hsize_t *dims, int ndims) {
         if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), resultName) != reader.resultsToWrite.end()) {
             char name[5096];
             sprintf(name, "%s/load%i/time_step%i/%s", reader.ms_datasetname, load_idx, time_idx, resultPrefix);
-            hsize_t dims[1] = {size};
-            reader.WriteData(data, resultsFileName, name, dims, 1);
+            reader.WriteData(data, resultsFileName, name, dims, ndims);
         }
     };
 
@@ -464,18 +469,20 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
     for (int i = 0; i < world_size; ++i) {
         if (i == world_rank) {
             if (world_rank == 0) {
-                writeData("stress_average", "stress_average", stress_average.data(), n_str);
-                writeData("strain_average", "strain_average", strain_average.data(), n_str);
-                writeData("absolute_error", "absolute_error", err_all.data(), iter + 1);
+                hsize_t dims[1] = {static_cast<hsize_t>(n_str)};
+                writeData("stress_average", "stress_average", stress_average.data(), dims, 1);
+                writeData("strain_average", "strain_average", strain_average.data(), dims, 1);
 
                 for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
                     char stress_name[512];
                     char strain_name[512];
                     sprintf(stress_name, "phase_stress_average_phase%d", mat_index);
                     sprintf(strain_name, "phase_strain_average_phase%d", mat_index);
-                    writeData("phase_stress_average", stress_name, phase_stress_average[mat_index].data(), n_str);
-                    writeData("phase_strain_average", strain_name, phase_strain_average[mat_index].data(), n_str);
+                    writeData("phase_stress_average", stress_name, phase_stress_average[mat_index].data(), dims, 1);
+                    writeData("phase_strain_average", strain_name, phase_strain_average[mat_index].data(), dims, 1);
                 }
+                dims[0] = iter + 1;
+                writeData("absolute_error", "absolute_error", err_all.data(), dims, 1);
             }
             writeSlab("microstructure", "microstructure", ms, 1);
             writeSlab("displacement", "displacement", v_u, howmany);
@@ -486,6 +493,87 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
         MPI_Barrier(MPI_COMM_WORLD);
     }
     matmodel->postprocess(*this, reader, resultsFileName, load_idx, time_idx);
+
+    // Compute homogenized tangent
+    if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "homogenized_tangent") != reader.resultsToWrite.end()) {
+        homogenized_tangent = get_homogenized_tangent(1e-6);
+        hsize_t dims[2]     = {static_cast<hsize_t>(n_str), static_cast<hsize_t>(n_str)};
+        if (world_rank == 0) {
+            cout << "# Homogenized tangent: " << endl
+                 << setprecision(12) << homogenized_tangent << endl
+                 << endl;
+            writeData("homogenized_tangent", "homogenized_tangent", homogenized_tangent.data(), dims, 2);
+        }
+    }
+}
+
+template <int howmany>
+VectorXd Solver<howmany>::get_homogenized_stress()
+{
+
+    int      n_str     = matmodel->n_str;
+    VectorXd strain    = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
+    VectorXd stress    = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
+    homogenized_stress = VectorXd::Zero(n_str);
+
+    MPI_Sendrecv(v_u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
+                 v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    Matrix<double, howmany * 8, 1> ue;
+    int                            mat_index;
+    iterateCubes<0>([&](ptrdiff_t *idx, ptrdiff_t *idxPadding) {
+        for (int i = 0; i < 8; ++i) {
+            for (int j = 0; j < howmany; ++j) {
+                ue(howmany * i + j, 0) = v_u[howmany * idx[i] + j];
+            }
+        }
+        mat_index = ms[idx[0]];
+
+        matmodel->getStrainStress(strain.segment(n_str * idx[0], n_str).data(), stress.segment(n_str * idx[0], n_str).data(), ue, mat_index, idx[0]);
+        homogenized_stress += stress.segment(n_str * idx[0], n_str);
+    });
+
+    MPI_Allreduce(MPI_IN_PLACE, homogenized_stress.data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    homogenized_stress /= (n_x * n_y * n_z);
+
+    return homogenized_stress;
+}
+
+template <int howmany>
+MatrixXd Solver<howmany>::get_homogenized_tangent(double pert_param)
+{
+    int n_str                         = matmodel->n_str;
+    homogenized_tangent               = MatrixXd::Zero(n_str, n_str);
+    VectorXd       unperturbed_stress = get_homogenized_stress();
+    VectorXd       pertubed_stress;
+    vector<double> pert_strain;
+    vector<double> g0 = this->matmodel->macroscale_loading;
+
+    // TODO: a deep copy of the solver object is needed here to avoid modifying the history of the solver object
+
+    // Calculate the homogenized stiffness matrix C using finite differences
+    for (int i = 0; i < n_str; i++) {
+
+        // Perturb the strain component i
+        pert_strain = g0;
+        pert_strain[i] += pert_param;
+
+        // Set the perturbed gradient in the material model
+        matmodel->setGradient(pert_strain);
+
+        // Solve the problem with the perturbed solver
+        solve();
+
+        // Get the homogenized stress from the perturbed solver
+        pertubed_stress = get_homogenized_stress();
+
+        // Compute the finite difference approximation
+        homogenized_tangent.col(i) = (pertubed_stress - unperturbed_stress) / pert_param;
+    }
+
+    // Symmetrize the homogenized tangent
+    homogenized_tangent = 0.5 * (homogenized_tangent + homogenized_tangent.transpose()).eval();
+    return homogenized_tangent;
 }
 
 #endif
