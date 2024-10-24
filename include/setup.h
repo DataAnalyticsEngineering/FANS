@@ -5,7 +5,7 @@
 #include "material_models/LinearThermalIsotropic.h"
 
 // Mechanical models
-#include "material_models/LinearElasticIsotropic.h"
+#include "material_models/LinearElastic.h"
 #include "material_models/PseudoPlastic.h"
 #include "material_models/J2Plasticity.h"
 
@@ -28,6 +28,8 @@ Matmodel<3> *createMatmodel(const Reader &reader)
     // Linear Elastic models
     if (reader.matmodel == "LinearElasticIsotropic") {
         return new LinearElasticIsotropic(reader.l_e, reader.materialProperties);
+    } else if (reader.matmodel == "LinearElasticTriclinic") {
+        return new LinearElasticTriclinic(reader.l_e, reader.materialProperties);
 
         // Pseudo Plastic models
     } else if (reader.matmodel == "PseudoPlasticLinearHardening") {
