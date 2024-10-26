@@ -6,12 +6,12 @@
 
 class LinearElasticIsotropic : public MechModel, public LinearModel<3> {
   public:
-    LinearElasticIsotropic(vector<double> l_e, map<string, vector<double>> materialProperties)
+    LinearElasticIsotropic(vector<double> l_e, json materialProperties)
         : MechModel(l_e)
     {
         try {
-            bulk_modulus = materialProperties["bulk_modulus"];
-            mu           = materialProperties["shear_modulus"];
+            bulk_modulus = materialProperties["bulk_modulus"].get<vector<double>>();
+            mu           = materialProperties["shear_modulus"].get<vector<double>>();
         } catch (const std::exception &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
@@ -73,7 +73,7 @@ class LinearElasticTriclinic : public MechModel, public LinearModel<3> {
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW // Ensure proper alignment for Eigen structures
 
-    LinearElasticTriclinic(const vector<double> &l_e, const map<string, vector<double>> &materialProperties)
+    LinearElasticTriclinic(vector<double> l_e, json materialProperties)
         : MechModel(l_e)
     {
         vector<string> C_keys = {
@@ -84,19 +84,23 @@ class LinearElasticTriclinic : public MechModel, public LinearModel<3> {
             "C_55", "C_56",
             "C_66"};
 
-        n_mat                = materialProperties.at("C_11").size();
-        size_t num_constants = C_keys.size();
+        try {
+            n_mat                = materialProperties.at("C_11").get<vector<double>>().size();
+            size_t num_constants = C_keys.size();
 
-        // Initialize matrix to hold all constants
-        MatrixXd C_constants(num_constants, n_mat);
+            // Initialize matrix to hold all constants
+            C_constants.resize(num_constants, n_mat);
 
-        // Load material constants into matrix
-        for (size_t k = 0; k < num_constants; ++k) {
-            const auto &values = materialProperties.at(C_keys[k]);
-            if (values.size() != n_mat) {
-                throw std::runtime_error("Inconsistent size for material property: " + C_keys[k]);
+            // Load material constants into matrix
+            for (size_t k = 0; k < num_constants; ++k) {
+                const auto &values = materialProperties.at(C_keys[k]).get<vector<double>>();
+                if (values.size() != n_mat) {
+                    throw std::runtime_error("Inconsistent size for material property: " + C_keys[k]);
+                }
+                C_constants.row(k) = Eigen::Map<const RowVectorXd>(values.data(), values.size());
             }
-            C_constants.row(k) = Eigen::Map<const RowVectorXd>(values.data(), values.size());
+        } catch (const std::exception &e) {
+            throw std::runtime_error("Missing or inconsistent material properties for the requested material model.");
         }
 
         // Assemble stiffness matrices for each material
@@ -140,6 +144,7 @@ class LinearElasticTriclinic : public MechModel, public LinearModel<3> {
 
   private:
     std::vector<Matrix<double, 6, 6>, Eigen::aligned_allocator<Matrix<double, 6, 6>>> C_mats;
+    MatrixXd                                                                          C_constants;
 };
 
 #endif // LINEARELASTIC_H

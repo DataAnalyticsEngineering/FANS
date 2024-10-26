@@ -20,13 +20,13 @@
 
 class PseudoPlastic : public MechModel {
   public:
-    PseudoPlastic(vector<double> l_e, map<string, vector<double>> materialProperties)
+    PseudoPlastic(vector<double> l_e, json materialProperties)
         : MechModel(l_e)
     {
         try {
-            bulk_modulus  = materialProperties["bulk_modulus"];
-            shear_modulus = materialProperties["shear_modulus"];
-            yield_stress  = materialProperties["yield_stress"];
+            bulk_modulus  = materialProperties["bulk_modulus"].get<vector<double>>();
+            shear_modulus = materialProperties["shear_modulus"].get<vector<double>>();
+            yield_stress  = materialProperties["yield_stress"].get<vector<double>>();
         } catch (const std::exception &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
@@ -84,11 +84,11 @@ class PseudoPlastic : public MechModel {
 
 class PseudoPlasticLinearHardening : public PseudoPlastic {
   public:
-    PseudoPlasticLinearHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
+    PseudoPlasticLinearHardening(vector<double> l_e, json materialProperties)
         : PseudoPlastic(l_e, materialProperties)
     {
         try {
-            hardening_parameter = materialProperties["hardening_parameter"];
+            hardening_parameter = materialProperties["hardening_parameter"].get<vector<double>>();
         } catch (const std::exception &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
@@ -134,12 +134,12 @@ class PseudoPlasticLinearHardening : public PseudoPlastic {
 
 class PseudoPlasticNonLinearHardening : public PseudoPlastic {
   public:
-    PseudoPlasticNonLinearHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
+    PseudoPlasticNonLinearHardening(vector<double> l_e, json materialProperties)
         : PseudoPlastic(l_e, materialProperties)
     {
         try {
-            hardening_exponent = materialProperties["hardening_exponent"];
-            eps_0              = materialProperties["eps_0"]; // ε0 parameter
+            hardening_exponent = materialProperties["hardening_exponent"].get<vector<double>>();
+            eps_0              = materialProperties["eps_0"].get<vector<double>>(); // ε0 parameter
         } catch (const std::exception &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }

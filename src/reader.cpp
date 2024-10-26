@@ -10,16 +10,28 @@
 #include "H5FDmpi.h"
 #include "H5FDmpio.h"
 
-using namespace std;
-
-#include <json.hpp>
-using nlohmann::json;
-using namespace nlohmann;
-
 void Reader::ComputeVolumeFractions()
 {
-    if (world_rank == 0)
+    // TODO: this is not the best way to compute the number of materials
+    // Determine n_mat as the maximum material index plus one
+    unsigned char local_max  = 0;
+    size_t        local_size = local_n0 * dims[1] * dims[2];
+
+    // Find the local maximum material index
+    for (size_t i = 0; i < local_size; i++) {
+        if (ms[i] > local_max) {
+            local_max = ms[i];
+        }
+    }
+    // Find the global maximum material index
+    unsigned char global_max;
+    MPI_Allreduce(&local_max, &global_max, 1, MPI_UNSIGNED_CHAR, MPI_MAX, MPI_COMM_WORLD);
+    n_mat = global_max + 1; // Set n_mat to the maximum material index plus one
+
+    if (world_rank == 0) {
+        printf("# Number of materials: %i\n", n_mat);
         printf("# Volume fractions\n");
+    }
     long   vol_frac[n_mat];
     double v_frac[n_mat];
     for (int i = 0; i < n_mat; i++) {
@@ -71,13 +83,26 @@ void Reader ::ReadInputFile(char fn[])
         }
 
         for (auto it = j_mat.begin(); it != j_mat.end(); ++it) {
-            materialProperties[it.key()] = it.value().get<vector<double>>();
-            n_mat                        = materialProperties[it.key()].size();
+            materialProperties[it.key()] = it.value();
 
             if (world_rank == 0) {
                 cout << "# " << it.key() << ":\t ";
-                for (double d : materialProperties[it.key()]) {
-                    printf("   %10.5f", d);
+                if (it.value().is_array()) {
+                    for (const auto &elem : it.value()) {
+                        if (elem.is_number()) {
+                            printf("   %10.5f", elem.get<double>());
+                        } else if (elem.is_string()) {
+                            cout << "   " << elem.get<string>();
+                        } else {
+                            cout << "   " << elem;
+                        }
+                    }
+                } else if (it.value().is_number()) {
+                    printf("   %10.5f", it.value().get<double>());
+                } else if (it.value().is_string()) {
+                    cout << "   " << it.value().get<string>();
+                } else {
+                    cout << "   " << it.value();
                 }
                 printf("\n");
             }
