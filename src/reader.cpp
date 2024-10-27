@@ -65,9 +65,10 @@ void Reader ::ReadInputFile(char fn[])
 
         L = j["ms_L"].get<vector<double>>();
 
-        TOL  = j["TOL"].get<double>();
-        n_it = j["n_it"].get<int>();
-        g0   = j["macroscale_loading"].get<vector<vector<vector<double>>>>();
+        errorParameters = j["error_parameters"];
+        TOL             = errorParameters["tolerance"].get<double>();
+        n_it            = j["n_it"].get<int>();
+        g0              = j["macroscale_loading"].get<vector<vector<vector<double>>>>();
 
         problemType = j["problem_type"].get<string>();
         matmodel    = j["matmodel"].get<string>();
@@ -79,7 +80,12 @@ void Reader ::ReadInputFile(char fn[])
         if (world_rank == 0) {
             printf("# microstructure file name: \t '%s'\n", ms_filename);
             printf("# microstructure dataset name: \t '%s'\n", ms_datasetname);
-            printf("# FANS Tolerance: \t %10.5e\n# Max iterations: \t %6i\n", TOL, n_it);
+            printf(
+                "# FANS error measure: \t %s %s error  \n",
+                errorParameters["type"].get<string>().c_str(),
+                errorParameters["measure"].get<string>().c_str());
+            printf("# FANS Tolerance: \t %10.5e\n", errorParameters["tolerance"].get<double>());
+            printf("# Max iterations: \t %6i\n", n_it);
         }
 
         for (auto it = j_mat.begin(); it != j_mat.end(); ++it) {

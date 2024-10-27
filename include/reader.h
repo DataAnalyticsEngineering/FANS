@@ -16,6 +16,7 @@ class Reader {
     int                            n_mat;
     json                           materialProperties;
     double                         TOL;
+    json                           errorParameters;
     int                            n_it;
     vector<vector<vector<double>>> g0;
     string                         problemType;

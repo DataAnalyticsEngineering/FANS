@@ -360,27 +360,41 @@ void Solver<howmany>::convolution()
 template <int howmany>
 double Solver<howmany>::compute_error(RealArray &r)
 {
-    double err, err0, err_local;
+    double             err_local;
+    const std::string &measure = reader.errorParameters["measure"].get<std::string>();
+    if (measure == "L1") {
+        err_local = r.matrix().lpNorm<1>();
+    } else if (measure == "L2") {
+        err_local = r.matrix().lpNorm<2>();
+    } else if (measure == "Linfinity") {
+        err_local = r.matrix().lpNorm<Infinity>();
+    } else {
+        throw std::runtime_error("Unknown measure type: " + measure);
+    }
 
-    err_local = r.matrix().lpNorm<Infinity>();
+    double err;
     MPI_Allreduce(&err_local, &err, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
     err_all[iter]  = err;
-    err0           = err_all[0];
+    double err0    = err_all[0];
     double err_rel = (iter == 0 ? 100 : err / err0);
 
     if (world_rank == 0) {
         if (iter == 0) {
             printf("Before 1st iteration: %16.8e\n", err0);
-        } else if (iter == 1) {
-            printf("it %3lu .... err %16.8e  / %8.4e, ratio: ------------- , FFT time: %2.6f sec\n", iter, err, err / err0, double(buftime) / CLOCKS_PER_SEC);
         } else {
-            printf("it %3lu .... err %16.8e  / %8.4e, ratio: %4.8e, FFT time: %2.6f sec\n", iter, err, err / err0, err / err_all[iter - 1], double(buftime) / CLOCKS_PER_SEC);
+            printf("it %3lu .... err %16.8e  / %8.4e, ratio: %4.8e, FFT time: %2.6f sec\n", iter, err, err / err0, (iter == 1 ? 0.0 : err / err_all[iter - 1]), double(buftime) / CLOCKS_PER_SEC);
         }
     }
 
-    return err; // returns absolute error
-    // return err_rel; // returns relative error
+    const std::string &error_type = reader.errorParameters["type"].get<std::string>();
+    if (error_type == "absolute") {
+        return err;
+    } else if (error_type == "relative") {
+        return err_rel;
+    } else {
+        throw std::runtime_error("Unknown error type: " + error_type);
+    }
 }
 
 template <int howmany>
