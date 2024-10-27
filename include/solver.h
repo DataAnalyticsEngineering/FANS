@@ -24,7 +24,7 @@ class Solver {
     const ptrdiff_t local_1_start;
 
     const int          n_it;     //!< Max number of FANS iterations
-    const double       TOL;      //!< Tolerance on relative error norm
+    double             TOL;      //!< Tolerance on relative error norm
     Matmodel<howmany> *matmodel; //!< Material Model
 
     unsigned char *ms;  // Micro-structure Binary
@@ -562,6 +562,10 @@ MatrixXd Solver<howmany>::get_homogenized_tangent(double pert_param)
     VectorXd       pertubed_stress;
     vector<double> pert_strain;
     vector<double> g0 = this->matmodel->macroscale_loading;
+
+    // Set the error parameters for the homogenized tangent calculation
+    this->reader.errorParameters["type"] = "relative";
+    this->TOL                            = std::max(1e-6, this->TOL);
 
     // TODO: a deep copy of the solver object is needed here to avoid modifying the history of the solver object
 
