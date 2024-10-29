@@ -24,7 +24,7 @@ class Solver {
     const ptrdiff_t local_1_start;
 
     const int          n_it;     //!< Max number of FANS iterations
-    const double       TOL;      //!< Tolerance on relative error norm
+    double             TOL;      //!< Tolerance on relative error norm
     Matmodel<howmany> *matmodel; //!< Material Model
 
     unsigned char *ms;  // Micro-structure Binary
@@ -55,6 +55,12 @@ class Solver {
     void   convolution();
     double compute_error(RealArray &r);
     void   CreateFFTWPlans(double *in, fftw_complex *transformed, double *out);
+
+    VectorXd homogenized_stress;
+    VectorXd get_homogenized_stress();
+
+    MatrixXd homogenized_tangent;
+    MatrixXd get_homogenized_tangent(double pert_param);
 
   protected:
     fftw_plan planfft, planifft;
@@ -354,27 +360,41 @@ void Solver<howmany>::convolution()
 template <int howmany>
 double Solver<howmany>::compute_error(RealArray &r)
 {
-    double err, err0, err_local;
+    double             err_local;
+    const std::string &measure = reader.errorParameters["measure"].get<std::string>();
+    if (measure == "L1") {
+        err_local = r.matrix().lpNorm<1>();
+    } else if (measure == "L2") {
+        err_local = r.matrix().lpNorm<2>();
+    } else if (measure == "Linfinity") {
+        err_local = r.matrix().lpNorm<Infinity>();
+    } else {
+        throw std::runtime_error("Unknown measure type: " + measure);
+    }
 
-    err_local = r.matrix().lpNorm<Infinity>();
+    double err;
     MPI_Allreduce(&err_local, &err, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
     err_all[iter]  = err;
-    err0           = err_all[0];
+    double err0    = err_all[0];
     double err_rel = (iter == 0 ? 100 : err / err0);
 
     if (world_rank == 0) {
         if (iter == 0) {
             printf("Before 1st iteration: %16.8e\n", err0);
-        } else if (iter == 1) {
-            printf("it %3lu .... err %16.8e  / %8.4e, ratio: ------------- , FFT time: %2.6f sec\n", iter, err, err / err0, double(buftime) / CLOCKS_PER_SEC);
         } else {
-            printf("it %3lu .... err %16.8e  / %8.4e, ratio: %4.8e, FFT time: %2.6f sec\n", iter, err, err / err0, err / err_all[iter - 1], double(buftime) / CLOCKS_PER_SEC);
+            printf("it %3lu .... err %16.8e  / %8.4e, ratio: %4.8e, FFT time: %2.6f sec\n", iter, err, err / err0, (iter == 1 ? 0.0 : err / err_all[iter - 1]), double(buftime) / CLOCKS_PER_SEC);
         }
     }
 
-    return err; // returns absolute error
-    // return err_rel; // returns relative error
+    const std::string &error_type = reader.errorParameters["type"].get<std::string>();
+    if (error_type == "absolute") {
+        return err;
+    } else if (error_type == "relative") {
+        return err_rel;
+    } else {
+        throw std::runtime_error("Unknown error type: " + error_type);
+    }
 }
 
 template <int howmany>
@@ -435,21 +455,20 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
     if (world_rank == 0) {
         printf("# Effective Stress .. (");
         for (int i = 0; i < n_str; ++i)
-            printf("%+f ", stress_average[i]);
+            printf("%+.12f ", stress_average[i]);
         printf(") \n");
         printf("# Effective Strain .. (");
         for (int i = 0; i < n_str; ++i)
-            printf("%+f ", strain_average[i]);
+            printf("%+.12f ", strain_average[i]);
         printf(") \n\n");
     }
 
     // Write results to results h5 file
-    auto writeData = [&](const char *resultName, const char *resultPrefix, auto *data, hsize_t size) {
+    auto writeData = [&](const char *resultName, const char *resultPrefix, auto *data, hsize_t *dims, int ndims) {
         if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), resultName) != reader.resultsToWrite.end()) {
             char name[5096];
             sprintf(name, "%s/load%i/time_step%i/%s", reader.ms_datasetname, load_idx, time_idx, resultPrefix);
-            hsize_t dims[1] = {size};
-            reader.WriteData(data, resultsFileName, name, dims, 1);
+            reader.WriteData(data, resultsFileName, name, dims, ndims);
         }
     };
 
@@ -464,18 +483,20 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
     for (int i = 0; i < world_size; ++i) {
         if (i == world_rank) {
             if (world_rank == 0) {
-                writeData("stress_average", "stress_average", stress_average.data(), n_str);
-                writeData("strain_average", "strain_average", strain_average.data(), n_str);
-                writeData("absolute_error", "absolute_error", err_all.data(), iter + 1);
+                hsize_t dims[1] = {static_cast<hsize_t>(n_str)};
+                writeData("stress_average", "stress_average", stress_average.data(), dims, 1);
+                writeData("strain_average", "strain_average", strain_average.data(), dims, 1);
 
                 for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
                     char stress_name[512];
                     char strain_name[512];
                     sprintf(stress_name, "phase_stress_average_phase%d", mat_index);
                     sprintf(strain_name, "phase_strain_average_phase%d", mat_index);
-                    writeData("phase_stress_average", stress_name, phase_stress_average[mat_index].data(), n_str);
-                    writeData("phase_strain_average", strain_name, phase_strain_average[mat_index].data(), n_str);
+                    writeData("phase_stress_average", stress_name, phase_stress_average[mat_index].data(), dims, 1);
+                    writeData("phase_strain_average", strain_name, phase_strain_average[mat_index].data(), dims, 1);
                 }
+                dims[0] = iter + 1;
+                writeData("absolute_error", "absolute_error", err_all.data(), dims, 1);
             }
             writeSlab("microstructure", "microstructure", ms, 1);
             writeSlab("displacement", "displacement", v_u, howmany);
@@ -486,6 +507,86 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
         MPI_Barrier(MPI_COMM_WORLD);
     }
     matmodel->postprocess(*this, reader, resultsFileName, load_idx, time_idx);
+
+    // Compute homogenized tangent
+    if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "homogenized_tangent") != reader.resultsToWrite.end()) {
+        homogenized_tangent = get_homogenized_tangent(1e-6);
+        hsize_t dims[2]     = {static_cast<hsize_t>(n_str), static_cast<hsize_t>(n_str)};
+        if (world_rank == 0) {
+            cout << "# Homogenized tangent: " << endl
+                 << setprecision(12) << homogenized_tangent << endl
+                 << endl;
+            writeData("homogenized_tangent", "homogenized_tangent", homogenized_tangent.data(), dims, 2);
+        }
+    }
+}
+
+template <int howmany>
+VectorXd Solver<howmany>::get_homogenized_stress()
+{
+
+    int      n_str     = matmodel->n_str;
+    VectorXd strain    = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
+    VectorXd stress    = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
+    homogenized_stress = VectorXd::Zero(n_str);
+
+    MPI_Sendrecv(v_u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
+                 v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+    Matrix<double, howmany * 8, 1> ue;
+    int                            mat_index;
+    iterateCubes<0>([&](ptrdiff_t *idx, ptrdiff_t *idxPadding) {
+        for (int i = 0; i < 8; ++i) {
+            for (int j = 0; j < howmany; ++j) {
+                ue(howmany * i + j, 0) = v_u[howmany * idx[i] + j];
+            }
+        }
+        mat_index = ms[idx[0]];
+
+        matmodel->getStrainStress(strain.segment(n_str * idx[0], n_str).data(), stress.segment(n_str * idx[0], n_str).data(), ue, mat_index, idx[0]);
+        homogenized_stress += stress.segment(n_str * idx[0], n_str);
+    });
+
+    MPI_Allreduce(MPI_IN_PLACE, homogenized_stress.data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    homogenized_stress /= (n_x * n_y * n_z);
+
+    return homogenized_stress;
+}
+
+template <int howmany>
+MatrixXd Solver<howmany>::get_homogenized_tangent(double pert_param)
+{
+    int n_str                         = matmodel->n_str;
+    homogenized_tangent               = MatrixXd::Zero(n_str, n_str);
+    VectorXd       unperturbed_stress = get_homogenized_stress();
+    VectorXd       perturbed_stress;
+    vector<double> pert_strain(n_str, 0.0);
+    vector<double> g0       = this->matmodel->macroscale_loading;
+    bool           islinear = dynamic_cast<LinearModel<howmany> *>(this->matmodel) != nullptr;
+
+    this->reader.errorParameters["type"] = "relative";
+    this->TOL                            = max(1e-6, this->TOL);
+
+    // TODO: a deep copy of the solver object is needed here to avoid modifying the history of the solver object
+
+    for (int i = 0; i < n_str; i++) {
+        if (islinear) {
+            pert_strain    = vector<double>(n_str, 0.0);
+            pert_strain[i] = 1.0;
+        } else {
+            pert_strain = g0;
+            pert_strain[i] += pert_param;
+        }
+
+        matmodel->setGradient(pert_strain);
+        solve();
+        perturbed_stress = get_homogenized_stress();
+
+        homogenized_tangent.col(i) = islinear ? perturbed_stress : (perturbed_stress - unperturbed_stress) / pert_param;
+    }
+
+    homogenized_tangent = 0.5 * (homogenized_tangent + homogenized_tangent.transpose()).eval();
+    return homogenized_tangent;
 }
 
 #endif

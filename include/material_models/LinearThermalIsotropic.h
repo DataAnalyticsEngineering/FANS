@@ -5,11 +5,15 @@
 
 class LinearThermalIsotropic : public ThermalModel, public LinearModel<1> {
   public:
-    LinearThermalIsotropic(vector<double> l_e, map<string, vector<double>> materialProperties)
+    LinearThermalIsotropic(vector<double> l_e, json materialProperties)
         : ThermalModel(l_e)
     {
-        conductivity = materialProperties["conductivity"];
-        n_mat        = conductivity.size();
+        try {
+            conductivity = materialProperties["conductivity"].get<vector<double>>();
+        } catch (const std::exception &e) {
+            throw std::runtime_error("Missing material properties for the requested material model.");
+        }
+        n_mat = conductivity.size();
 
         double kappa_ref = (*max_element(conductivity.begin(), conductivity.end()) +
                             *min_element(conductivity.begin(), conductivity.end())) /
