@@ -559,37 +559,32 @@ MatrixXd Solver<howmany>::get_homogenized_tangent(double pert_param)
     int n_str                         = matmodel->n_str;
     homogenized_tangent               = MatrixXd::Zero(n_str, n_str);
     VectorXd       unperturbed_stress = get_homogenized_stress();
-    VectorXd       pertubed_stress;
-    vector<double> pert_strain;
-    vector<double> g0 = this->matmodel->macroscale_loading;
+    VectorXd       perturbed_stress;
+    vector<double> pert_strain(n_str, 0.0);
+    vector<double> g0       = this->matmodel->macroscale_loading;
+    bool           islinear = dynamic_cast<LinearModel<howmany> *>(this->matmodel) != nullptr;
 
-    // Set the error parameters for the homogenized tangent calculation
     this->reader.errorParameters["type"] = "relative";
-    this->TOL                            = std::max(1e-6, this->TOL);
+    this->TOL                            = max(1e-6, this->TOL);
 
     // TODO: a deep copy of the solver object is needed here to avoid modifying the history of the solver object
 
-    // Calculate the homogenized stiffness matrix C using finite differences
     for (int i = 0; i < n_str; i++) {
+        if (islinear) {
+            pert_strain    = vector<double>(n_str, 0.0);
+            pert_strain[i] = 1.0;
+        } else {
+            pert_strain = g0;
+            pert_strain[i] += pert_param;
+        }
 
-        // Perturb the strain component i
-        pert_strain = g0;
-        pert_strain[i] += pert_param;
-
-        // Set the perturbed gradient in the material model
         matmodel->setGradient(pert_strain);
-
-        // Solve the problem with the perturbed solver
         solve();
+        perturbed_stress = get_homogenized_stress();
 
-        // Get the homogenized stress from the perturbed solver
-        pertubed_stress = get_homogenized_stress();
-
-        // Compute the finite difference approximation
-        homogenized_tangent.col(i) = (pertubed_stress - unperturbed_stress) / pert_param;
+        homogenized_tangent.col(i) = islinear ? perturbed_stress : (perturbed_stress - unperturbed_stress) / pert_param;
     }
 
-    // Symmetrize the homogenized tangent
     homogenized_tangent = 0.5 * (homogenized_tangent + homogenized_tangent.transpose()).eval();
     return homogenized_tangent;
 }
