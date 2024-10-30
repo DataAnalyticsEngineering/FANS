@@ -188,9 +188,9 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 
 - `method`: This indicates the numerical method to be used for solving the system of equations. `cg` stands for the Conjugate Gradient method, and `fp` stands for the Fixed Point method.
 - `error_parameters`: This section defines the error parameters for the solver. Error control is applied on the finite element nodal residual of the problem.
-    - `measure`: Specifies the norm used to measure the error. Options include `Linfinity`, `L1`, or `L2`.
-    - `type`: Defines the type of error measurement. Options are `absolute` or `relative`.
-    - `tolerance`: Sets the tolerance level for the solver, defining the convergence criterion based on the chosen error measure. The solver iterates until the solution meets this tolerance.
+  - `measure`: Specifies the norm used to measure the error. Options include `Linfinity`, `L1`, or `L2`.
+  - `type`: Defines the type of error measurement. Options are `absolute` or `relative`.
+  - `tolerance`: Sets the tolerance level for the solver, defining the convergence criterion based on the chosen error measure. The solver iterates until the solution meets this tolerance.
 - `n_it`: Specifies the maximum number of iterations allowed for the FANS solver.
 
 ### Macroscale Loading Conditions
