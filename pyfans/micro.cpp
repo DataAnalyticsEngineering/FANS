@@ -30,6 +30,8 @@ py::array_t<double> merge_arrays(py::array_t<double> array1, py::array_t<double>
 // Constructor
 MicroSimulation::MicroSimulation(int sim_id)
 {
+    MPI_Init(NULL, NULL);
+
     // initialize fftw mpi
     fftw_mpi_init();
 
@@ -68,75 +70,18 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 
     vector<double> g0(matmodel->n_str);
 
+    VectorXd homogenized_stress;
+
     for (int i_load = 0; i_load < n_loads; i_load++) {
         for (int i = 0; i < matmodel->n_str; ++i) {
             g0[i] = g0_all[i_load * matmodel->n_str + i];
         }
         matmodel->setGradient(g0);
         solver->solve();
-        solver->postprocess(reader, "result.h5", 0, 0);
         homogenized_stress = solver->get_homogenized_stress();
     }
 
-    Vector3d e1(1, 0, 0);
-    Vector3d e2(0, 1, 0);
-    Vector3d e3(0, 0, 1);
-
-    Matrix<double, 3, 3> delta_strains;
-    Matrix<double, 6, 6> perturbed_strains;
-
-    for (int i = 0; i < matmodel->n_str; i++) {
-        delta_strains.setZero();
-
-        if (i == 0) { // 11
-            delta_strains = (pert_param / 2.0) * (e1 * e1.transpose() + e1 * e1.transpose());
-        } else if (i == 1) { // 22
-            delta_strains = (pert_param / 2.0) * (e2 * e2.transpose() + e2 * e2.transpose());
-        } else if (i == 2) { // 33
-            delta_strains = (pert_param / 2.0) * (e3 * e3.transpose() + e3 * e3.transpose());
-        } else if (i == 3) { // 12
-            delta_strains = (pert_param / 2.0) * (e1 * e2.transpose() + e2 * e1.transpose());
-        } else if (i == 4) { // 13
-            delta_strains = (pert_param / 2.0) * (e1 * e3.transpose() + e3 * e1.transpose());
-        } else if (i == 5) { // 23
-            delta_strains = (pert_param / 2.0) * (e2 * e3.transpose() + e3 * e2.transpose());
-        }
-
-        // Construct perturbed strain matrix according to Mandel notation
-        perturbed_strains(i, 0) = g0[0] + delta_strains(0, 0);
-        perturbed_strains(i, 1) = g0[1] + delta_strains(1, 1);
-        perturbed_strains(i, 2) = g0[2] + delta_strains(2, 2);
-        perturbed_strains(i, 3) = g0[3] + sqrt(2) * delta_strains(0, 1);
-        perturbed_strains(i, 4) = g0[4] + sqrt(2) * delta_strains(0, 2);
-        perturbed_strains(i, 5) = g0[5] + sqrt(2) * delta_strains(1, 2);
-    }
-
-    std::cout << "Perturbed strains: " << perturbed_strains << std::endl;
-
-    vector<double> pert_strain;
-
-    // Calculate the homogenized stiffness matrix C using finite differences
-    for (int i = 0; i < matmodel->n_str; i++) {
-
-        for (int j = 0; j < matmodel->n_str; j++) {
-            pert_strain.push_back(perturbed_strains(i, j));
-        }
-
-        for (int j = 0; j < matmodel->n_str; j++) {
-            std::cout << "Perturbed strain[" << j << "] = " << pert_strain[j] << std::endl;
-        }
-
-        matmodel->setGradient(pert_strain);
-        solver->solve();
-        solver->postprocess(reader, "result.h5", 0, 0);
-        unperturbed_stress = solver->get_homogenized_stress();
-
-        for (int j = 0; j < matmodel->n_str; j++) {
-            C(i, j) = (unperturbed_stress[j] - homogenized_stress.data()[j]) / pert_param;
-        }
-
-        pert_strain.clear();
-    }
+    auto C = solver->get_homogenized_tangent(pert_param);
 
     std::cout << "Homogenized stiffness matrix C: " << C << std::endl;
 
