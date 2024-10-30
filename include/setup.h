@@ -2,7 +2,7 @@
 #include "solverFP.h"
 
 // Thermal models
-#include "material_models/LinearThermalIsotropic.h"
+#include "material_models/LinearThermal.h"
 
 // Mechanical models
 #include "material_models/LinearElastic.h"
@@ -17,6 +17,8 @@ Matmodel<1> *createMatmodel(const Reader &reader)
 {
     if (reader.matmodel == "LinearThermalIsotropic") {
         return new LinearThermalIsotropic(reader.l_e, reader.materialProperties);
+    } else if (reader.matmodel == "LinearThermalTriclinic") {
+        return new LinearThermalTriclinic(reader.l_e, reader.materialProperties);
     } else {
         throw std::invalid_argument(reader.matmodel + " is not a valid matmodel for thermal problem");
     }
