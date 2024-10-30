@@ -1,6 +1,6 @@
 # FANS Changelog
 
-## latest
+## v0.3.0
 
 - Added Linear thermal and mechanical triclinic material models https://github.com/DataAnalyticsEngineering/FANS/pull/32
 - Added API to get homogenized stress and homogenized tangent https://github.com/DataAnalyticsEngineering/FANS/pull/31
