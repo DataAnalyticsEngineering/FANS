@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.0...3.28)
 # ##############################################################################
 
 project(FANS
-        VERSION 0.2.0
+        VERSION 0.3.0
         LANGUAGES C CXX
 )
 
@@ -133,8 +133,8 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/solver.h
         include/setup.h
 
-        include/material_models/LinearThermalIsotropic.h
-        include/material_models/LinearElasticIsotropic.h
+        include/material_models/LinearThermal.h
+        include/material_models/LinearElastic.h
         include/material_models/PseudoPlastic.h
         include/material_models/J2Plasticity.h
 )

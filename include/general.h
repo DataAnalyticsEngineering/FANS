@@ -16,6 +16,11 @@
 
 using namespace std;
 
+// JSON
+#include <json.hpp>
+using nlohmann::json;
+using namespace nlohmann;
+
 // Packages
 #include "fftw3-mpi.h"
 #include "fftw3.h" // this includes the serial fftw as well as mpi header files! See https://fftw.org/doc/MPI-Files-and-Data-Types.html
@@ -49,4 +54,4 @@ inline V *FANS_malloc(size_t n)
 
 #define VERBOSITY 0
 
-//#define EIGEN_RUNTIME_NO_MALLOC
+// #define EIGEN_RUNTIME_NO_MALLOC

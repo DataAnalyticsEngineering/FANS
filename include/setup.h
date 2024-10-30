@@ -2,10 +2,10 @@
 #include "solverFP.h"
 
 // Thermal models
-#include "material_models/LinearThermalIsotropic.h"
+#include "material_models/LinearThermal.h"
 
 // Mechanical models
-#include "material_models/LinearElasticIsotropic.h"
+#include "material_models/LinearElastic.h"
 #include "material_models/PseudoPlastic.h"
 #include "material_models/J2Plasticity.h"
 
@@ -17,6 +17,8 @@ Matmodel<1> *createMatmodel(const Reader &reader)
 {
     if (reader.matmodel == "LinearThermalIsotropic") {
         return new LinearThermalIsotropic(reader.l_e, reader.materialProperties);
+    } else if (reader.matmodel == "LinearThermalTriclinic") {
+        return new LinearThermalTriclinic(reader.l_e, reader.materialProperties);
     } else {
         throw std::invalid_argument(reader.matmodel + " is not a valid matmodel for thermal problem");
     }
@@ -28,6 +30,8 @@ Matmodel<3> *createMatmodel(const Reader &reader)
     // Linear Elastic models
     if (reader.matmodel == "LinearElasticIsotropic") {
         return new LinearElasticIsotropic(reader.l_e, reader.materialProperties);
+    } else if (reader.matmodel == "LinearElasticTriclinic") {
+        return new LinearElasticTriclinic(reader.l_e, reader.materialProperties);
 
         // Pseudo Plastic models
     } else if (reader.matmodel == "PseudoPlasticLinearHardening") {
