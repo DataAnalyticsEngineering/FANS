@@ -10,7 +10,11 @@
     },
 
     "method": "cg",
-    "TOL": 1e-10,
+    "error_parameters":{
+        "measure": "Linfinity",
+        "type": "absolute",
+        "tolerance": 1e-10
+    },
     "n_it": 100,
     "macroscale_loading":   [
                                 [[1, 0, 0]],

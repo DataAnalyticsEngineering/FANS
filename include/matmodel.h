@@ -41,6 +41,8 @@ class Matmodel {
     virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) {}
     virtual void updateInternalVariables() {}
 
+    vector<double> macroscale_loading;
+
   protected:
     double l_e_x;
     double l_e_y;
@@ -152,6 +154,7 @@ void Matmodel<howmany>::getStrainStress(double *strain, double *stress, Matrix<d
 template <int howmany>
 void Matmodel<howmany>::setGradient(vector<double> _g0)
 {
+    macroscale_loading = _g0;
     for (int i = 0; i < n_str; i++) {
         for (int j = 0; j < 8; ++j) {
             g0(n_str * j + i, 0) = _g0[i];

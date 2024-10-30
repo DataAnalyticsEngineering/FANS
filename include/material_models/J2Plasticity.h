@@ -6,17 +6,17 @@
 
 class J2Plasticity : public MechModel {
   public:
-    J2Plasticity(vector<double> l_e, map<string, vector<double>> materialProperties)
+    J2Plasticity(vector<double> l_e, json materialProperties)
         : MechModel(l_e)
     {
         try {
-            bulk_modulus  = materialProperties["bulk_modulus"];
-            shear_modulus = materialProperties["shear_modulus"];
-            yield_stress  = materialProperties["yield_stress"];                  // Initial yield stress
-            K             = materialProperties["isotropic_hardening_parameter"]; // Isotropic hardening parameter
-            H             = materialProperties["kinematic_hardening_parameter"]; // Kinematic hardening parameter
-            eta           = materialProperties["viscosity"];                     // Viscosity parameter
-            dt            = materialProperties["time_step"][0];                  // Time step
+            bulk_modulus  = materialProperties["bulk_modulus"].get<vector<double>>();
+            shear_modulus = materialProperties["shear_modulus"].get<vector<double>>();
+            yield_stress  = materialProperties["yield_stress"].get<vector<double>>();                  // Initial yield stress
+            K             = materialProperties["isotropic_hardening_parameter"].get<vector<double>>(); // Isotropic hardening parameter
+            H             = materialProperties["kinematic_hardening_parameter"].get<vector<double>>(); // Kinematic hardening parameter
+            eta           = materialProperties["viscosity"].get<vector<double>>();                     // Viscosity parameter
+            dt            = materialProperties["time_step"].get<double>();                             // Time step
         } catch (const std::out_of_range &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
@@ -158,7 +158,7 @@ class J2Plasticity : public MechModel {
 // Derived Class Linear Isotropic Hardening
 class J2ViscoPlastic_LinearIsotropicHardening : public J2Plasticity {
   public:
-    J2ViscoPlastic_LinearIsotropicHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
+    J2ViscoPlastic_LinearIsotropicHardening(vector<double> l_e, json materialProperties)
         : J2Plasticity(l_e, materialProperties)
     {
     }
@@ -177,12 +177,12 @@ class J2ViscoPlastic_LinearIsotropicHardening : public J2Plasticity {
 // Derived Class Non-Linear (Exponential law) Isotropic Hardening
 class J2ViscoPlastic_NonLinearIsotropicHardening : public J2Plasticity {
   public:
-    J2ViscoPlastic_NonLinearIsotropicHardening(vector<double> l_e, map<string, vector<double>> materialProperties)
+    J2ViscoPlastic_NonLinearIsotropicHardening(vector<double> l_e, json materialProperties)
         : J2Plasticity(l_e, materialProperties)
     {
         try {
-            sigma_inf = materialProperties["saturation_stress"];   // Saturation stress
-            delta     = materialProperties["saturation_exponent"]; // Saturation exponent
+            sigma_inf = materialProperties["saturation_stress"].get<vector<double>>();   // Saturation stress
+            delta     = materialProperties["saturation_exponent"].get<vector<double>>(); // Saturation exponent
         } catch (const std::out_of_range &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
