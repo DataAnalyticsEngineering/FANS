@@ -30,15 +30,6 @@ py::array_t<double> merge_arrays(py::array_t<double> array1, py::array_t<double>
 // Constructor
 MicroSimulation::MicroSimulation(int sim_id)
 {
-    // If used with the Micro Manager, MPI cannot be initialized again but
-    // if the python bindings are used standalone, MPI should be initialized
-    // #ifdef USE_MPI
-    MPI_Init(NULL, NULL);
-    int world_rank, world_size;
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-    // #endif
-
     // initialize fftw mpi
     fftw_mpi_init();
 
