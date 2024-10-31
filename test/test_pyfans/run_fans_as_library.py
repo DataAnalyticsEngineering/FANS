@@ -1,14 +1,10 @@
+"""
+Run FANS as a Python callable library.
+"""
 import PyFANS as fans
 import numpy as np
 
 # from mpi4py import MPI
-
-"""
-Run FANS from python. For mechanical simulations, import PyFANS. For thermal simulations, use PyFANSTHERMAL.
-To be able to run the code, the python bindings must be compiled with the correct flags to initialize MPI.
-Move to a build directory and run cmake with the following flags:
-cmake -DUSE_MPI=ON ..
-"""
 
 # MPI.Init()
 
