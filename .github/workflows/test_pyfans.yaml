@@ -3,7 +3,7 @@ name: Test PyFans
 on: [push, pull_request]
 
 jobs:
-  run-tests:
+  pyfans-run-test:
     runs-on: ubuntu-latest
     container: unistuttgartdae/fans-ci:noble
     defaults:
@@ -20,19 +20,18 @@ jobs:
     - name: Generate build directory
       run: mkdir -p ${{ env.FANS_BUILD_DIR }}
 
+    - name: Install dependencies
+      run: |
+        apt update
+        apt install -y cmake make g++ python3 python3-numpy python3.12-dev
+
     - name: Configure
       working-directory: ${{ env.FANS_BUILD_DIR }}
       run: |
         cmake .. -DFANS_LIB=ON
         make
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
-
     - name: Run micro_mesh.py
       run: |
-        pipx install numpy
         cd test/test_pyfans
-        python run_fans_as_library.py
+        python3 run_fans_as_library.py
