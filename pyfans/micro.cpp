@@ -35,8 +35,8 @@ MicroSimulation::MicroSimulation(int sim_id)
     // initialize fftw mpi
     fftw_mpi_init();
 
-    // Convert the input file path to char* and read the input file
-    const char *input_files_path        = "input_files/test_LinearElastic.json";
+    // Input file name is hardcoded. TODO: Make it configurable
+    const char *input_files_path        = "input.json";
     int         input_files_path_length = strlen(input_files_path) + 1;
     in_place_temp_path                  = new char[input_files_path_length];
     strcpy(in_place_temp_path, input_files_path);
@@ -52,8 +52,6 @@ MicroSimulation::MicroSimulation(int sim_id)
 // Solve
 py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 {
-    std::cout << "Solving micro problem" << std::endl;
-
     // Create a pybind style Numpy array from macro_write_data["micro_vector_data"], which is a Numpy array
     py::array_t<double> strain1 = macro_data["strains1to3"].cast<py::array_t<double>>();
     py::array_t<double> strain2 = macro_data["strains4to6"].cast<py::array_t<double>>();
@@ -82,8 +80,6 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
     }
 
     auto C = solver->get_homogenized_tangent(pert_param);
-
-    std::cout << "Homogenized stiffness matrix C: " << C << std::endl;
 
     // Convert data to a py::dict again to send it back to the Micro Manager
     py::dict micro_write_data;

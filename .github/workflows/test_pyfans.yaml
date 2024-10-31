@@ -1,0 +1,38 @@
+name: Test PyFans
+
+on: [push, pull_request]
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    container: unistuttgartdae/fans-ci:noble
+    defaults:
+      run:
+        shell: "bash --login -eo pipefail {0}"
+    env:
+      FANS_BUILD_DIR: build
+      FANS_MPI_USER: fans
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Generate build directory
+      run: mkdir -p ${{ env.FANS_BUILD_DIR }}
+
+    - name: Configure
+      working-directory: ${{ env.FANS_BUILD_DIR }}
+      run: |
+        cmake .. -DFANS_LIB=ON
+        make
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Run micro_mesh.py
+      run: |
+        pipx install numpy
+        cd test/test_pyfans
+        python run_fans_as_library.py
