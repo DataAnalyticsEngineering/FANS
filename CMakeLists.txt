@@ -110,12 +110,8 @@ elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
         message(STATUS "Assuming AVX2 and FMA support on macOS; using -mavx2 and -mfma.")
         target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
     elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        # Linux: Check for AVX2 support using lscpu or /proc/cpuinfo
-        execute_process(
-            COMMAND lscpu
-            OUTPUT_VARIABLE LSCU_OUTPUT
-            ERROR_QUIET
-        )
+        # Linux: Check for AVX2 support using lscpu
+        execute_process(COMMAND lscpu OUTPUT_VARIABLE LSCU_OUTPUT ERROR_QUIET)
 
         # Default to AVX; enable AVX2 if supported by hardware
         set(USE_AVX2 FALSE)
@@ -136,8 +132,6 @@ elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
         target_compile_options(FANS_FANS PUBLIC -mavx)
     endif()
 endif()
-
-
 
 add_executable(FANS_main)
 add_custom_command(
