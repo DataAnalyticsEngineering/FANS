@@ -12,8 +12,8 @@ micro = fans.MicroSimulation(1)
 
 macro_data = dict()
 
-macro_data["strains1to3"] = np.array([1, 0, 0])
-macro_data["strains4to6"] = np.array([0, 1, 0])
+macro_data["strains1to3"] = np.random.rand(3)
+macro_data["strains4to6"] = np.random.rand(3)
 
 dt = 0.0001
 
