@@ -20,8 +20,8 @@ namespace py = pybind11;
 
 class MicroSimulation {
   public:
-    MicroSimulation(int sim_id);
-    py::dict solve(py::dict macro_write_data, double dt); // API according to the Micro Manager
+    MicroSimulation(int sim_id, char *input_file = "input.json");
+    py::dict solve(py::dict macro_write_data, double dt);
 
   private:
     int                 _sim_id;
@@ -31,7 +31,7 @@ class MicroSimulation {
     char               *in_place_temp_path;
     char               *out_temp_path;
     Reader              reader;
-    // Hardcoded mechanical model because there no way to pass the type of problem in a forward declaration
+    // Hardcoding mechanical models because these definitions need information from the input file.
     Matmodel<3> *matmodel;
     Solver<3>   *solver;
     double       pert_param = 1e-6; // scalar strain perturbation parameter

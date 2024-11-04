@@ -27,8 +27,7 @@ py::array_t<double> merge_arrays(py::array_t<double> array1, py::array_t<double>
     return result;
 }
 
-// Constructor
-MicroSimulation::MicroSimulation(int sim_id)
+MicroSimulation::MicroSimulation(int sim_id, char *input_file)
 {
     MPI_Init(NULL, NULL);
 
@@ -36,11 +35,11 @@ MicroSimulation::MicroSimulation(int sim_id)
     fftw_mpi_init();
 
     // Input file name is hardcoded. TODO: Make it configurable
-    reader.ReadInputFile("input.json");
+    reader.ReadInputFile(input_file);
 
     reader.ReadMS(3);
     matmodel = createMatmodel<3>(reader);
-    solver   = createSolver(reader, matmodel);
+    solver   = createSolver<3>(reader, matmodel);
 }
 
 py::dict MicroSimulation::solve(py::dict macro_data, double dt)
