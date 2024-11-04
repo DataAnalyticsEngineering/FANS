@@ -88,11 +88,11 @@ find_package(MPI REQUIRED)
 find_package(FFTW3 REQUIRED COMPONENTS DOUBLE MPI)
 
 if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    set(FANS_LIB_DEFAULT OFF)
+    set(FANS_LIBRARY_FOR_MICRO_MANAGER_DEFAULT OFF)
 endif ()
-option(FANS_LIB "Building FANS as a library to be used by the Micro Manager." ${FANS_LIB_DEFAULT})
+option(FANS_LIBRARY_FOR_MICRO_MANAGER "Building FANS as a library to be used by the Micro Manager." ${FANS_LIBRARY_FOR_MICRO_MANAGER_DEFAULT})
 
-if (FANS_LIB)
+if (FANS_LIBRARY_FOR_MICRO_MANAGER)
     include(FetchContent)
     FetchContent_Declare(
         pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11.git
@@ -129,7 +129,7 @@ add_custom_command(
         COMMENT "Create a symlink for FANS executable to ${CMAKE_CURRENT_SOURCE_DIR}/test/"
 )
 
-if (FANS_LIB)
+if (FANS_LIBRARY_FOR_MICRO_MANAGER)
     add_subdirectory(pyfans)
 endif ()
 

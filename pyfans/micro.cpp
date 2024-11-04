@@ -36,20 +36,13 @@ MicroSimulation::MicroSimulation(int sim_id)
     fftw_mpi_init();
 
     // Input file name is hardcoded. TODO: Make it configurable
-    const char *input_files_path        = "input.json";
-    int         input_files_path_length = strlen(input_files_path) + 1;
-    in_place_temp_path                  = new char[input_files_path_length];
-    strcpy(in_place_temp_path, input_files_path);
-    reader.ReadInputFile(in_place_temp_path);
+    reader.ReadInputFile("input.json");
 
     reader.ReadMS(3);
-
-    // 3 signifies mechanics problems
     matmodel = createMatmodel<3>(reader);
     solver   = createSolver(reader, matmodel);
 }
 
-// Solve
 py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 {
     // Create a pybind style Numpy array from macro_write_data["micro_vector_data"], which is a Numpy array
@@ -57,27 +50,15 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
     py::array_t<double> strain2 = macro_data["strains4to6"].cast<py::array_t<double>>();
 
     py::array_t<double> strain = merge_arrays(strain1, strain2);
-    std::vector<double> _g0    = std::vector<double>(strain.data(), strain.data() + strain.size()); // convert numpy array to std::vector.
-
-    vector<double> g0_all = _g0;
-
-    uint n_loads = g0_all.size() / matmodel->n_str;
-
-    if (g0_all.size() % matmodel->n_str != 0)
-        throw invalid_argument("Invalid length of loading g0");
-
-    vector<double> g0(matmodel->n_str);
+    std::vector<double> g0     = std::vector<double>(strain.data(), strain.data() + strain.size()); // convert numpy array to std::vector.
 
     VectorXd homogenized_stress;
 
-    for (int i_load = 0; i_load < n_loads; i_load++) {
-        for (int i = 0; i < matmodel->n_str; ++i) {
-            g0[i] = g0_all[i_load * matmodel->n_str + i];
-        }
-        matmodel->setGradient(g0);
-        solver->solve();
-        homogenized_stress = solver->get_homogenized_stress();
-    }
+    matmodel->setGradient(g0);
+
+    solver->solve();
+
+    homogenized_stress = solver->get_homogenized_stress();
 
     auto C = solver->get_homogenized_tangent(pert_param);
 

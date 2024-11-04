@@ -31,7 +31,8 @@ class MicroSimulation {
     char               *in_place_temp_path;
     char               *out_temp_path;
     Reader              reader;
-    Matmodel<3>        *matmodel;
-    Solver<3>          *solver;
-    double              pert_param = 1e-3; // scalar strain perturbation parameter
+    // Hardcoded mechanical model because there no way to pass the type of problem in a forward declaration
+    Matmodel<3> *matmodel;
+    Solver<3>   *solver;
+    double       pert_param = 1e-6; // scalar strain perturbation parameter
 };

@@ -8,7 +8,7 @@ pyFANS is a Python-wrapped library to control FANS via the [Micro Manager](https
 
 ## Building
 
-To build FANS as a Micro Manager compatible Python library, set the CMake variable `FANS_LIB` to `ON`. The CMake command to compile FANS would then be `cmake .. -DFANS_LIB=ON`.
+To build FANS as a Micro Manager compatible Python library, set the CMake variable `FANS_LIB` to `ON`. The CMake command to compile FANS would then be `cmake .. -DFANS_LIBRARY_FOR_MICRO_MANAGER=ON`.
 
 ## Usage
 
