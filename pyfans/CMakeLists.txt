@@ -9,9 +9,3 @@ add_custom_command(
         ${CMAKE_CURRENT_SOURCE_DIR}/../test/test_pyfans/$<TARGET_FILE_NAME:PyFANS>
         COMMENT "Create a symlink for FANS python bindings to ${CMAKE_CURRENT_SOURCE_DIR}/../test/"
 )
-
-option(FANS_USE_MPI "Use MPI" OFF)
-
-if (FANS_USE_MPI)
-        add_definitions(-DFANS_USE_MPI)
-endif()

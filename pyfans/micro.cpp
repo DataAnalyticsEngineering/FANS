@@ -45,6 +45,8 @@ MicroSimulation::MicroSimulation(int sim_id)
 
 py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 {
+    // Time step value dt is not used currently, but is available for future use
+
     // Create a pybind style Numpy array from macro_write_data["micro_vector_data"], which is a Numpy array
     py::array_t<double> strain1 = macro_data["strains1to3"].cast<py::array_t<double>>();
     py::array_t<double> strain2 = macro_data["strains4to6"].cast<py::array_t<double>>();

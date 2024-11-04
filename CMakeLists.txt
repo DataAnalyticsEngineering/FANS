@@ -87,10 +87,7 @@ find_package(MPI REQUIRED)
 
 find_package(FFTW3 REQUIRED COMPONENTS DOUBLE MPI)
 
-if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    set(FANS_LIBRARY_FOR_MICRO_MANAGER_DEFAULT OFF)
-endif ()
-option(FANS_LIBRARY_FOR_MICRO_MANAGER "Building FANS as a library to be used by the Micro Manager." ${FANS_LIBRARY_FOR_MICRO_MANAGER_DEFAULT})
+option(FANS_LIBRARY_FOR_MICRO_MANAGER "Building FANS as a library to be used by the Micro Manager." OFF)
 
 if (FANS_LIBRARY_FOR_MICRO_MANAGER)
     include(FetchContent)
