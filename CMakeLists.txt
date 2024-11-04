@@ -114,13 +114,13 @@ elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
         execute_process(COMMAND lscpu OUTPUT_VARIABLE LSCU_OUTPUT ERROR_QUIET)
 
         # Default to AVX; enable AVX2 if supported by hardware
-        set(USE_AVX2 FALSE)
+        set(FANS_USE_AVX2 FALSE)
         if (LSCU_OUTPUT MATCHES "avx2")
-            set(USE_AVX2 TRUE)
+            set(FANS_USE_AVX2 TRUE)
         endif()
 
         # Apply compiler options based on hardware detection
-        if (USE_AVX2)
+        if (FANS_USE_AVX2)
             message(STATUS "AVX2 and FMA supported by hardware; using -mavx2 and -mfma.")
             target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
         else()
