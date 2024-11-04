@@ -13,8 +13,6 @@
 #include "general.h"
 #include "matmodel.h"
 #include "solver.h"
-#include "solverFP.h"
-#include "solverCG.h"
 
 namespace py = pybind11;
 
@@ -24,13 +22,8 @@ class MicroSimulation {
     py::dict solve(py::dict macro_write_data, double dt);
 
   private:
-    int                 _sim_id;
-    std::vector<double> g0;
-    double              _state;
-    char               *input_temp_path;
-    char               *in_place_temp_path;
-    char               *out_temp_path;
-    Reader              reader;
+    int    _sim_id;
+    Reader reader;
     // Hardcoding mechanical models because these definitions need information from the input file.
     Matmodel<3> *matmodel;
     Solver<3>   *solver;

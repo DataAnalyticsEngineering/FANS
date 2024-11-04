@@ -31,7 +31,7 @@ jobs:
         cmake .. -DFANS_LIBRARY_FOR_MICRO_MANAGER=ON
         make
 
-    - name: Run micro_mesh.py
+    - name: Run FANS as a library via a Python script
       run: |
         cd test/test_pyfans
         python3 run_fans_as_library.py
