@@ -13,6 +13,7 @@ class Reader {
     // contents of input file:
     char                           ms_filename[4096];    // Name of Micro-structure hdf5 file
     char                           ms_datasetname[4096]; // Absolute path of Micro-structure in hdf5 file
+    char                           results_prefix[4096];
     int                            n_mat;
     json                           materialProperties;
     double                         TOL;
