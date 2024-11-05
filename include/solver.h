@@ -463,6 +463,10 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
         printf(") \n\n");
     }
 
+    // Concatenate reader.ms_datasetname and reader.results_prefix into reader.ms_datasetname
+    strcat(reader.ms_datasetname, "/");
+    strcat(reader.ms_datasetname, reader.results_prefix);
+
     // Write results to results h5 file
     auto writeData = [&](const char *resultName, const char *resultPrefix, auto *data, hsize_t *dims, int ndims) {
         if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), resultName) != reader.resultsToWrite.end()) {
