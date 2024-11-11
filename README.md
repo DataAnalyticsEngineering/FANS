@@ -65,7 +65,7 @@ Spack is a package manager designed for high-performance computing environments.
     ```bash
     git clone https://github.com/spack/spack.git
     cd spack
-    source ./share/spack/setup-env.csh
+    . ./share/spack/setup-env.sh
     ```
 
 2. **Install Dependencies**: Once Spack is set up, you can install the required dependencies:
