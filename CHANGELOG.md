@@ -1,5 +1,9 @@
 # FANS Changelog
 
+## latest
+
+- Build FANS as a library to be coupled to a macro-scale simulation via preCICE and the Micro Manager https://github.com/DataAnalyticsEngineering/FANS/pull/23
+
 ## v0.3.0
 
 - Added Linear thermal and mechanical triclinic material models https://github.com/DataAnalyticsEngineering/FANS/pull/32
