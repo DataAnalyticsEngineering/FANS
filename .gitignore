@@ -195,7 +195,7 @@ data_gen/
 
 
 # Test microstructure files
-!sphere.h5
+!sphere32.h5
 
 # Test input files
 !test_LinearElasticIsotropic.json
