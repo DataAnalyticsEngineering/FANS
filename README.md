@@ -9,7 +9,7 @@ Fourier Accelerated Nodal Solvers (FANS) is an FFT-based homogenization solver d
 - [Dependencies](#dependencies)
 - [Building](#building)
 - [Installing](#installing)
-- [Input file format](#input-file-format)
+- [Input File Format](#input-file-format)
 - [Examples](#examples)
 
 ## Dependencies
@@ -144,7 +144,21 @@ Install FANS (system-wide) using the following options:
     apt install packages/fans-dev_<version>_<architecture>.deb
     ```
 
-## Input File Format
+### Install using Conda
+
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/version.svg)](https://anaconda.org/conda-forge/fans)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/platforms.svg)](https://anaconda.org/conda-forge/fans)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/downloads.svg)](https://anaconda.org/conda-forge/fans)
+
+FANS is also available as a conda-package on [conda-forge](https://anaconda.org/conda-forge/fans). No dependencies have to be manually installed for it to workl.
+It can be installed via
+
+```sh
+
+conda install fans
+exposing the executable `FANS`.
+
+## Input File Format {#input-file-format}
 
 FANS requires a JSON input file specifying the problem parameters. Example input files can be found in the [`test/input_files`](test/input_files) directory. It is recommended to use these files as a reference to create your own input file.
 
