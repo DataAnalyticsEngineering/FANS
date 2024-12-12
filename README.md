@@ -156,7 +156,6 @@ It can be installed via
 ```sh
 
 conda install fans
-```
 exposing the executable `FANS`.
 
 ## Input File Format
