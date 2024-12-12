@@ -152,7 +152,9 @@ Install FANS (system-wide) using the following options:
 
 FANS is also available as a conda-package on [conda-forge](https://anaconda.org/conda-forge/fans). No dependencies have to be manually installed for it to workl.
 It can be installed via
+
 ```sh
+
 conda install fans
 ```
 exposing the executable `FANS`.
