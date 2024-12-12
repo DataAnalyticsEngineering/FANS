@@ -198,7 +198,7 @@ test/input_files/**/*.json
 **/scratch/
 
 # Test microstructure files
-!sphere.h5
+!sphere32.h5
 
 # Test input files
 !test_LinearElastic.json
