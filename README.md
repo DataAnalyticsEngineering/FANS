@@ -38,7 +38,7 @@ Spack is a package manager designed for high-performance computing environments.
     spack install fftw +mpi
     ```
     You can also use alternative and optimized FFTW implementations depending on your system's architecture like amdfftw (For AMD systems) or cray-fftw (For Cray systems) or fujitsu-fftw (For Fujitsu systems).
-    
+
 3. **Load Dependencies** Once dependencies are installed, you can load them before building:
     ```
     spack load cmake mpi hdf5 eigen fftw
@@ -114,9 +114,21 @@ After compiling, you can install FANS (system-wide) using the following options:
     apt install packages/fans-dev_<version>_<architecture>.deb
     ```
 
+### Install using Conda
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/version.svg)](https://anaconda.org/conda-forge/fans)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/platforms.svg)](https://anaconda.org/conda-forge/fans)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/downloads.svg)](https://anaconda.org/conda-forge/fans)
+
+FANS is also available as a conda-package on [conda-forge](https://anaconda.org/conda-forge/fans). No dependencies have to be manually installed for it to workl.
+It can be installed via
+```sh
+conda install fans
+```
+exposing the executable `FANS`.
+
 ## Usage
 
-To run the FANS solver, you need to provide a JSON input file specifying the problem parameters. 
+To run the FANS solver, you need to provide a JSON input file specifying the problem parameters.
 
 ### Input File Format
 
@@ -174,7 +186,7 @@ We welcome contributions to FANS! Whether you're fixing bugs, adding features, o
 
 - **C++ Standard**: Use C++17 or later.
 - **Indentation**: 4 spaces, no tabs.
-- **Naming**: 
+- **Naming**:
     - Functions: `camelCase`
     - Classes: `PascalCase`
     - Variables: `snake_case`
@@ -205,7 +217,3 @@ Thank you for contributing to FANS! Your efforts help make this project better f
 
 ## Acknowledgements
 Funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) under Germany’s Excellence Strategy - EXC 2075 – 390740016. Contributions by Felix Fritzen are funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) within the Heisenberg program - DFG-FR2702/8 - 406068690; DFG-FR2702/10 - 517847245 and through NFDI-MatWerk - NFDI 38/1 - 460247524. We acknowledge the support by the Stuttgart Center for Simulation Science (SimTech).
-
-
-
-
