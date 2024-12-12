@@ -158,7 +158,7 @@ It can be installed via
 conda install fans
 exposing the executable `FANS`.
 
-## Input File Format
+## Input File Format {#input-file-format}
 
 FANS requires a JSON input file specifying the problem parameters. Example input files can be found in the [`test/input_files`](test/input_files) directory. It is recommended to use these files as a reference to create your own input file.
 
