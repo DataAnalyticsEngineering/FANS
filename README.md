@@ -269,3 +269,4 @@ Funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) unde
 - [Florian Rieg](about:blank)
 - [Ishaan Desai](https://github.com/IshaanDesai)
 - [Moritz Sigg](https://github.com/siggmo)
+- [Claudius Haag](https://github.com/claudiushaag)
