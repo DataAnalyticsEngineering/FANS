@@ -1,6 +1,6 @@
 {
     "microstructure": {
-        "filepath": "microstructures/sphere32.h5",
+        "filepath": "../microstructures/sphere32.h5",
         "datasetname": "/sphere/32x32x32/ms",
         "L": [1.0, 1.0, 1.0]
     },
