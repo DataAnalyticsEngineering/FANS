@@ -60,16 +60,16 @@ void Reader ::ReadInputFile(char fn[])
         json     j;
         i >> j;
 
-        strcpy(ms_filename, j["ms_filename"].get<string>().c_str());
-        strcpy(ms_datasetname, j["ms_datasetname"].get<string>().c_str());
+        microstructure = j["microstructure"];
+        strcpy(ms_filename, microstructure["filepath"].get<string>().c_str());
+        strcpy(ms_datasetname, microstructure["datasetname"].get<string>().c_str());
+        L = microstructure["L"].get<vector<double>>();
 
         if (j.contains("results_prefix")) {
             strcpy(results_prefix, j["results_prefix"].get<string>().c_str());
         } else {
             strcpy(results_prefix, "");
         }
-
-        L = j["ms_L"].get<vector<double>>();
 
         errorParameters = j["error_parameters"];
         TOL             = errorParameters["tolerance"].get<double>();

@@ -18,6 +18,7 @@ class Reader {
     json                           materialProperties;
     double                         TOL;
     json                           errorParameters;
+    json                           microstructure;
     int                            n_it;
     vector<vector<vector<double>>> g0;
     string                         problemType;
