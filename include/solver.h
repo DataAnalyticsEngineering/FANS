@@ -464,7 +464,7 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
     }
 
     // Concatenate reader.ms_datasetname and reader.results_prefix into reader.ms_datasetname
-    strcat(reader.ms_datasetname, "/");
+    strcat(reader.ms_datasetname, "_results/");
     strcat(reader.ms_datasetname, reader.results_prefix);
 
     // Write results to results h5 file
