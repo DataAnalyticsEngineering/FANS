@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.0...3.28)
 # ##############################################################################
 
 project(FANS
-        VERSION 0.2.0
+        VERSION 0.3.0
         LANGUAGES C CXX
 )
 
@@ -92,6 +92,17 @@ find_package(MPI REQUIRED)
 
 find_package(FFTW3 REQUIRED COMPONENTS DOUBLE MPI)
 
+option(FANS_LIBRARY_FOR_MICRO_MANAGER "Building FANS as a library to be used by the Micro Manager." OFF)
+
+if (FANS_LIBRARY_FOR_MICRO_MANAGER)
+    include(FetchContent)
+    FetchContent_Declare(
+        pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11.git
+        GIT_TAG v2.12.0
+    )
+    FetchContent_MakeAvailable(pybind11)
+endif()
+
 # ##############################################################################
 # TARGETS
 # ##############################################################################
@@ -107,8 +118,36 @@ add_library(FANS::FANS ALIAS FANS_FANS)
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
     target_compile_options(FANS_FANS PUBLIC -march=armv8-a+simd+fp+crypto)
 elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
-    target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
-endif ()
+    # Detecting if there is avx2 and fma support on linux
+    # Deteced together, because these flags were introduced by Intel Haskell 4th. Gen
+    # Distinguishing between mac/linux because lscpu is used, which is not supported on mac.
+    if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+        # macOS: Assume AVX2 and FMA are supported as per requirement
+        message(STATUS "Assuming AVX2 and FMA support on macOS; using -mavx2 and -mfma.")
+        target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
+    elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        # Linux: Check for AVX2 support using lscpu
+        execute_process(COMMAND lscpu OUTPUT_VARIABLE LSCPU_OUTPUT ERROR_QUIET)
+
+        # Default to AVX; enable AVX2 if supported by hardware
+        set(FANS_USE_AVX2 FALSE)
+        if (LSCPU_OUTPUT MATCHES "avx2")
+            set(FANS_USE_AVX2 TRUE)
+        endif()
+
+        # Apply compiler options based on hardware detection
+        if (FANS_USE_AVX2)
+            message(STATUS "AVX2 and FMA supported by hardware; using -mavx2 and -mfma.")
+            target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
+        else()
+            message(WARNING "AVX2 and FMA not supported by hardware; falling back to AVX.")
+            target_compile_options(FANS_FANS PUBLIC -mavx)
+        endif()
+    else()
+        message(WARNING "Unsupported system for AVX2 detection; defaulting to -mavx.")
+        target_compile_options(FANS_FANS PUBLIC -mavx)
+    endif()
+endif()
 
 add_executable(FANS_main)
 add_custom_command(
@@ -119,6 +158,10 @@ add_custom_command(
         ${CMAKE_CURRENT_SOURCE_DIR}/test/$<TARGET_FILE_NAME:FANS_main>
         COMMENT "Create a symlink for FANS executable to ${CMAKE_CURRENT_SOURCE_DIR}/test/"
 )
+
+if (FANS_LIBRARY_FOR_MICRO_MANAGER)
+    add_subdirectory(pyfans)
+endif ()
 
 # ##############################################################################
 # HEADERS
@@ -138,8 +181,8 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/solver.h
         include/setup.h
 
-        include/material_models/LinearThermalIsotropic.h
-        include/material_models/LinearElasticIsotropic.h
+        include/material_models/LinearThermal.h
+        include/material_models/LinearElastic.h
         include/material_models/PseudoPlastic.h
         include/material_models/J2Plasticity.h
 )

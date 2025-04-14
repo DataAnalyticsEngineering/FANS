@@ -9,7 +9,7 @@ Fourier Accelerated Nodal Solvers (FANS) is an FFT-based homogenization solver d
 - [Dependencies](#dependencies)
 - [Building](#building)
 - [Installing](#installing)
-- [Input file format](#input-file-format)
+- [Input File Format](#input-file-format)
 - [Examples](#examples)
 
 ## Dependencies
@@ -77,8 +77,8 @@ Spack is a package manager designed for high-performance computing environments.
 
     ```bash
     git clone https://github.com/spack/spack.git
-    cd spack/bin
-    source ./spack
+    cd spack
+    . ./share/spack/setup-env.sh
     ```
 
 2. **Install Dependencies**: Once Spack is set up, you can install the required dependencies:
@@ -157,6 +157,21 @@ Install FANS (system-wide) using the following options:
     apt install packages/fans-dev_<version>_<architecture>.deb
     ```
 
+### Install using Conda
+
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/version.svg)](https://anaconda.org/conda-forge/fans)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/platforms.svg)](https://anaconda.org/conda-forge/fans)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/downloads.svg)](https://anaconda.org/conda-forge/fans)
+
+FANS is also available as a conda-package on [conda-forge](https://anaconda.org/conda-forge/fans). No dependencies have to be manually installed for it to work.
+It can be installed via
+
+```bash
+conda install fans
+```
+
+exposing the executable `FANS`.
+
 ## Input File Format
 
 FANS requires a JSON input file specifying the problem parameters. Example input files can be found in the [`test/input_files`](test/input_files) directory. It is recommended to use these files as a reference to create your own input file.
@@ -191,13 +206,20 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 
 ```json
 "method": "cg",
-"TOL": 1e-10,
-"n_it": 100
+"error_parameters":{
+    "measure": "Linfinity",
+    "type": "absolute",
+    "tolerance": 1e-10
+},
+"n_it": 100,
 ```
 
 - `method`: This indicates the numerical method to be used for solving the system of equations. `cg` stands for the Conjugate Gradient method, and `fp` stands for the Fixed Point method.
-- `TOL`: This sets the tolerance level for the solver. It defines the convergence criterion which is based on the L-infinity norm of the nodal finite element residual; the solver iterates until the solution meets this tolerance.
-- `n_it`: This specifies the maximum number of iterations allowed for the FANS solver.
+- `error_parameters`: This section defines the error parameters for the solver. Error control is applied on the finite element nodal residual of the problem.
+  - `measure`: Specifies the norm used to measure the error. Options include `Linfinity`, `L1`, or `L2`.
+  - `type`: Defines the type of error measurement. Options are `absolute` or `relative`.
+  - `tolerance`: Sets the tolerance level for the solver, defining the convergence criterion based on the chosen error measure. The solver iterates until the solution meets this tolerance.
+- `n_it`: Specifies the maximum number of iterations allowed for the FANS solver.
 
 ### Macroscale Loading Conditions
 
@@ -260,3 +282,4 @@ Funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) unde
 - [Florian Rieg](about:blank)
 - [Ishaan Desai](https://github.com/IshaanDesai)
 - [Moritz Sigg](https://github.com/siggmo)
+- [Claudius Haag](https://github.com/claudiushaag)

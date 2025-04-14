@@ -1,5 +1,18 @@
 # FANS Changelog
 
+## latest
+
+- Modify way to provide micro structure in JSON input https://github.com/DataAnalyticsEngineering/FANS/pull/43
+- Add conda package for FANS https://github.com/DataAnalyticsEngineering/FANS/pull/39
+- Introduce system for checking compiler flags: `avx2` & `fma` https://github.com/DataAnalyticsEngineering/FANS/pull/34
+- Add `results_prefix` field in the JSON input https://github.com/DataAnalyticsEngineering/FANS/pull/36
+- Build FANS as a library to be coupled to a macro-scale simulation via preCICE and the Micro Manager https://github.com/DataAnalyticsEngineering/FANS/pull/23
+
+## v0.3.0
+
+- Added Linear thermal and mechanical triclinic material models https://github.com/DataAnalyticsEngineering/FANS/pull/32
+- Added API to get homogenized stress and homogenized tangent https://github.com/DataAnalyticsEngineering/FANS/pull/31
+
 ## v0.2.0
 
 - Add integration tests https://github.com/DataAnalyticsEngineering/FANS/pull/20

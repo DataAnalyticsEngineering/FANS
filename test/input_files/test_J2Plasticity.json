@@ -1,7 +1,9 @@
 {
-    "ms_filename": "microstructures/sphere32.h5",
-    "ms_datasetname": "/sphere/32x32x32/ms",
-    "ms_L": [1.0, 1.0, 1.0],
+    "microstructure": {
+        "filepath": "microstructures/sphere32.h5",
+        "datasetname": "/sphere/32x32x32/ms",
+        "L": [1.0, 1.0, 1.0]
+    },
 
     "problem_type": "mechanical",
     "matmodel": "J2ViscoPlastic_NonLinearIsotropicHardening",
@@ -12,14 +14,18 @@
         "isotropic_hardening_parameter": [0.0, 0.0],
         "kinematic_hardening_parameter": [0.0, 0.0],
         "viscosity": [1, 1],
-        "time_step": [0.01],
+        "time_step": 0.01,
 
         "saturation_stress": [0.15, 10000],
         "saturation_exponent": [1000, 1000]
     },
 
     "method": "cg",
-    "TOL": 1e-10,
+    "error_parameters":{
+        "measure": "Linfinity",
+        "type": "absolute",
+        "tolerance": 1e-10
+    },
     "n_it": 100,
     "macroscale_loading": [ [   [0.0000, 0, 0, 0, 0, 0],
                                 [0.0001, 0, 0, 0, 0, 0],
