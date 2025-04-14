@@ -29,7 +29,7 @@ py::array_t<double> merge_arrays(py::array_t<double> array1, py::array_t<double>
 
 MicroSimulation::MicroSimulation(int sim_id, char *input_file)
 {
-    MPI_Init(NULL, NULL);
+    // MPI_Init(NULL, NULL);
 
     // initialize fftw mpi
     fftw_mpi_init();
