@@ -188,7 +188,6 @@ configure_file(
     "${PROJECT_BINARY_DIR}/include/version.h" @ONLY
 )
 target_include_directories(FANS_main PRIVATE "${PROJECT_BINARY_DIR}/include")
-target_include_directories(FANS_FANS PRIVATE "${PROJECT_BINARY_DIR}/include")
 
 # ##############################################################################
 # SOURCES
