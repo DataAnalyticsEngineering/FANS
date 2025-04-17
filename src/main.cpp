@@ -31,7 +31,12 @@ void runSolver(Reader &reader, const char *output_file_basename)
 }
 
 int main(int argc, char *argv[])
-{
+{   
+    if (argc > 1 && string(argv[1]) == "--version") {
+        cout << "FANS version " << PROJECT_VERSION << endl;
+        return 0;
+    }
+    
     if (argc != 3) {
         fprintf(stderr, "USAGE: %s [input file basename] [output file basename]\n", argv[0]);
         return 10;

@@ -16,6 +16,9 @@
 
 using namespace std;
 
+// Version
+#include "version.h"
+
 // JSON
 #include <json.hpp>
 using nlohmann::json;
