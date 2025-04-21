@@ -326,12 +326,14 @@ def _(mo):
             mo.vstack([
                 mo.vstack([
                     "Code Label:",
+                    "Code Executable:",
                     "Description:",
                 ], align="start", heights="equal", gap=0.8),
                     "Environment Activation Script:",
             ], align="start", heights="equal", gap=5.55),    
             mo.vstack([
                 "{label}",
+                "{executable}",
                 "{description}",
                 "{environment}",
             ], align="start", heights="equal", gap=0.5)
@@ -339,6 +341,7 @@ def _(mo):
         justify="center", align="stretch", gap=2.0,
     ).batch(
         label=mo.ui.text("FANS"),
+        executable=mo.ui.text("FANS"),
         description=mo.ui.text_area("The FANS executable."),
         environment=mo.ui.text_area("eval \"$(conda shell.bash hook)\"\nconda activate aiida-fans-tutorial"),
     ).form(
@@ -366,7 +369,7 @@ def _(code_settings, computer_settings, mo):
     use_double_quotes: false
     with_mpi: true
     computer: {computer_settings.value["label"]}
-    filepath_executable: FANS
+    filepath_executable: {code_settings.value["executable"]}
     prepend_text: |
     {"\n".join([f"    {ln}" for ln in code_settings.value["environment"].split("\n")])}
     append_text: ' '
