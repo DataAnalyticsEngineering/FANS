@@ -610,7 +610,7 @@ def imports(import_button, mo):
         from itertools import product
         from random import uniform
     
-        from aiida import load_profile
+        from aiida.manage.configuration import load_profile
         load_profile()
     
     except ImportError:
