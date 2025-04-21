@@ -51,3 +51,9 @@ You can use pixi to install everything you need as defined by the pyproject.toml
 ```
 marimo run tutorial.py
 ```
+
+Activating the environment may look something like this:
+
+```
+pixi shell --manifest-path ~/FANS/tutorial/pyproject.toml
+```
