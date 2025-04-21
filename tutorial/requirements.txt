@@ -1,2 +1,2 @@
 aiida-fans==0.1.5
-marimo==0.12
+marimo==0.13
