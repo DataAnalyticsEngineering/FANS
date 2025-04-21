@@ -32,10 +32,11 @@ venv.bak/
 pixi.lock
 *.egg-info
 
+# Tutorial required files
+!tutorial_dataset.h5
+
 # Tutorial generated files
 configure_profile.yaml
 configure_computer.yaml
 configure_code.yaml
-
-# Aiida
 .aiida_run
