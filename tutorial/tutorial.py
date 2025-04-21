@@ -1,6 +1,8 @@
+
+
 import marimo
 
-__generated_with = "0.12.0"
+__generated_with = "0.13.0"
 app = marimo.App(app_title="AiiDA-FANS Tutorial")
 
 
@@ -55,7 +57,7 @@ def _(mo):
 
     {_tip}
     """)
-    return (nav_menu,)
+    return
 
 
 @app.cell(hide_code=True)
@@ -161,7 +163,7 @@ def _(mo, profile_settings):
     {profile_config}
     ```
     """).callout(kind="success")
-    return (profile_config,)
+    return
 
 
 @app.cell(hide_code=True)
@@ -277,7 +279,7 @@ def _(Path, computer_settings, mo):
     {computer_config}
     ```
     """).callout(kind="success")
-    return (computer_config,)
+    return
 
 
 @app.cell(hide_code=True)
@@ -386,7 +388,7 @@ def _(code_settings, computer_settings, mo):
     {code_config}
     ```
     """).callout(kind="success")
-    return (code_config,)
+    return
 
 
 @app.cell(hide_code=True)
@@ -589,7 +591,7 @@ def imports(import_button, mo):
 
     try:
         from aiida.common.exceptions import ProfileConfigurationError, ConfigurationError
-    
+
         from aiida.engine import run
         from aiida.plugins import CalculationFactory
         from aiida.orm import (
@@ -609,16 +611,16 @@ def imports(import_button, mo):
         from numpy import array
         from itertools import product
         from random import uniform
-    
-        from aiida.manage.configuration import load_profile
+
+        from aiida import load_profile
         load_profile()
-    
+
     except ImportError:
         mo.stop(True, output=mo.md("**Imports failed to load properly!**").style(text_align="center").callout(kind="danger"))
-    
+
     except ProfileConfigurationError:
         mo.stop(True, output=mo.md("**Your profile failed to load properly!**").style(text_align="center").callout(kind="danger"))
-    
+
     mo.md("**Success!**").style(text_align="center").callout(kind="success")
     return (
         ArrayData,
@@ -630,14 +632,11 @@ def imports(import_button, mo):
         Group,
         Int,
         List,
-        ProfileConfigurationError,
         QueryBuilder,
         SinglefileData,
         Str,
         array,
         load_code,
-        load_node,
-        load_profile,
         product,
         run,
         uniform,
@@ -646,8 +645,6 @@ def imports(import_button, mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    # mk_group_button = mo.ui.run_button(label="`RUN`")
-
     _code = r"""
     groups = QueryBuilder(                # we will use the advanced query method
     ).append(                             # it consists of a series of `.append` methods
@@ -704,27 +701,20 @@ def group(Group, QueryBuilder, import_button, mo):
 
     else:
         raise
-    return groups, inputs
+    return (inputs,)
 
 
-@app.cell(hide_code=True)
-def _(mo):
-    mk_microstructure_button = mo.ui.run_button(label="RUN")
+@app.cell
+def _(Path, mo):
+    try:
+        dataset_path = Path("tutorial_dataset.h5").absolute()
+    except:
+        mo.stop(True)
+    return (dataset_path,)
 
-    abs_path = mo.ui.text(placeholder="/path/to/microstructure.h5", full_width=True)
-    return abs_path, mk_microstructure_button
 
-
-@app.cell(hide_code=True)
-def _(abs_path, mk_microstructure_button, mo):
-    _form = mo.hstack(
-        [
-            mo.md("**Absolute Path to Microsturcture:**").style(white_space="pre"),
-            abs_path
-        ],
-        widths=[0,1]
-    )
-
+@app.cell
+def _(dataset_path, mo):
     _code = r"""
     microstructurequery = QueryBuilder(
     ).append(
@@ -737,7 +727,7 @@ def _(abs_path, mk_microstructure_button, mo):
 
     if len(microstructurequery) == 0:
         microstructurefile = SinglefileData(
-            Path('""" + (r"/path/to/microstructure.h5" if not abs_path.value else abs_path.value) + r"""'),
+            Path('""" + str(dataset_path) + r"""'),
             label="microstructure"
         ).store()
     elif len(microstructurequery) == 1:
@@ -751,10 +741,6 @@ def _(abs_path, mk_microstructure_button, mo):
     mo.md(rf"""
     Next, we store the microstructure file in the database. Using a similar strategy as with the group definition, the `QueryBuilder` first searches for existing microstructures. If none are found, we define a new one in the form of a `SinglefileData` node. This built-in AiiDA datatype points to a file via a path. Finally, the microstructure node is included in our "inputs" group.
 
-    {_form}
-
-    {mk_microstructure_button}
-
     ```py
     {_code}
     ```
@@ -762,17 +748,16 @@ def _(abs_path, mk_microstructure_button, mo):
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def microstructure(
-    Path,
     QueryBuilder,
     SinglefileData,
-    abs_path,
+    dataset_path,
+    import_button,
     inputs,
-    mk_microstructure_button,
     mo,
 ):
-    mo.stop(not mk_microstructure_button.value)  # run on click
+    mo.stop(not import_button.value)  # run on click
 
     microstructurequery = QueryBuilder(
     ).append(
@@ -783,7 +768,7 @@ def microstructure(
 
     if len(microstructurequery) == 0:
         microstructurefile = SinglefileData(
-            Path(abs_path.value),
+            dataset_path,
             label="microstructure"
         ).store()
     elif len(microstructurequery) == 1:
@@ -792,17 +777,35 @@ def microstructure(
         raise
 
     inputs.add_nodes(microstructurefile)
-    return microstructurefile, microstructurequery
+    return
 
 
 @app.cell
 def _(mo):
-    def_nodes_button = mo.ui.run_button(label="RUN")
+    mo.md(r"""
+    **Note:** _more nodes..._
+
+    The microstructure file node we just created is saved by AiiDA as a node. Just as before, we can list all the nodes we've created thus far; and it may be helpful to do so every once in a while to ensure everything is proceeding as expected.
+
+    To list all the nodes stored in your profile, run:
+
+    ```
+    verdi node list
+    ```
+    """).callout(kind="info")
+    return
+
+
+@app.cell
+def _(mo):
+    def_nodes_button = mo.ui.run_button(label="RUN", kind="warn")
     def_nodes_code_switch = mo.ui.switch(label="*show full code...*")
 
     _code = r"""
     # Microstructure Definition
-    Str("/sphere/32x32x32/ms", label="ms_datasetname"),
+    Str("/dset_0/image", label="ms_datasetname"),
+    Str("/dset_1/image", label="ms_datasetname"),
+    Str("/dset_2/image", label="ms_datasetname"),
     List([1.0, 1.0, 1.0], label="ms_L"),
 
     ...
@@ -814,23 +817,16 @@ def _(mo):
         [[uniform(25, 50), uniform(150, 200)] for _ in range(2)]
     )
 
-    # Solver Settings: Number of Iterations
-    Int(100, label="n_it"),
-    Int(200, label="n_it"),
-    Int(300, label="n_it"),
-
     ...
     """
 
     mo.md(rf"""
-    Now, we will define the rest of our parameters. This is mostly straightforward, but we treat `material_properties` and `n_it` a little differently.
+    Now, we will define the rest of our parameters. This is mostly straightforward, but we treat `ms_datasetname` and `material_properties` a little differently.
 
+    - `ms_datasetname`: Three different datasets are chosen from the sample microstructure file provided.
     - `material_properties`: A mock parameter space study is realised by randomly picking bulk and shear moduli from within a range.
-    - `n_it`: Three different numbers of iterations are chosen.
 
     When it comes time to run our calculations, we will run the "product" of all these parameters.
-
-    {def_nodes_button}
 
     ```py
     {_code}
@@ -866,7 +862,9 @@ def node_definition(
     nodes = [
 
     # Microstructure Definition
-    Str("/sphere/32x32x32/ms", label="ms_datasetname"),
+    Str("/dset_0/image", label="ms_datasetname"),
+    Str("/dset_1/image", label="ms_datasetname"),
+    Str("/dset_2/image", label="ms_datasetname"),
     List([1.0, 1.0, 1.0], label="ms_L"),
 
     # Problem Type and Material Model
@@ -885,17 +883,10 @@ def node_definition(
     Str("absolute", label="error_parameters.type"),
     Float(1e-10, label="error_parameters.tolerance"),
     Int(100, label="n_it"),
-    Int(200, label="n_it"),
-    Int(300, label="n_it"),
 
     # Macroscale Loading Conditions
     ArrayData({
-        "0": array([[1,0,0,0,0,0]]),
-        "1": array([[0,1,0,0,0,0]]),
-        "2": array([[0,0,1,0,0,0]]),
-        "3": array([[0,0,0,1,0,0]]),
-        "4": array([[0,0,0,0,1,0]]),
-        "5": array([[0,0,0,0,0,1]])
+        "0": array([[0,0,0,0,0,0]])
     }, label="macroscale_loading"),
 
     # Results Specification
@@ -907,45 +898,58 @@ def node_definition(
     return (nodes,)
 
 
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(
-        r"""
-        While the cell above defined all the parameters, they still need to be stored in the database. Otherwise, they will be lost when the session ends. AiiDA automatically stores nodes when submitting them to a job, but it is good practice to handle this yourself. Moreover, you get to see your database grow step by step. After clicking the button below, try running `verdi node list` in your terminal to see all the new additions we've made so far, and `verdi node show <id>` for more information about specific nodes.
+@app.cell
+def _(def_nodes_button, mo):
+    mo.md(rf"""
+    While the cell above defined all the parameters, they still need to be stored in the database. Otherwise, they will be lost when the session ends. AiiDA automatically stores nodes when submitting them to a job, but it is good practice to handle this yourself. Moreover, you get to see your database grow step by step. After clicking the button below, try running `verdi node list` in your terminal to see all the new additions we've made so far, and `verdi node show <id>` for more information about specific nodes.
 
-        It is important to note that this time we did not make any checks through the QueryBuilder to ensure that indentical nodes don't already exist. This means that if you click the button below repeatedly, you *may* cause duplicate nodes to be created. Since these are some the first nodes we're making, it is not so critical, but in practice you would want to first fetch existing nodes you want to reuse before creating the remainder of the nodes you wish to study.
+    It is important to note that this time we did not make any checks through the QueryBuilder to ensure that indentical nodes don't already exist. This means that if you click the button below repeatedly, you *may* cause duplicate nodes to be created. Since these are some the first nodes we're making, it is not so critical, but in practice you would want to first fetch existing nodes you want to reuse before creating the remainder of the nodes you wish to study.
 
-        ```py
-        for node in nodes:             # iterate over the list of new node
-            node.store()               # store each one in the database
-            inputs.add_nodes(node)     # assign each one to the "inputs" group
-        ```
-        """
-    )
+    {def_nodes_button}
+
+    ```py
+    for node in nodes:             # iterate over the list of new node
+        node.store()               # store each one in the database
+        inputs.add_nodes(node)     # assign each one to the "inputs" group
+    ```
+    """)
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def node_storage(def_nodes_button, inputs, mo, nodes):
-    mo.stop(not def_nodes_button.value)
+    mo.stop(not def_nodes_button.value) # Ignore this line.
 
     for node in nodes:             # iterate over the list of new node
         node.store()               # store each one in the database
         inputs.add_nodes(node)     # assign each one to the "inputs" group
-    return (node,)
+    return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(mo):
-    mk_params_button = mo.ui.run_button(label="RUN")
     mk_params_code_switch = mo.ui.switch(label="*show full code...*")
 
     _code = r"""
     some_params = [{
-        "microstructure": {
-            "datasetname": fetch("ms_datasetname", "/sphere/32x32x32/ms"),
-            ...
+        "problem_type": fetch("problem_type", "mechanical"),
+        "matmodel": fetch("matmodel", "LinearElasticIsotropic"),
+        ...
     }]
+
+    ...
+
+    ms_datasetname_params = [
+        {"microstructure":{"file": ms_file,"L": ms_L,
+            "datasetname": fetch("ms_datasetname", "/dset_0/image"),}
+        },
+        {"microstructure":{"file": ms_file,"L": ms_L,
+            "datasetname": fetch("ms_datasetname", "/dset_1/image"),}
+        },
+        {"microstructure":{"file": ms_file,"L": ms_L,
+            "datasetname": fetch("ms_datasetname", "/dset_2/image"),}
+        }
+    ]
 
     material_properties_params = [
         {"material_properties": mp.pop()}
@@ -955,24 +959,17 @@ def _(mo):
             }
         ).iterall()
     ]
-
-    n_it_params = [
-        {"n_it": fetch("n_it", 100)},
-        {"n_it": fetch("n_it", 200)},
-        {"n_it": fetch("n_it", 300)}
-    ]
     """
 
     mo.md(rf"""
     ### Executing Calculations
 
-    Now that all the input parameters have been specified, it it time to run some calculations. We create lists of dictionaries for each set of paramaters we wish to vary. In our case, `material_properties` need a list, as does `n_it`. Everything else falls into a list of length one. The keys of the dictionaries here are important and are specified by the plugin. More information is available in the documentation, but efforts are being made to synchronise these with the FANS parameter specification.
+    Now that all the input parameters have been specified, it it time to run some calculations. We create lists of dictionaries for each set of paramaters we wish to vary. In our case, `microsctructure` needs a list, as does `material_properties`. Everything else falls into a list of length one. The keys of the dictionaries here are important and are specified by the plugin. More information is available in the documentation, but efforts are being made to synchronise these with the FANS parameter specification.
 
     Below, some nodes are fetched using a helper function (see [Appendix A](#appendix)) which essentially queries the database for a single node with a particular label and value. You could also use the nodes we created above instead, passing them forward as variables, but here we demonstrate how you might run calculations using a either new or old nodes at once.
 
     Click the button bellow when you are sure that all the nodes above have been successfully created and stored. Try `verdi node list` to see them all.
 
-    {mk_params_button}
 
     ```py
     {_code}
@@ -980,38 +977,31 @@ def _(mo):
 
     {mk_params_code_switch}
     """)
-    return mk_params_button, mk_params_code_switch
+    return (mk_params_code_switch,)
 
 
-@app.cell(hide_code=True)
-def _(mk_params_button, mk_params_code_switch, mo):
+@app.cell
+def _(def_nodes_button, mk_params_code_switch, mo):
     def gatekeep2():
-        mo.stop(not mk_params_button.value and mk_params_code_switch.value, output=mo.show_code())
-        mo.stop(not mk_params_button.value)
-    return (gatekeep2,)
+        mo.stop(not def_nodes_button.value and mk_params_code_switch.value, output=mo.show_code())
+        mo.stop(not def_nodes_button.value)
+
+    def gatekeep3():
+        return mo.show_code() if mk_params_code_switch.value else None
+    return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def parameter_definition(
     ArrayData,
     Dict,
     QueryBuilder,
     SinglefileData,
     fetch,
-    gatekeep2,
+    mk_params_code_switch,
+    mo,
 ):
-    gatekeep2() # Ignore this line.
-
     some_params = [{
-        "microstructure": {
-            "file": QueryBuilder().append(
-                SinglefileData, filters={
-                    SinglefileData.fields.label: "microstructure"
-                }
-            ).first(flat=True),
-            "datasetname": fetch("ms_datasetname", "/sphere/32x32x32/ms"),
-            "L": fetch("ms_L", [1.0, 1.0, 1.0])
-        },
         "problem_type": fetch("problem_type", "mechanical"),
         "matmodel": fetch("matmodel", "LinearElasticIsotropic"),
         "method": fetch("method", "cg"),
@@ -1020,6 +1010,7 @@ def parameter_definition(
             "type": fetch("error_parameters.type", "absolute"),
             "tolerance": fetch("error_parameters.tolerance", 1e-10)
         },
+        "n_it": fetch("n_it", 100),
         "macroscale_loading": QueryBuilder().append(
             ArrayData, filters={
                 ArrayData.fields.label: "macroscale_loading"
@@ -1027,6 +1018,26 @@ def parameter_definition(
         ).first(flat=True),
         "results": fetch("results", ["stress", "strain", "stress_average", "strain_average", "absolute_error", "phase_stress_average", "phase_strain_average", "microstructure", "displacement"])
     }]
+
+    ms_file = QueryBuilder().append(
+        SinglefileData, filters={
+            SinglefileData.fields.label: "microstructure"
+        }
+    ).first(flat=True)
+
+    ms_L = fetch("ms_L", [1.0, 1.0, 1.0])
+
+    ms_datasetname_params = [
+        {"microstructure":{"file": ms_file,"L": ms_L,
+            "datasetname": fetch("ms_datasetname", "/dset_0/image"),}
+        },
+        {"microstructure":{"file": ms_file,"L": ms_L,
+            "datasetname": fetch("ms_datasetname", "/dset_1/image"),}
+        },
+        {"microstructure":{"file": ms_file,"L": ms_L,
+            "datasetname": fetch("ms_datasetname", "/dset_2/image"),}
+        }
+    ]
 
     material_properties_params = [
         {"material_properties": mp.pop()}
@@ -1037,17 +1048,13 @@ def parameter_definition(
         ).iterall()
     ]
 
-    n_it_params = [
-        {"n_it": fetch("n_it", 100)},
-        {"n_it": fetch("n_it", 200)},
-        {"n_it": fetch("n_it", 300)}
-    ]
-    return material_properties_params, n_it_params, some_params
+    mo.show_code() if mk_params_code_switch.value else None # Ignore this line.
+    return material_properties_params, ms_datasetname_params, some_params
 
 
 @app.cell
 def _(code_settings, mo):
-    calculate_button = mo.ui.run_button(label="RUN")
+    calculate_button = mo.ui.run_button(label="RUN", kind="warn")
 
     get_calc_state, set_calc_state = mo.state(False)
 
@@ -1055,8 +1062,8 @@ def _(code_settings, mo):
     FANSCalculation = CalculationFactory("fans")      # get the plugin's process class
     code = {"code": load_code('""" + f"{"<code_label>')}" if code_settings.value is None else code_settings.value["label"] + "')}" : <22}" + """ # get the existing code node
 
-    for sp, mpp, nit in product(some_params, material_properties_params, n_it_params):
-        all_params = sp | mpp | nit                   # merge this permutation of params
+    for sp, dsp, mpp in product(some_params, ms_datasetname_params, material_properties_params):
+        all_params = sp | dsp | mpp                   # merge this permutation of params
         run(FANSCalculation, all_params | code)       # finally run the job
     """
 
@@ -1083,7 +1090,7 @@ def calculations(
     load_code,
     material_properties_params,
     mo,
-    n_it_params,
+    ms_datasetname_params,
     product,
     run,
     set_calc_state,
@@ -1097,16 +1104,15 @@ def calculations(
     except ConfigurationError:
         mo.stop(True, output=mo.md("**Your code failed to load properly!**\n\nPlease submit the 'Define a Code' form in the [AiiDA Setup](aiida-setup) section.").style(text_align="center").callout(kind="danger"))
 
-    # for sp, mpp, nit in product(some_params, material_properties_params, n_it_params):
-    for sp, mpp, nit in mo.status.progress_bar(
-        list(product(some_params, material_properties_params, n_it_params)),
+    for sp, dsp, mpp in mo.status.progress_bar(
+        list(product(some_params, ms_datasetname_params, material_properties_params)),
         title="Calculating Jobs...", completion_title="Finished!"
     ):
-        all_params = sp | mpp | nit                   # merge this permutation of params
+        all_params = sp | dsp | mpp                   # merge this permutation of params
         run(FANSCalculation, all_params | code)       # finally run the job
     else:
         set_calc_state(True)
-    return FANSCalculation, all_params, code, mpp, nit, sp
+    return
 
 
 @app.cell(hide_code=True)
@@ -1147,6 +1153,7 @@ def _(
     CalcJobNode,
     Int,
     QueryBuilder,
+    Str,
     get_calc_state,
     get_query_state,
     mo,
@@ -1170,6 +1177,8 @@ def _(
     # Inputs
     ins = list(calc.inputs._get_keys())
     ins = "<br>".join(ins)
+    # Microstructure Dataset Name
+    ms_datasetname = calc.inputs.microstructure.datasetname.value
     # Material Properties
     mat_props = {
         "b": (
@@ -1181,8 +1190,6 @@ def _(
             calc.inputs.material_properties["shear_modulus"][1]
         )
     }
-    # Number of Iterations
-    n_it = calc.inputs.n_it.value
     # Outputs
     outs = list(calc.outputs._get_keys())
     outs = ", ".join(outs)
@@ -1210,16 +1217,16 @@ def _(
     filtered_calcs = \
     QueryBuilder(
     ).append(                              # In the first `.append` we look for nodes
-        Int,                               # of the `Int` AiiDA datatype,
+        Str,                               # of the `Str` AiiDA datatype,
         filters={                          # then apply the filters for:
-            Int.fields.label: "n_it",      # 
-            Int.fields.value: {"==": 300}  #
+            Int.fields.label: "ms_datasetname", # 
+            Int.fields.value: {"==": "/dset_0/image"} #
         },
-        tag="n_it"                         # The `tag` is an internal reference.
+        tag="ms_datasetname"               # The `tag` is an internal reference.
 
     ).append(                              # In the second `.append` we look for nodes
         CalcJobNode,                       # of the `CalcJobNode` AiiDA datatype,
-        with_incoming="n_it"               # and specify required incoming nodes with
+        with_incoming="ms_datasetname"     # and specify required incoming nodes with
                                            # the `tag` we defined above.
     ).all(flat=True)
 
@@ -1229,16 +1236,16 @@ def _(
     _code = r"""
     QueryBuilder(
     ).append(                              # In the first `.append` we look for nodes
-        Int,                               # of the `Int` AiiDA datatype,
+        Str,                               # of the `Str` AiiDA datatype,
         filters={                          # then apply the filters for:
-            Int.fields.label: "n_it",      # 
-            Int.fields.value: {"==": 300}  #
+            Int.fields.label: "ms_datasetname", # 
+            Int.fields.value: {"==": "dset_0"}  #
         },
-        tag="n_it"                         # The `tag` is an internal reference.
+        tag="ms_datasetname"               # The `tag` is an internal reference.
 
     ).append(                              # In the second `.append` we look for nodes
         CalcJobNode,                       # of the `CalcJobNode` AiiDA datatype,
-        with_incoming="n_it"               # and specify required incoming nodes with
+        with_incoming="ms_datasetname"     # and specify required incoming nodes with
                                            # the `tag` we defined above.
     ).all(flat=True)
     """
@@ -1265,6 +1272,16 @@ def _(
 
     Of course, it would be helpful to know exactly what inputs were used in the calculation of this particular job. The inputs can be accessed via dot notation which provides the respective values as AiiDA datatypes.
 
+    When it comes to the microstructure dataset name, the inputs's value is accessed through the `value` attribute.
+
+    ```py
+    calc.inputs.microstructure.datasetname.value
+    ```
+
+    | | |
+    |-|-|
+    | **Microstructure Dataset Name:** | {ms_datasetname} |
+
     In the case of the material properties, this attribute takes the form an AiiDA `Dict` which has methods just like an ordinary `dict`.
 
     ```py
@@ -1275,16 +1292,6 @@ def _(
     |-|-|-|
     |Bulk Modulus: | {mat_props["b"][0]} | {mat_props["b"][1]} |
     |Shear Modulus: | {mat_props["s"][0]} | {mat_props["s"][1]} |
-
-    When it comes to the number of iterations however, the inputs's value is accessed though an attribute.
-
-    ```py
-    calc.inputs.n_it.value
-    ```
-
-    | | |
-    |-|-|
-    | **Number of Iterations:** | {n_it} |
 
     ### Effective stress and strain...
 
@@ -1299,15 +1306,10 @@ def _(
     | Loading <br> Condition: | Stress: | Strain:                       |
     |---|-------------------------------|-------------------------------|
     | **1** | {stress_strains[0]["stress"]} | {stress_strains[0]["strain"]} |
-    | **2** | {stress_strains[1]["stress"]} | {stress_strains[1]["strain"]} |
-    | **3** | {stress_strains[2]["stress"]} | {stress_strains[2]["strain"]} |
-    | **4** | {stress_strains[3]["stress"]} | {stress_strains[3]["strain"]} |
-    | **5** | {stress_strains[4]["stress"]} | {stress_strains[4]["strain"]} |
-    | **6** | {stress_strains[5]["stress"]} | {stress_strains[5]["strain"]} |
 
     ### Perform a filtered query...
 
-    Aside from manually examining the inputs and outputs of individual calculation jobs, the `QueryBuilder` offers the ability to filter your query based on a variety of criteria. In this instance, we query for all jobs that used 300 iterations. This time, we are given back a list of calculation job nodes to do with as we please.
+    Aside from manually examining the inputs and outputs of individual calculation jobs, the `QueryBuilder` offers the ability to filter your query based on a variety of criteria. In this instance, we query for all jobs that used the "dset_0" microstructure dataset. This time, we are given back a list of calculation job nodes to do with as we please.
 
     ```py
     {_code}
@@ -1318,21 +1320,7 @@ def _(
     | **Primary Keys:** | {filtered_calcs[0].pk} | {filtered_calcs[1].pk} | {filtered_calcs[2].pk} | {filtered_calcs[3].pk} |
 
     """)
-    return (
-        are_you_sure,
-        calc,
-        confirm,
-        filtered_calcs,
-        ins,
-        ln,
-        log,
-        mat_props,
-        n_it,
-        outs,
-        strains,
-        stress_strains,
-        stresses,
-    )
+    return
 
 
 @app.cell(hide_code=True)
