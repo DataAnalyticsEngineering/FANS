@@ -292,7 +292,7 @@ def _(computer_settings, mo):
     Then you must configure the computer with the following command:
 
     ```
-    verdi computer configure core.local localhost
+    verdi computer configure core.local {"<computer_label>" if computer_settings.value is None else computer_settings.value["label"]}
     ```
 
     The default options should be suitable.
