@@ -544,7 +544,7 @@ def _(mo):
 
 @app.cell(hide_code=True)
 def _(mo):
-    load_profile_button = mo.ui.run_button(label="RUN")
+    import_button = mo.ui.run_button(label="RUN")
 
     mo.md(rf"""
     ### Creating Input Parameters
@@ -553,7 +553,7 @@ def _(mo):
 
     Press this button only after you have created a default profile as described above in [AiiDA Setup](#aiida-setup).
 
-    {load_profile_button}
+    {import_button}
 
     ```py
     from aiida.engine import run                  # run jobs
@@ -580,41 +580,46 @@ def _(mo):
     load_profile()
     ```
     """)
-    return (load_profile_button,)
+    return (import_button,)
 
 
 @app.cell(hide_code=True)
-def imports(load_profile_button, mo):
-    mo.stop(not load_profile_button.value)  # run on click
+def imports(import_button, mo):
+    mo.stop(not import_button.value)  # run on click
 
-    from aiida.common.exceptions import ProfileConfigurationError, ConfigurationError
-
-    from aiida.engine import run                  # run jobs
-    from aiida.plugins import CalculationFactory  # generates fans calculation
-    from aiida.orm import (
-        Group,                                    # node organisation tool
-        SinglefileData,                           # \
-        Str,                                      # |
-        Float,                                    # |
-        Int,                                      # |- AiiDA datatypes
-        List,                                     # |
-        Dict,                                     # |
-        ArrayData,                                # /
-        CalcJobNode,                              # node type for calculation jobs
-        QueryBuilder,                             # advanced query tool
-        load_node,                                # basic query tool for nodes
-        load_code,                                # basic query tool for codes
-    )
-    from numpy import array                       # numpy array
-    from itertools import product                 # for parameter space generation
-    from random import uniform                    # for parameter space generation
-
-    from aiida import load_profile                # type: ignore 
-                                                  # injects profile context into script
-    try: 
+    try:
+        from aiida.common.exceptions import ProfileConfigurationError, ConfigurationError
+    
+        from aiida.engine import run
+        from aiida.plugins import CalculationFactory
+        from aiida.orm import (
+            Group,
+            SinglefileData,
+            Str,
+            Float,
+            Int,
+            List,
+            Dict,
+            ArrayData,
+            CalcJobNode,
+            QueryBuilder,
+            load_node,
+            load_code,
+        )
+        from numpy import array
+        from itertools import product
+        from random import uniform
+    
+        from aiida import load_profile
         load_profile()
+    
+    except ImportError:
+        mo.stop(True, output=mo.md("**Imports failed to load properly!**").style(text_align="center").callout(kind="danger"))
+    
     except ProfileConfigurationError:
         mo.stop(True, output=mo.md("**Your profile failed to load properly!**").style(text_align="center").callout(kind="danger"))
+    
+    mo.md("**Success!**").style(text_align="center").callout(kind="success")
     return (
         ArrayData,
         CalcJobNode,
@@ -676,8 +681,8 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def group(Group, QueryBuilder, load_profile_button, mo):
-    mo.stop(not load_profile_button.value)  # run on click
+def group(Group, QueryBuilder, import_button, mo):
+    mo.stop(not import_button.value)  # run on click
 
     groups = QueryBuilder(                # we will use the advanced query method
     ).append(                             # it consists of a series of `.append` methods
@@ -904,17 +909,19 @@ def node_definition(
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""
-    While the cell above defined all the parameters, they still need to be stored in the database. Otherwise, they will be lost when the session ends. AiiDA automatically stores nodes when submitting them to a job, but it is good practice to handle this yourself. Moreover, you get to see your database grow step by step. After clicking the button below, try running `verdi node list` in your terminal to see all the new additions we've made so far, and `verdi node show <id>` for more information about specific nodes.
+    mo.md(
+        r"""
+        While the cell above defined all the parameters, they still need to be stored in the database. Otherwise, they will be lost when the session ends. AiiDA automatically stores nodes when submitting them to a job, but it is good practice to handle this yourself. Moreover, you get to see your database grow step by step. After clicking the button below, try running `verdi node list` in your terminal to see all the new additions we've made so far, and `verdi node show <id>` for more information about specific nodes.
 
-    It is important to note that this time we did not make any checks through the QueryBuilder to ensure that indentical nodes don't already exist. This means that if you click the button below repeatedly, you *may* cause duplicate nodes to be created. Since these are some the first nodes we're making, it is not so critical, but in practice you would want to first fetch existing nodes you want to reuse before creating the remainder of the nodes you wish to study.
+        It is important to note that this time we did not make any checks through the QueryBuilder to ensure that indentical nodes don't already exist. This means that if you click the button below repeatedly, you *may* cause duplicate nodes to be created. Since these are some the first nodes we're making, it is not so critical, but in practice you would want to first fetch existing nodes you want to reuse before creating the remainder of the nodes you wish to study.
 
-    ```py
-    for node in nodes:             # iterate over the list of new node
-        node.store()               # store each one in the database
-        inputs.add_nodes(node)     # assign each one to the "inputs" group
-    ```
-    """)
+        ```py
+        for node in nodes:             # iterate over the list of new node
+            node.store()               # store each one in the database
+            inputs.add_nodes(node)     # assign each one to the "inputs" group
+        ```
+        """
+    )
     return
 
 
