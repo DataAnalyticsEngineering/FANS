@@ -31,7 +31,7 @@ class Reader {
     vector<int>    dims;
     vector<double> l_e;
     vector<double> L;
-    unsigned char *ms; // Micro-structure Binary
+    int           *ms; // Micro-structure Binary
 
     int world_rank;
     int world_size;

@@ -12,40 +12,48 @@
 
 void Reader::ComputeVolumeFractions()
 {
-    // TODO: this is not the best way to compute the number of materials
-    // Determine n_mat as the maximum material index plus one
-    unsigned char local_max  = 0;
-    size_t        local_size = local_n0 * dims[1] * dims[2];
+    int    local_max  = INT_MIN;
+    int    local_min  = INT_MAX;
+    size_t local_size = local_n0 * dims[1] * dims[2];
 
-    // Find the local maximum material index
+    // Find the local maximum and minimum material indices
     for (size_t i = 0; i < local_size; i++) {
         if (ms[i] > local_max) {
             local_max = ms[i];
         }
+        if (ms[i] < local_min) {
+            local_min = ms[i];
+        }
     }
-    // Find the global maximum material index
-    unsigned char global_max;
-    MPI_Allreduce(&local_max, &global_max, 1, MPI_UNSIGNED_CHAR, MPI_MAX, MPI_COMM_WORLD);
-    n_mat = global_max + 1; // Set n_mat to the maximum material index plus one
+
+    // Find the global maximum and minimum material indices
+    int global_max, global_min;
+    MPI_Allreduce(&local_max, &global_max, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&local_min, &global_min, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+
+    // Calculate total number of materials (accounting for negative indices)
+    n_mat = global_max - global_min + 1;
 
     if (world_rank == 0) {
-        printf("# Number of materials: %i\n", n_mat);
+        printf("# Number of materials: %i (from %i to %i)\n", n_mat, global_min, global_max);
         printf("# Volume fractions\n");
     }
-    long   vol_frac[n_mat];
-    double v_frac[n_mat];
-    for (int i = 0; i < n_mat; i++) {
-        vol_frac[i] = 0;
+
+    // Using dynamic allocation for arrays since we don't know size at compile time
+    std::vector<long>   vol_frac(n_mat, 0);
+    std::vector<double> v_frac(n_mat, 0.0);
+
+    for (size_t i = 0; i < local_size; i++) {
+        int index = ms[i] - global_min; // Adjust index to start from 0
+        vol_frac[index]++;
     }
-    for (size_t i = 0; i < local_n0 * dims[1] * dims[2]; i++) {
-        vol_frac[ms[i]]++;
-    }
+
     for (int i = 0; i < n_mat; i++) {
         long vf;
         MPI_Allreduce(&(vol_frac[i]), &vf, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
         v_frac[i] = double(vf) / double(dims[0] * dims[1] * dims[2]);
         if (world_rank == 0)
-            printf("# material %4i    vol. frac. %10.4f%%  \n", i, 100. * v_frac[i]);
+            printf("# material %4i    vol. frac. %10.4f%%  \n", i + global_min, 100. * v_frac[i]);
     }
 }
 
@@ -201,7 +209,7 @@ void Reader ::ReadMS(int hm)
 
     hid_t dspace = H5Dget_space(dset_id);
     int   rank   = H5Sget_simple_extent_dims(dspace, _dims, NULL);
-    data_type    = H5T_NATIVE_UCHAR; // could also use H5Dget_type(dset_id)
+    data_type    = H5T_NATIVE_INT; // H5Dget_type(dset_id);
 
     dims.resize(3);
     dims[0] = _dims[0];
@@ -258,7 +266,7 @@ void Reader ::ReadMS(int hm)
     filespace = H5Dget_space(dset_id);
     H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL, count, NULL);
 
-    ms     = FANS_malloc<unsigned char>(count[0] * count[1] * count[2]);
+    ms     = FANS_malloc<int>(count[0] * count[1] * count[2]);
     status = H5Dread(dset_id, data_type, memspace, filespace, plist_id, this->ms);
 
     H5Dclose(dset_id);
