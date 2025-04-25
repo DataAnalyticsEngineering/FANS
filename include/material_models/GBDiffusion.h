@@ -83,25 +83,6 @@ class GBDiffusion : public ThermalModel {
         }
     }
 
-    // void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override
-    // {
-    //     if  (mat_index > -1) {
-    //         // Bulk is isotropic
-    //         sigma.block<3,1>(i,0) = D_bulk * eps.block<3,1>(i,0);
-    //     } else if (mat_index == -1) {
-    //         // Grain boundary is transversely isotropic
-    //         N = Vector3d(GBnormals[3 * element_idx + 0], GBnormals[3 * element_idx + 1], GBnormals[3 * element_idx + 2]);
-    //         N = N.normalized();
-    //         D_GB = D_par * (Matrix3d::Identity() - N * N.transpose()) + D_perp * N * N.transpose();
-
-    //         sigma(i + 0, 0) = D_GB(0, 0) * eps(i + 0, 0) + D_GB(0, 1) * eps(i + 1, 0) + D_GB(0, 2) * eps(i + 2, 0);
-    //         sigma(i + 1, 0) = D_GB(1, 0) * eps(i + 0, 0) + D_GB(1, 1) * eps(i + 1, 0) + D_GB(1, 2) * eps(i + 2, 0);
-    //         sigma(i + 2, 0) = D_GB(2, 0) * eps(i + 0, 0) + D_GB(2, 1) * eps(i + 1, 0) + D_GB(2, 2) * eps(i + 2, 0);
-    //     } else {
-    //         throw std::runtime_error("GBDiffusion: Unknown material index");
-    //     }
-    // }
-
     void postprocess(Solver<1> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override
     {
 
