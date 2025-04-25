@@ -184,6 +184,13 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/material_models/J2Plasticity.h
 )
 
+# version.h is generated and added to the build include directory
+configure_file(
+    "${PROJECT_SOURCE_DIR}/include/version.h.in"
+    "${PROJECT_BINARY_DIR}/include/version.h" @ONLY
+)
+target_include_directories(FANS_main PRIVATE "${PROJECT_BINARY_DIR}/include")
+
 # ##############################################################################
 # SOURCES
 # ##############################################################################

@@ -2,6 +2,8 @@
 
 ## latest
 
+- Remove Ubuntu 20.04 from testing and Docker support https://github.com/DataAnalyticsEngineering/FANS/pull/51
+- Add support for `--version` command line argument for checking the version of FANS
 - Modify way to provide micro structure in JSON input https://github.com/DataAnalyticsEngineering/FANS/pull/43
 - Add conda package for FANS https://github.com/DataAnalyticsEngineering/FANS/pull/39
 - Introduce system for checking compiler flags: `avx2` & `fma` https://github.com/DataAnalyticsEngineering/FANS/pull/34
