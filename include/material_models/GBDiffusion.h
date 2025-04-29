@@ -149,78 +149,119 @@ void ReadAuxData4D(
         throw std::runtime_error("ReadAuxData4D: dataset is not 4D (rank=" + std::to_string(rank) + ")");
     }
 
-    // Check Nx, Ny, Nz
-    if (_dims[0] != (hsize_t) r.dims[0] ||
-        _dims[1] != (hsize_t) r.dims[1] ||
-        _dims[2] != (hsize_t) r.dims[2]) {
-        throw std::runtime_error(
-            "ReadAuxData4D: The first 3 dims of the dataset do not match r.dims (Nx,Ny,Nz).");
+    /* Verify the three spatial axes match r.dims in the appropriate order */
+    const bool is_zyx = r.is_zyx; // ← flag set in Reader::ReadMS
+    if (!is_zyx) {                /* on-disk order  X Y Z k */
+        if (_dims[0] != (hsize_t) r.dims[0] ||
+            _dims[1] != (hsize_t) r.dims[1] ||
+            _dims[2] != (hsize_t) r.dims[2])
+            throw std::runtime_error("ReadAuxData4D: XYZ dims do not match Reader grid.");
+    } else {                                   /* on-disk order  Z Y X k */
+        if (_dims[2] != (hsize_t) r.dims[0] || /* X */
+            _dims[1] != (hsize_t) r.dims[1] || /* Y */
+            _dims[0] != (hsize_t) r.dims[2])   /* Z */
+            throw std::runtime_error("ReadAuxData4D: ZYX dims do not match Reader grid.");
     }
-    // The 4th dimension is k, and can be anything.
+    const hsize_t kDim = _dims[3]; /* size of 4th axis */
 
-    // Optional print
     if (r.world_rank == 0) {
-        printf("Reading 4D dataset [%llu x %llu x %llu x %llu] (double) from '%s'...\n",
+        printf("Reading 4-D dataset [%llu × %llu × %llu × %llu] (%s layout)…\n",
                (unsigned long long) _dims[0],
                (unsigned long long) _dims[1],
                (unsigned long long) _dims[2],
                (unsigned long long) _dims[3],
-               datasetName.c_str());
+               is_zyx ? "ZYXk" : "XYZk");
     }
 
-    //--------------------------------------------------------------------------
-    // 4. Define the hyperslab for this rank's portion along dimension 0
-    //--------------------------------------------------------------------------
-    hsize_t count[4] = {
-        static_cast<hsize_t>(r.local_n0), // local chunk in Nx
-        _dims[1],                         // all of Ny
-        _dims[2],                         // all of Nz
-        _dims[3]                          // all of k
-    };
-    hsize_t offset[4] = {
-        static_cast<hsize_t>(r.local_0_start),
-        0,
-        0,
-        0};
+    /* ------------------------------------------------------------------ */
+    /* 4. build FILE hyperslab (always slice along physical X)            */
+    /* ------------------------------------------------------------------ */
+    hsize_t fcount[4];
+    hsize_t foffset[4];
+    if (!is_zyx) { /* file dims:  X Y Z k   (slice file-dim 0) */
+        fcount[0]  = static_cast<hsize_t>(r.local_n0);
+        fcount[1]  = _dims[1]; /* Ny */
+        fcount[2]  = _dims[2]; /* Nz */
+        fcount[3]  = kDim;
+        foffset[0] = static_cast<hsize_t>(r.local_0_start);
+        foffset[1] = 0;
+        foffset[2] = 0;
+        foffset[3] = 0;
+    } else {                                           /* file dims:  Z Y X k   (slice file-dim 2) */
+        fcount[0]  = _dims[0];                         /* Nz */
+        fcount[1]  = _dims[1];                         /* Ny */
+        fcount[2]  = static_cast<hsize_t>(r.local_n0); /* Nx-slab */
+        fcount[3]  = kDim;
+        foffset[0] = 0;
+        foffset[1] = 0;
+        foffset[2] = static_cast<hsize_t>(r.local_0_start);
+        foffset[3] = 0;
+    }
+    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, foffset, nullptr, fcount, nullptr);
 
-    hid_t memspace = H5Screate_simple(/*rank=*/4, count, nullptr);
-    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, nullptr, count, nullptr);
+    /* ------------------------------------------------------------------ */
+    /* 5. build MEMORY dataspace that matches the FILE slab exactly       */
+    /*    (so HDF5 performs a pure copy, no hidden re-ordering)           */
+    /* ------------------------------------------------------------------ */
+    hid_t memspace = H5Screate_simple(4, fcount, nullptr);
 
-    //--------------------------------------------------------------------------
-    // 5. Allocate the local buffer and read
-    //--------------------------------------------------------------------------
-    size_t localSize =
-        (size_t) r.local_n0 *
-        (size_t) r.dims[1] *
-        (size_t) r.dims[2] *
-        (size_t) _dims[3];
+    /* ------------------------------------------------------------------ */
+    /* 6. read – with a transpose step only if ZYX was stored             */
+    /* ------------------------------------------------------------------ */
+    const size_t NxLoc = static_cast<size_t>(r.local_n0);
+    const size_t Ny    = static_cast<size_t>(r.dims[1]);
+    const size_t Nz    = static_cast<size_t>(r.dims[2]);
 
-    auxData4D = new double[localSize];
+    size_t slabElems = static_cast<size_t>(fcount[0]) *
+                       static_cast<size_t>(fcount[1]) *
+                       static_cast<size_t>(fcount[2]) *
+                       static_cast<size_t>(fcount[3]);
 
-    herr_t status = H5Dread(
-        dset_id,
-        H5T_NATIVE_DOUBLE, // <--- We read double precision
-        memspace,
-        filespace,
-        plist_id,
-        auxData4D);
-    if (status < 0) {
-        throw std::runtime_error("ReadAuxData4D: H5Dread failed for dataset '" + datasetName + "'");
+    if (!is_zyx) {
+        /* XYZk : we can read straight into the final buffer */
+        auxData4D = new double[slabElems];
+
+        herr_t status = H5Dread(dset_id, H5T_NATIVE_DOUBLE,
+                                memspace, filespace, plist_id, auxData4D);
+        if (status < 0)
+            throw std::runtime_error("ReadAuxData4D: H5Dread failed (XYZ)");
+    } else {
+        /* ZYXk : read into temp buffer shaped [Z][Y][X][k], then transpose
+         *        to final logical order [X][Y][Z][k].                    */
+        double *tmp = new double[slabElems];
+
+        herr_t status = H5Dread(dset_id, H5T_NATIVE_DOUBLE,
+                                memspace, filespace, plist_id, tmp);
+        if (status < 0)
+            throw std::runtime_error("ReadAuxData4D: H5Dread failed (ZYX)");
+
+        auxData4D = new double[slabElems];
+
+        /* temp indices:  idx_t = (((z*Ny)+y)*NxLoc + x)*k + d
+         * final indices: idx_f = (((x*Ny)+y)*Nz    + z)*k + d                */
+        for (size_t z = 0; z < Nz; ++z)
+            for (size_t y = 0; y < Ny; ++y)
+                for (size_t x = 0; x < NxLoc; ++x) {
+                    size_t base_t = (((z * Ny) + y) * NxLoc + x) * kDim;
+                    size_t base_f = (((x * Ny) + y) * Nz + z) * kDim;
+                    std::memcpy(&auxData4D[base_f],
+                                &tmp[base_t],
+                                kDim * sizeof(double));
+                }
+        delete[] tmp;
     }
 
-    //--------------------------------------------------------------------------
-    // 6. Clean up HDF5 objects
-    //--------------------------------------------------------------------------
+    /* ------------------------------------------------------------------ */
+    /* 7. tidy up                                                         */
+    /* ------------------------------------------------------------------ */
     H5Sclose(memspace);
     H5Dclose(dset_id);
     H5Fclose(file_id);
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    // Optionally, a final print
-    if (r.world_rank == 0) {
-        printf("ReadAuxData4D: done reading local slab on each rank.\n");
-    }
+    if (r.world_rank == 0)
+        printf("ReadAuxData4D: local slab read complete.\n");
 }
 
 #endif // GBDIFFUSION_H

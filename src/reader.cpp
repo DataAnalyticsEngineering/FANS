@@ -211,10 +211,36 @@ void Reader ::ReadMS(int hm)
     int   rank   = H5Sget_simple_extent_dims(dspace, _dims, NULL);
     data_type    = H5T_NATIVE_INT; // H5Dget_type(dset_id);
 
+    // Check if microstructure dataset has ZYX ordering through the permute_order attribute
+    hid_t attr_id = H5Aexists(dset_id, "permute_order") ? H5Aopen(dset_id, "permute_order", H5P_DEFAULT) : -1;
+    if (attr_id > 0) {
+        hid_t attr_type     = H5Aget_type(attr_id);
+        char *permute_order = nullptr;
+        if (H5Aread(attr_id, attr_type, &permute_order) >= 0 && permute_order != nullptr) {
+            is_zyx = (permute_order[0] == 'z' || permute_order[0] == 'Z');
+            H5free_memory(permute_order);
+        }
+        H5Aclose(attr_id);
+        H5Tclose(attr_type);
+    }
+    if (world_rank == 0) {
+        if (is_zyx) {
+            printf("# Using Z-Y-X dimension ordering for the microstructure data\n");
+        } else {
+            printf("# Using X-Y-Z dimension ordering for the microstructure data\n");
+        }
+    }
+
     dims.resize(3);
-    dims[0] = _dims[0];
-    dims[1] = _dims[1];
-    dims[2] = _dims[2];
+    if (is_zyx) {           /* file layout Z Y X  -> logical X Y Z */
+        dims[0] = _dims[2]; /* Nx */
+        dims[1] = _dims[1]; /* Ny */
+        dims[2] = _dims[0]; /* Nz */
+    } else {                /* default layout X Y Z */
+        dims[0] = _dims[0];
+        dims[1] = _dims[1];
+        dims[2] = _dims[2];
+    }
 
     l_e.resize(3);
     l_e[0] = L[0] / double(dims[0]);
@@ -223,9 +249,12 @@ void Reader ::ReadMS(int hm)
 
     if (world_rank == 0) {
         printf("# grid size set to [%i x %i x %i] --> %i voxels \nMicrostructure length: [%3.6f x %3.6f x %3.6f]\n", dims[0], dims[1], dims[2], dims[0] * dims[1] * dims[2], L[0], L[1], L[2]);
-        // if(dims[0] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_x is not a multiple of 2\n");
-        // if(dims[1] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_y is not a multiple of 2\n");
-        // if(dims[2] % 2 != 0)	fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_z is not a multiple of 2\n");
+        if (dims[0] % 2 != 0)
+            fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_x is not a multiple of 2\n");
+        if (dims[1] % 2 != 0)
+            fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_y is not a multiple of 2\n");
+        if (dims[2] % 2 != 0)
+            fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_z is not a multiple of 2\n");
         if (dims[0] / 4 < world_size)
             throw std::runtime_error("[ FANS3D_Grid ] ERROR: Please decrease the number of processes or increase the grid size to ensure that each process has at least 4 boxels in the x direction.");
         printf("Voxel length: [%1.8f, %1.8f, %1.8f]\n", l_e[0], l_e[1], l_e[2]);
@@ -253,28 +282,81 @@ void Reader ::ReadMS(int hm)
         throw std::runtime_error("[ FANS3D_Grid ] ERROR: Number of voxels in x-direction is less than 4 in process " + to_string(world_rank));
     MPI_Barrier(MPI_COMM_WORLD);
 
-    // Each process defines a dataset in memory which reads a hyperslab from the file
-    count[0] = local_n0;
-    count[1] = dims[1];
-    count[2] = dims[2];
-    memspace = H5Screate_simple(rank, count, NULL);
-
-    // Select hyperslab in the file.
-    offset[0] = local_0_start;
-    offset[1] = 0;
-    offset[2] = 0;
+    hsize_t fcount[3], foffset[3];
+    if (is_zyx) {              /* file layout  Z Y X */
+        fcount[0]  = dims[2];  /* Nz  (file-dim 0) */
+        fcount[1]  = dims[1];  /* Ny  (file-dim 1) */
+        fcount[2]  = local_n0; /* Nx-slab (file-dim 2) */
+        foffset[0] = 0;
+        foffset[1] = 0;
+        foffset[2] = static_cast<hsize_t>(local_0_start);
+    } else { /* file layout  X Y Z */
+        fcount[0]  = local_n0;
+        fcount[1]  = dims[1];
+        fcount[2]  = dims[2];
+        foffset[0] = static_cast<hsize_t>(local_0_start);
+        foffset[1] = 0;
+        foffset[2] = 0;
+    }
     filespace = H5Dget_space(dset_id);
-    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL, count, NULL);
+    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, foffset, nullptr, fcount, nullptr);
 
-    ms     = FANS_malloc<int>(count[0] * count[1] * count[2]);
-    status = H5Dread(dset_id, data_type, memspace, filespace, plist_id, this->ms);
+    /*--------------------------------------------------------------------
+     * 2. Build MEMORY dataspace that exactly matches the FILE slab
+     *------------------------------------------------------------------*/
+    hsize_t memcount[3];
+    if (is_zyx) {
+        memcount[0] = fcount[0]; // Nz
+        memcount[1] = fcount[1]; // Ny
+        memcount[2] = fcount[2]; // local_n0  (X-slab)
+    } else {
+        memcount[0] = fcount[0];
+        memcount[1] = fcount[1];
+        memcount[2] = fcount[2];
+    }
+    memspace = H5Screate_simple(3, memcount, nullptr);
 
-    H5Dclose(dset_id);
-    H5Sclose(filespace);
+    /*--------------------------------------------------------------------
+     * 3. Read into a temporary buffer; transpose if needed
+     *------------------------------------------------------------------*/
+    size_t nElem = static_cast<size_t>(memcount[0]) *
+                   static_cast<size_t>(memcount[1]) *
+                   static_cast<size_t>(memcount[2]);
+
+    int *tmp = FANS_malloc<int>(nElem);
+    status   = H5Dread(dset_id, H5T_NATIVE_INT,
+                       memspace, filespace, plist_id, tmp);
+    if (status < 0)
+        throw std::runtime_error("[ReadMS] H5Dread failed");
+
+    /* allocate the final buffer in logical order:  Nx × Ny × Nz */
+    ms = FANS_malloc<int>(static_cast<size_t>(local_n0) *
+                          static_cast<size_t>(dims[1]) *
+                          static_cast<size_t>(dims[2]));
+
+    if (is_zyx) {
+        /* tmp =  [z][y][x] , we need ms = [x][y][z] */
+        for (size_t z = 0; z < dims[2]; ++z)
+            for (size_t y = 0; y < dims[1]; ++y)
+                for (size_t x = 0; x < static_cast<size_t>(local_n0); ++x) {
+                    size_t idx_tmp = (z * dims[1] + y) * local_n0 + x; // z-major
+                    size_t idx_ms  = (x * dims[1] + y) * dims[2] + z;  // x-major
+                    ms[idx_ms]     = tmp[idx_tmp];
+                }
+        // FANS_free(tmp);
+    } else {
+        /* XYZ case: the slab is already in correct order */
+        ms = tmp; // steal the buffer; no copy
+    }
+
+    /*--------------------------------------------------------------------
+     * 4. Cleanup HDF5 objects
+     *------------------------------------------------------------------*/
     H5Sclose(memspace);
+    H5Sclose(filespace);
+    H5Dclose(dset_id);
     H5Pclose(plist_id);
     H5Fclose(file_id);
-    // H5Tclose(data_type);
 
     this->ComputeVolumeFractions();
 }

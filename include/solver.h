@@ -514,7 +514,7 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
 
     // Compute homogenized tangent
     if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "homogenized_tangent") != reader.resultsToWrite.end()) {
-        homogenized_tangent = get_homogenized_tangent(1e-3);
+        homogenized_tangent = get_homogenized_tangent(1e-6);
         hsize_t dims[2]     = {static_cast<hsize_t>(n_str), static_cast<hsize_t>(n_str)};
         if (world_rank == 0) {
             cout << "# Homogenized tangent: " << endl
