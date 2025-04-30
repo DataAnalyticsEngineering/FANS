@@ -205,3 +205,17 @@ test/input_files/**/*.json
 !test_LinearThermal.json
 !test_PseudoPlastic.json
 !test_J2Plasticity.json
+
+# AiiDA-FANS tutorial required files
+!tutorial_dataset.h5
+
+# AiiDA-FANS tutorial generated files
+configure_profile.yaml
+configure_computer.yaml
+configure_code.yaml
+.aiida_run
+
+# pixi
+.pixi
+pixi.lock
+*.egg-info
