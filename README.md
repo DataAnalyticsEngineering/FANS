@@ -1,6 +1,6 @@
-# Fourier Accelerated Nodal Solvers (FANS)
+# Fourier Accelerated Nodal Solver (FANS)
 
-Fourier Accelerated Nodal Solvers (FANS) is an FFT-based homogenization solver designed to handle microscale multiphysics problems. This repository contains a C++ implementation of FANS, built using CMake and MPI for parallel computations.
+Fourier Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver for microscale multiphysics problems. FANS is written in C++, built using CMake, and it has MPI parallelization.
 
 <img src="docs/images/FANS_example.png" alt="Example Image" width="400" height="300">
 
@@ -16,7 +16,7 @@ Fourier Accelerated Nodal Solvers (FANS) is an FFT-based homogenization solver d
 
 FANS has the following dependencies:
 
-- A C++ compiler with OpenMP support (e.g. GCC, or Clang with OpenMP libraries installed)
+- A C++ compiler (e.g. GCC, or Clang)
 - CMake (version 3.0 or higher) (+ Unix file utility for creating .deb packages)
 - Git (for cloning this repo)
 - MPI (mpicc and mpic++)
@@ -26,7 +26,7 @@ FANS has the following dependencies:
 
 ### Installing dependencies
 
-We recommend installing the dependencies using a package manager. For example, using `apt`, the following commands are run:
+We recommend installing the dependencies using a package manager. For example, using `apt`, the following command is run
 
 ```bash
 apt-get install \
@@ -37,7 +37,7 @@ apt-get install \
     libfftw3-mpi-dev
 ```
 
-Also, we recommend to set up a Python virtual environment for the `FANS_Dashboard`:
+Additionally, to use the [FANS_Dashboard](FANS_Dashboard/) we recommend to setting up a Python virtual environment. For this, the dependencies are installed with the following command
 
 ```bash
 apt-get install \
@@ -48,27 +48,25 @@ apt-get install \
     python3-venv \
     python-is-python3 \
     python3-dev
+```
 
+The virtual environment is created and setup in the following way
+
+```bash
 python -m venv ~/venvs/FANS
 source ~/venvs/FANS/bin/activate
 python -m pip install h5py lxml
 ```
 
-We also provide a [set of Docker images](docker/) to work with FANS within an isolated environment.
+We also provide a [set of Docker images](docker/) which already have FANS built-in.
 
 ### Installing dependencies using Spack
 
 Spack is a package manager designed for high-performance computing environments. It simplifies the installation of complex software stacks, making it ideal for setting up FANS on remote systems.
 
-1. **Install Spack**: If Spack is not installed, set it up with the following commands:
+1. **Install Spack** by following these [installation instructions](https://spack.readthedocs.io/en/latest/getting_started.html).
 
-    ```bash
-    git clone https://github.com/spack/spack.git
-    cd spack
-    . ./share/spack/setup-env.sh
-    ```
-
-2. **Install Dependencies**: Once Spack is set up, you can install the required dependencies:
+2. **Install Dependencies**: Once Spack is set up, install the required dependencies:
 
     ```bash
     spack install cmake
@@ -78,9 +76,9 @@ Spack is a package manager designed for high-performance computing environments.
     spack install fftw +mpi
     ```
 
-    Alternatively, optimized FFTW implementations can be used depending on your system's architecture, for example `amdfftw` (For AMD systems) or `cray-fftw` (For Cray systems) or `fujitsu-fftw` (For Fujitsu systems).
+    Additionally, optimized FFTW implementations can be used depending on your system's architecture, for example `amdfftw` (For AMD systems) or `cray-fftw` (For Cray systems) or `fujitsu-fftw` (For Fujitsu systems).
 
-3. **Load Dependencies** Once dependencies are installed, you can load them before building:
+3. **Load Dependencies** Once dependencies are installed, load them before building:
 
     ```bash
     spack load cmake mpi hdf5 eigen fftw
@@ -116,14 +114,13 @@ The compilation symlinks the generated `FANS` binary into the `test/` directory 
 The following CMake configuration options exist:
 
 - `CMAKE_BUILD_TYPE`: Sets the build type. Common values are Debug, Release, RelWithDebInfo, and MinSizeRel.
+  - Default: NONE
 
 - `FANS_BUILD_STATIC`: Build static library instead of shared library.
   - Default: OFF
-  - Usage: `-DFANS_BUILD_STATIC=ON`
 
 - `CMAKE_INTERPROCEDURAL_OPTIMIZATION`: Enable inter-procedural optimization (IPO) for all targets.
   - Default: ON (if supported)
-  - Usage: `-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF`
   - Note: When you run the configure step for the first time, IPO support is automatically checked and enabled if available. A status message will indicate whether IPO is activated or not supported.
 
 ## Installing
@@ -136,21 +133,13 @@ Install FANS (system-wide) using the following options:
     cmake --install . [--prefix <install-dir>]
     ```
 
-2. Using .deb packages (only debian based distros; sudo required):
-
-    ```bash
-    cpack -G "DEB"
-    apt install packages/fans_<version>_<architecture>.deb
-    apt install packages/fans-dev_<version>_<architecture>.deb
-    ```
-
 ### Install using Conda
 
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/version.svg)](https://anaconda.org/conda-forge/fans)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/platforms.svg)](https://anaconda.org/conda-forge/fans)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/downloads.svg)](https://anaconda.org/conda-forge/fans)
 
-FANS is also available as a conda-package on [conda-forge](https://anaconda.org/conda-forge/fans). No dependencies have to be manually installed for it to work.
+FANS is also available as a conda-package on [conda-forge/fans](https://anaconda.org/conda-forge/fans). No dependencies have to be manually installed for it to work.
 It can be installed via
 
 ```bash
@@ -250,18 +239,6 @@ In the case of path/time-dependent loading as shown, for example as in plasticit
   - `stress` and `strain`: The stress and strain fields at each voxel in the microstructure.
 
 - Additional material model specific results can be included depending on the problem type and material model.
-
-## Examples
-
-Execute the [`run_tests.sh`](test/run_tests.sh) file to run tests, which are also examples. For example, to run a linear elastic mechanical homogenization problem for a 6 othonormal load cases on a microstructure image of size `32 x 32 x 32` with a single spherical inclusion,
-
-```bash
-mpiexec -n 2 ./FANS input_files/test_LinearElastic.json test_results.h5
-```
-
-## Acknowledgements
-
-Funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) under Germany’s Excellence Strategy - EXC 2075 – 390740016. Contributions by Felix Fritzen are funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) within the Heisenberg program - DFG-FR2702/8 - 406068690; DFG-FR2702/10 - 517847245 and through NFDI-MatWerk - NFDI 38/1 - 460247524. We acknowledge the support by the Stuttgart Center for Simulation Science (SimTech).
 
 ## Contributors
 
