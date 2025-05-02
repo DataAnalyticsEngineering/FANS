@@ -1,4 +1,4 @@
-name: Build and Test macOS 14 (M1)
+name: Build and test macOS 15 (M1)
 # Builds FANS for macOS 14 on M1 CPU and runs the tests.
 
 on:
@@ -50,17 +50,17 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: macOS 14 (M1) CMakeCache
+          name: macOS 15 (M1) CMakeCache
           path: ${{ env.FANS_BUILD_DIR }}/CMakeCache.txt
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: macOS 14 (M1) CMakeLogs
+          name: macOS 15 (M1) CMakeLogs
           path: '${{ env.FANS_BUILD_DIR }}/CMakeFiles/*.log'
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: macOS 14 (M1) CompileCommands
+          name: macOS 15 (M1) CompileCommands
           path: ${{ env.FANS_BUILD_DIR }}/compile_commands.json
 
       - name: Compile
@@ -77,5 +77,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: macOS 14 (M1) CTest logs
+          name: macOS 15 (M1) CTest logs
           path: ${{ env.FANS_BUILD_DIR }}/Testing/Temporary/LastTest.log
