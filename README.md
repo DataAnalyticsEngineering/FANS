@@ -167,7 +167,7 @@ FANS is also available as a conda-package on [conda-forge](https://anaconda.org/
 It can be installed via
 
 ```bash
-conda install fans
+conda install conda-forge::fans
 ```
 
 exposing the executable `FANS`.
