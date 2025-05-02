@@ -30,13 +30,17 @@ jobs:
           brew install gnu-time cmake gcc@14
           brew install open-mpi --build-from-source --cc=gcc-14
           brew install fftw hdf5-mpi eigen
-          export CC=gcc-14 CXX=g++-14 MPICC=mpicc MPICXX=mpicxx
 
       - name: Generate build directory
         run: mkdir -p ${{ env.FANS_BUILD_DIR }}
 
       - name: Configure
         working-directory: ${{ env.FANS_BUILD_DIR }}
+        env:
+          CC: gcc-14
+          CXX: g++-14
+          MPICC: mpicc
+          MPICXX: mpicxx
         run: |
           cmake --version
           cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
