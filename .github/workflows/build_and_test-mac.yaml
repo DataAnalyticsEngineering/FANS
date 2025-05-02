@@ -14,9 +14,9 @@ concurrency:
   cancel-in-progress: ${{github.event_name == 'pull_request'}}
 
 jobs:
-  build:
-    name: macOS 14 (M1)
-    runs-on: macos-14
+  build-macos:
+    name: macOS 15 (M1)
+    runs-on: macos-15
     env:
       FANS_BUILD_DIR: build
     strategy:
