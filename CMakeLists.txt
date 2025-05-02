@@ -114,7 +114,7 @@ endif ()
 add_library(FANS::FANS ALIAS FANS_FANS)
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
-    target_compile_options(FANS_FANS PUBLIC -march=armv8-a+simd+fp+crypto)
+    
 elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
     # Detecting if there is avx2 and fma support on linux
     # Deteced together, because these flags were introduced by Intel Haskell 4th. Gen

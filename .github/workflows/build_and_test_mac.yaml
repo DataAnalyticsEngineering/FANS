@@ -26,7 +26,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install FANS dependencies
-        run: brew install libomp hdf5 openmpi eigen fftw
+        run: |
+          brew install gnu-time cmake gcc@14
+          brew install open-mpi --build-from-source --cc=gcc-14
+          brew install fftw hdf5-mpi eigen
 
       - name: Generate build directory
         run: mkdir -p ${{ env.FANS_BUILD_DIR }}
@@ -35,17 +38,11 @@ jobs:
         working-directory: ${{ env.FANS_BUILD_DIR }}
         run: |
           cmake --version
-          cmake \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DOpenMP_CXX_FLAG="-Xclang -fopenmp" \
-            -DOpenMP_CXX_INCLUDE_DIR=$(brew --prefix)/opt/libomp/include \
-            -DOpenMP_CXX_LIB_NAMES=libomp \
-            -DOpenMP_C_FLAG="-Xclang -fopenmp" \
-            -DOpenMP_C_INCLUDE_DIR=$(brew --prefix)/opt/libomp/include \
-            -DOpenMP_C_LIB_NAMES=libomp \
-            -DOpenMP_libomp_LIBRARY=$(brew --prefix)/opt/libomp/lib/libomp.dylib \
-            ..
+          cmake .. \
+            -DCMAKE_C_COMPILER=gcc-14 \
+            -DCMAKE_CXX_COMPILER=g++-14 \
+            -DMPI_C_COMPILER=mpicc \
+            -DMPI_CXX_COMPILER=mpicxx
 
       - uses: actions/upload-artifact@v4
         if: failure()
