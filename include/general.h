@@ -42,17 +42,17 @@ using namespace Eigen;
 
 /* Usage: V *data = FANS_malloc<V>(n); */
 template <class V>
-inline V* FANS_malloc(std::size_t n)
+inline V *FANS_malloc(std::size_t n)
 {
     if (n == 0)
         throw std::invalid_argument("FANS_malloc: zero-byte request");
-    void* p = fftw_malloc(n * sizeof(V));      // SIMD-friendly alignment
+    void *p = fftw_malloc(n * sizeof(V)); // SIMD-friendly alignment
     if (!p)
         throw std::bad_alloc();
-    return static_cast<V*>(p);
+    return static_cast<V *>(p);
 }
 template <class V>
-inline void FANS_free(V* p)
+inline void FANS_free(V *p)
 {
     fftw_free(p);
 }
