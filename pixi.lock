@@ -645,8 +645,8 @@ packages:
   requires_python: '>=3.8'
 - pypi: FANS_Dashboard
   name: fans-dashboard
-  version: 0.1.0
-  sha256: d3f6d1d01396ff79e940a1e0ca4124dd05ce12abd98d44bdb71d766b9ea05e67
+  version: 0.3.0
+  sha256: 41a56b46e18e5a8fd8119bdfb2b001746baa73de14c2ce2887520cbd9e384d5a
   requires_dist:
   - numpy>=2.2.5,<3
   - h5py>=3.13.0,<4
