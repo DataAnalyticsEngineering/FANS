@@ -37,21 +37,16 @@ apt-get install \
     libfftw3-mpi-dev
 ```
 
-Also, we recommend to set up a Python virtual environment for the `FANS_Dashboard`:
+### Setting up a Python environment
+
+Also, we recommend to set up a Python virtual environment for the [`FANS_Dashboard.ipynb`](FANS_Dashboard/FANS_Dashboard.ipynb) via [pixi](https://pixi.sh/) with all required Python dependencies in an isolated environment:
 
 ```bash
-apt-get install \
-    time \
-    htop \
-    python3 \
-    python3-pip \
-    python3-venv \
-    python-is-python3 \
-    python3-dev
+# Install pixi if you don't have it already
+curl -fsSL https://pixi.sh/install.sh | sh
 
-python -m venv ~/venvs/FANS
-source ~/venvs/FANS/bin/activate
-python -m pip install h5py lxml
+# Create and activate the environment
+pixi shell
 ```
 
 We also provide a [set of Docker images](docker/) to work with FANS within an isolated environment.
