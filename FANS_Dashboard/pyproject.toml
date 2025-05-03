@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [tool.setuptools.package-dir]
-"" = "fans_dashboard" 
+"" = "fans_dashboard"
 
 [tool.setuptools.packages.find]
 where = ["fans_dashboard"]
