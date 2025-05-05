@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+
+<precice-configuration experimental="true">
+
+    <log>
+	<sink type="stream" output="stdout"  filter= "%Severity% > debug" enabled="true" />
+    </log>
+
+    <data:vector name="stresses1to3"/>
+    <data:vector name="stresses4to6"/>
+    <data:vector name="strains1to3"/>
+    <data:vector name="strains4to6"/>
+    <data:vector name="cmat1"/>
+    <data:vector name="cmat2"/>
+    <data:vector name="cmat3"/>
+    <data:vector name="cmat4"/>
+    <data:vector name="cmat5"/>
+    <data:vector name="cmat6"/>
+    <data:vector name="cmat7"/>
+
+    <mesh name="cube" dimensions="3">
+       <use-data name="stresses1to3"/>
+       <use-data name="stresses4to6"/>
+       <use-data name="strains1to3"/>
+       <use-data name="strains4to6"/>
+       <use-data name="cmat1"/>
+       <use-data name="cmat2"/>
+       <use-data name="cmat3"/>
+       <use-data name="cmat4"/>
+       <use-data name="cmat5"/>
+       <use-data name="cmat6"/>
+       <use-data name="cmat7"/>
+    </mesh>
+
+    <participant name="macro-cube">
+      <provide-mesh name="cube"/>
+      <read-data name="stresses1to3" mesh="cube"/>
+      <read-data name="stresses4to6" mesh="cube"/>
+      <read-data name="cmat1" mesh="cube"/>
+      <read-data name="cmat2" mesh="cube"/>
+      <read-data name="cmat3" mesh="cube"/>
+      <read-data name="cmat4" mesh="cube"/>
+      <read-data name="cmat5" mesh="cube"/>
+      <read-data name="cmat6" mesh="cube"/>
+      <read-data name="cmat7" mesh="cube"/>
+      <write-data name="strains1to3" mesh="cube"/>
+      <write-data name="strains4to6" mesh="cube"/>
+    </participant>
+
+    <participant name="Micro-Manager">
+      <receive-mesh name="cube" from="macro-cube" direct-access="true" safety-factor="0.0"/>
+      <read-data name="strains1to3" mesh="cube"/>
+      <read-data name="strains4to6" mesh="cube"/>
+      <write-data name="stresses1to3" mesh="cube"/>
+      <write-data name="stresses4to6" mesh="cube"/>
+      <write-data name="cmat1" mesh="cube"/>
+      <write-data name="cmat2" mesh="cube"/>
+      <write-data name="cmat3" mesh="cube"/>
+      <write-data name="cmat4" mesh="cube"/>
+      <write-data name="cmat5" mesh="cube"/>
+      <write-data name="cmat6" mesh="cube"/>
+      <write-data name="cmat7" mesh="cube"/>
+    </participant>
+
+    <m2n:sockets acceptor="macro-cube" connector="Micro-Manager"/>
+
+    <coupling-scheme:serial-explicit>
+      <participants first="Micro-Manager" second="macro-cube"/>
+      <max-time value="0.2"/>
+      <time-window-size value="0.1"/>
+      <exchange data="stresses1to3" mesh="cube" from="Micro-Manager" to="macro-cube"/>
+      <exchange data="stresses4to6" mesh="cube" from="Micro-Manager" to="macro-cube"/>
+      <exchange data="cmat1" mesh="cube" from="Micro-Manager" to="macro-cube"/>
+      <exchange data="cmat2" mesh="cube" from="Micro-Manager" to="macro-cube"/>
+      <exchange data="cmat3" mesh="cube" from="Micro-Manager" to="macro-cube"/>
+      <exchange data="cmat4" mesh="cube" from="Micro-Manager" to="macro-cube"/>
+      <exchange data="cmat5" mesh="cube" from="Micro-Manager" to="macro-cube"/>
+      <exchange data="cmat6" mesh="cube" from="Micro-Manager" to="macro-cube"/>
+      <exchange data="cmat7" mesh="cube" from="Micro-Manager" to="macro-cube"/>
+      <exchange data="strains1to3" mesh="cube" from="macro-cube" to="Micro-Manager" initialize="yes"/>
+      <exchange data="strains4to6" mesh="cube" from="macro-cube" to="Micro-Manager" initialize="yes"/>
+    </coupling-scheme:serial-explicit>
+
+</precice-configuration>

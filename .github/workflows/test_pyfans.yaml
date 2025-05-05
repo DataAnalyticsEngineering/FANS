@@ -23,7 +23,13 @@ jobs:
     - name: Install dependencies
       run: |
         apt update
-        apt install -y cmake make g++ python3 python3-numpy python3.12-dev
+        apt install -y cmake make g++ python3 python3-numpy python3.12-dev python3-pip
+
+    - name: Install preCICE and the Micro Manager
+      run: |
+        wget https://github.com/precice/precice/releases/download/v3.2.0/libprecice3_3.2.0_noble.deb
+        apt install ./libprecice3_3.2.0_noble.deb
+        pip install micro-manager-precice
 
     - name: Configure
       working-directory: ${{ env.FANS_BUILD_DIR }}
@@ -34,4 +40,4 @@ jobs:
     - name: Run FANS as a library via a Python script
       run: |
         cd test/test_pyfans
-        python3 run_fans_as_library.py
+        python3 macro-cube.py & micro-manager-precice micro-manager.config.json
