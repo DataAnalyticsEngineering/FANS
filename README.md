@@ -37,6 +37,16 @@ apt-get install \
     libfftw3-mpi-dev
 ```
 
+On macOS, you can obtain the dependencies using `brew` and set the environment variables:
+
+```zsh
+brew install gnu-time cmake gcc@14
+brew install open-mpi --build-from-source --cc=gcc-14
+brew install fftw hdf5-mpi eigen
+
+export CC=gcc-14 CXX=g++-14 MPICC=mpicc MPICXX=mpicxx
+```
+
 ### Setting up a Python environment
 
 Also, we recommend to set up a Python virtual environment for the [`FANS_Dashboard.ipynb`](FANS_Dashboard/FANS_Dashboard.ipynb) via [pixi](https://pixi.sh/) with all required Python dependencies in an isolated environment:
