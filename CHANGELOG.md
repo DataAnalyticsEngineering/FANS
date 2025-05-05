@@ -1,6 +1,7 @@
 # FANS Changelog
 
 ## latest
+
 - Add a pixi environment for the FANS_dashboard and some tests https://github.com/DataAnalyticsEngineering/FANS/pull/55
 - Remove Ubuntu 20.04 from testing and Docker support https://github.com/DataAnalyticsEngineering/FANS/pull/51
 - Add support for `--version` command line argument for checking the version of FANS
