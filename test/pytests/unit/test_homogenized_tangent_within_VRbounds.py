@@ -3,7 +3,12 @@ import numpy as np
 import json
 import pytest
 from fans_dashboard.core.utils import identify_hierarchy, extract_and_organize_data
-from fans_dashboard.core.tensortools import Ciso, compute_VoigtReuss_bounds, is_spd, compute_volume_fractions
+from fans_dashboard.core.tensortools import (
+    Ciso,
+    compute_VoigtReuss_bounds,
+    is_spd,
+    compute_volume_fractions,
+)
 
 
 @pytest.fixture(
@@ -57,30 +62,36 @@ def test_homogenized_tangent_within_VRbounds(test_files):
     # Load the input json file to check material model and properties
     with open(input_json_file, "r") as f:
         input_data = json.load(f)
-    
+
     # Try to access results or top-level fields
     if "results" not in input_data:
         print(f"ERROR: 'results' field not found in input_data")
         for key in input_data:
             print(f"- {key}: {type(input_data[key])}")
     results = input_data.get("results", [])
-    
+
     # Get material model
     mat_model = input_data.get("matmodel")
-    
+
     # Skip if not a linear model we're interested in
     if mat_model not in ["LinearElasticIsotropic", "LinearThermalIsotropic"]:
-        pytest.skip(f"Skipping test: Material model {mat_model} is not supported for bounds check")
+        pytest.skip(
+            f"Skipping test: Material model {mat_model} is not supported for bounds check"
+        )
         return
 
     # Check if homogenized_tangent field is available
     if "homogenized_tangent" not in results:
-        pytest.skip(f"Skipping test: No homogenized_tangent field found in {input_json_file}")
+        pytest.skip(
+            f"Skipping test: No homogenized_tangent field found in {input_json_file}"
+        )
         return
-    
+
     # Check if microstructure field is available
     if "microstructure" not in results:
-        pytest.skip(f"Skipping test: No microstructure field found in {input_json_file}")
+        pytest.skip(
+            f"Skipping test: No microstructure field found in {input_json_file}"
+        )
         return
 
     # Extract hierarchy information from the h5 file
@@ -114,16 +125,21 @@ def test_homogenized_tangent_within_VRbounds(test_files):
 
     # Get material properties based on material model
     material_properties = input_data.get("material_properties", {})
-    
+
     for microstructure_name in microstructures_to_load:
         # Get the microstructure data and compute volume fractions
-        if "microstructure" not in data[microstructure_name][list(data[microstructure_name].keys())[0]]:
+        if (
+            "microstructure"
+            not in data[microstructure_name][list(data[microstructure_name].keys())[0]]
+        ):
             print(f"Skipping {microstructure_name}: Missing microstructure data")
             continue
-            
-        microstructure_data = data[microstructure_name][list(data[microstructure_name].keys())[0]]["microstructure"]
+
+        microstructure_data = data[microstructure_name][
+            list(data[microstructure_name].keys())[0]
+        ]["microstructure"]
         volume_fractions = compute_volume_fractions(microstructure_data)
-        
+
         # Create phase tensors based on material model
         phase_tensors = []
         if mat_model == "LinearThermalIsotropic":
@@ -136,27 +152,31 @@ def test_homogenized_tangent_within_VRbounds(test_files):
             shear_moduli = material_properties.get("shear_modulus")
             for k, g in zip(bulk_moduli, shear_moduli):
                 phase_tensors.append(Ciso(k, g))
-                
+
         # Compute Voigt and Reuss bounds
         voigt, reuss = compute_VoigtReuss_bounds(phase_tensors, volume_fractions)
-        
+
         for load_case in load_cases_to_load:
             if load_case in hierarchy[microstructure_name]:
                 if "homogenized_tangent" not in data[microstructure_name][load_case]:
-                    print(f"Skipping {microstructure_name}/{load_case}: Missing homogenized_tangent field")
+                    print(
+                        f"Skipping {microstructure_name}/{load_case}: Missing homogenized_tangent field"
+                    )
                     continue
 
-                tangent_data = data[microstructure_name][load_case]["homogenized_tangent"]
+                tangent_data = data[microstructure_name][load_case][
+                    "homogenized_tangent"
+                ]
 
                 # Check each time step
                 for time_idx, homogenized_tangent in enumerate(tangent_data):
                     # Check if homogenized_tangent is within bounds
                     # Voigt - homogenized_tangent should be SPD (positive eigenvalues)
                     voigt_minus_hom, voigt_eigs = is_spd(voigt - homogenized_tangent)
-                    
+
                     # homogenized_tangent - Reuss should be SPD (positive eigenvalues)
                     hom_minus_reuss, reuss_eigs = is_spd(homogenized_tangent - reuss)
-                    
+
                     assert voigt_minus_hom, (
                         f"For microstructure {microstructure_name}, load case {load_case}, time step {time_idx}: "
                         f"Homogenized tangent exceeds Voigt bound."
