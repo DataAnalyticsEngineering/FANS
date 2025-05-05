@@ -19,8 +19,5 @@ dependencies = [
   "nbclient>=0.10.2,<0.11",
 ]
 
-[tool.setuptools.package-dir]
-"" = "fans_dashboard"
-
-[tool.setuptools.packages.find]
-where = ["fans_dashboard"]
+[tool.hatch.build.targets.wheel]
+packages = ["fans_dashboard"]
