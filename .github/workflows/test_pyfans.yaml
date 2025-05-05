@@ -28,7 +28,7 @@ jobs:
     - name: Install preCICE and the Micro Manager
       run: |
         wget https://github.com/precice/precice/releases/download/v3.2.0/libprecice3_3.2.0_noble.deb
-        apt install ./libprecice3_3.2.0_noble.deb
+        apt install -y ./libprecice3_3.2.0_noble.deb
         pip install micro-manager-precice
 
     - name: Configure
