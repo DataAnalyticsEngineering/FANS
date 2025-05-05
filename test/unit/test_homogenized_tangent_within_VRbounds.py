@@ -50,11 +50,6 @@ def test_homogenized_tangent_within_VRbounds(test_files):
         A tuple containing (input_json_file, results_h5_file) paths.
         - input_json_file: Path to the JSON file containing configuration data
         - results_h5_file: Path to the HDF5 file containing simulation results
-
-    Returns
-    -------
-    None
-        The test passes if the homogenized tangent is within bounds.
     """
     input_json_file, results_h5_file = test_files
     print(f"Running test on: {input_json_file} and {results_h5_file}")

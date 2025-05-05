@@ -44,11 +44,6 @@ def test_homogenization_consistency(test_files):
         A tuple containing (input_json_file, results_h5_file) paths.
         - input_json_file: Path to the JSON file containing configuration data
         - results_h5_file: Path to the HDF5 file containing simulation results
-
-    Returns
-    -------
-    None
-        The test passes if stress_average equals homogenized_tangent * strain_average.
     """
     input_json_file, results_h5_file = test_files
 

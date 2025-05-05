@@ -37,17 +37,13 @@ def test_loading_to_strain_average(test_files):
     """
     This test verifies that the strain_average field in the results matches the macroscale_loading
     specified in the input JSON file for all microstructures and load cases.
+
     Parameters
     ----------
     test_files : tuple
         A tuple containing (input_json_file, results_h5_file) paths.
         - input_json_file: Path to the JSON file containing macroscale_loading data
         - results_h5_file: Path to the HDF5 file containing simulation results
-    Returns
-    -------
-    None
-        The test passes if strain_average equals macroscale_loading for all cases.
-        The test is skipped if 'strain_average' is not found in the results field.
     """
     input_json_file, results_h5_file = test_files
 

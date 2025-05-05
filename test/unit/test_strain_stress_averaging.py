@@ -3,7 +3,6 @@ import numpy as np
 import json
 import pytest
 from fans_dashboard.core.utils import identify_hierarchy, extract_and_organize_data
-from scipy.linalg import eigvalsh
 
 
 @pytest.fixture(
@@ -34,10 +33,10 @@ def test_files(request):
     pytest.skip(f"Required test files not found: {json_path} or {h5_path}")
 
 
-def test_homogenized_tangent_spd(test_files):
+def test_strain_stress_averaging(test_files):
     """
-    This test verifies that the homogenized tangent is strictly Symmetric Positive Definite (SPD)
-    for all microstructures and load cases.
+    This test verifies that the average of strain/stress fields matches the strain_average/stress_average
+    fields in the results for all microstructures and load cases.
 
     Parameters
     ----------
@@ -45,11 +44,6 @@ def test_homogenized_tangent_spd(test_files):
         A tuple containing (input_json_file, results_h5_file) paths.
         - input_json_file: Path to the JSON file containing configuration data
         - results_h5_file: Path to the HDF5 file containing simulation results
-
-    Returns
-    -------
-    None
-        The test passes if the homogenized tangent is SPD.
     """
     input_json_file, results_h5_file = test_files
 
@@ -59,11 +53,17 @@ def test_homogenized_tangent_spd(test_files):
 
     # Check which fields are available in the results
     results = input_data.get("results", [])
+    fields_to_check = []
 
-    # Check if homogenized_tangent field is available
-    if "homogenized_tangent" not in results:
+    # Check pairs of fields to compare (field and its average)
+    if "strain" in results and "strain_average" in results:
+        fields_to_check.append(("strain", "strain_average"))
+    if "stress" in results and "stress_average" in results:
+        fields_to_check.append(("stress", "stress_average"))
+
+    if not fields_to_check:
         pytest.skip(
-            f"Skipping test: No homogenized_tangent field found in {input_json_file}"
+            f"Skipping test: No compatible strain/stress and average pairs found in {input_json_file}"
         )
         return
 
@@ -73,7 +73,9 @@ def test_homogenized_tangent_spd(test_files):
     # Load the data from the HDF5 file
     microstructures_to_load = list(hierarchy.keys())
 
-    quantities_to_load = ["homogenized_tangent"]
+    quantities_to_load = []
+    for field, avg_field in fields_to_check:
+        quantities_to_load.extend([field, avg_field])
 
     time_steps_to_load = []
     load_cases_to_load = []
@@ -94,45 +96,43 @@ def test_homogenized_tangent_spd(test_files):
         time_steps_to_load,
     )
 
-    print(f"\nVerifying homogenized tangent is strictly SPD...")
+    # Check each field pair (field and its average)
+    for field, avg_field in fields_to_check:
+        print(f"\nVerifying {field} averages match {avg_field}...")
 
-    for microstructure in microstructures_to_load:
-        for load_case in load_cases_to_load:
-            if load_case in hierarchy[microstructure]:
-                if "homogenized_tangent" not in data[microstructure][load_case]:
+        for microstructure in microstructures_to_load:
+            for load_case in load_cases_to_load:
+                if load_case in hierarchy[microstructure]:
+                    if (
+                        field not in data[microstructure][load_case]
+                        or avg_field not in data[microstructure][load_case]
+                    ):
+                        print(
+                            f"Skipping {microstructure}/{load_case}: Missing {field} or {avg_field}"
+                        )
+                        continue
+
+                    field_data = data[microstructure][load_case][field]
+                    avg_field_data = data[microstructure][load_case][avg_field]
+
+                    # Compute average manually by averaging over spatial dimensions (1, 2, 3)
+                    # field_data shape: time_steps x Nx x Ny x Nz x components
+                    computed_average = np.mean(field_data, axis=(1, 2, 3))
+
+                    # Check if the computed average matches the stored average
+                    assert np.allclose(
+                        computed_average, avg_field_data, rtol=1e-5, atol=1e-8
+                    ), (
+                        f"For microstructure {microstructure}, load case {load_case}: "
+                        f"Computed {field} average and stored {avg_field} do not match."
+                        f"\nComputed shape: {computed_average.shape}, Stored shape: {avg_field_data.shape}"
+                    )
+
                     print(
-                        f"Skipping {microstructure}/{load_case}: Missing homogenized_tangent field"
+                        f"Verified: {microstructure}, load case {load_case} - {field} average matches {avg_field}"
                     )
-                    continue
-
-                tangent_data = data[microstructure][load_case]["homogenized_tangent"]
-
-                # Check each time step
-                for time_idx, tangent in enumerate(tangent_data):
-                    # Check symmetry
-                    is_symmetric = np.allclose(tangent, tangent.T, rtol=1e-5, atol=1e-8)
-
-                    # Check positive definiteness by computing eigenvalues
-                    eigenvalues = eigvalsh(tangent)
-                    is_positive_definite = np.all(eigenvalues > 0)
-
-                    assert is_symmetric, (
-                        f"For microstructure {microstructure}, load case {load_case}, time step {time_idx}: "
-                        f"Homogenized tangent is not symmetric."
-                        f"\nTangent shape: {tangent.shape}, Max asymmetry: {np.max(np.abs(tangent - tangent.T))}"
-                    )
-
-                    assert is_positive_definite, (
-                        f"For microstructure {microstructure}, load case {load_case}, time step {time_idx}: "
-                        f"Homogenized tangent is not positive definite."
-                        f"\nEigenvalues: {eigenvalues}, Min eigenvalue: {np.min(eigenvalues)}"
-                    )
-
-                print(
-                    f"Verified: {microstructure}, load case {load_case} - homogenized tangent is strictly SPD "
-                    f"({tangent_data.shape[0]} time steps)"
-                )
 
 
 if __name__ == "__main__":
+
     pytest.main(["-v", "-s", __file__])
