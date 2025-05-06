@@ -14,4 +14,4 @@ fans-dashboard = { path = "FANS_Dashboard", editable = true }
 
 
 [tasks]
-test = "pytest"
+test = "pytest -v -s"
