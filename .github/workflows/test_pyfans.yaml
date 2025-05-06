@@ -3,7 +3,7 @@ name: Test PyFans
 on: [push, pull_request]
 
 jobs:
-  pyfans-run-test:
+  test-pyfans:
     runs-on: ubuntu-latest
     container: unistuttgartdae/fans-ci:noble
     defaults:
@@ -23,12 +23,15 @@ jobs:
     - name: Install dependencies
       run: |
         apt update
-        apt install -y cmake make g++ python3 python3-numpy python3.12-dev python3-pip wget
+        apt install -y cmake make g++ python3 python3-numpy python3-pip wget
 
-    - name: Install preCICE and the Micro Manager
+    - name: Install preCICE
       run: |
         wget https://github.com/precice/precice/releases/download/v3.2.0/libprecice3_3.2.0_noble.deb
         apt install -y ./libprecice3_3.2.0_noble.deb
+
+    - name: Install the Micro Manager
+      run: |
         pip install micro-manager-precice
 
     - name: Configure
@@ -37,7 +40,7 @@ jobs:
         cmake .. -DFANS_LIBRARY_FOR_MICRO_MANAGER=ON
         make
 
-    - name: Run FANS as a library via a Python script
+    - name: Run a dummy macro-micro coupling test
       run: |
         cd test/test_pyfans
         python3 macro-cube.py & micro-manager-precice micro-manager.config.json
