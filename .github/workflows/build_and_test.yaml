@@ -81,13 +81,13 @@ jobs:
       - name: Install Pixi Python deps
         shell: "bash --login -eo pipefail {0}"
         run: |
-          source /github/home/.bashrc
+          echo "$HOME/.pixi/bin" >> $GITHUB_PATH
+          pixi --version
           pixi install
 
       - name: Run pytest checks on HDF5 output
         shell: "bash --login -eo pipefail {0}"
-        run: |
-          pixi run pytest test/unit
+        run: pixi run pytest test/unit
 
       - uses: actions/upload-artifact@v4
         if: failure()
