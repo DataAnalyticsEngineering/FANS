@@ -78,20 +78,14 @@ jobs:
       # ────────────────────────────────────────────────────────────────
       # NEW: Python validation stage
       # ────────────────────────────────────────────────────────────────
-      - name: Install Pixi + Python deps
+      - name: Install Pixi Python deps
         shell: "bash --login -eo pipefail {0}"
         run: |
-          if ! command -v pixi &> /dev/null; then
-            curl -fsSL https://pixi.sh/install.sh | bash
-            export PATH="$HOME/.local/bin:$PATH"         # add to this shell session
-          fi
-
-          pixi install  --yes
+          source /github/home/.bashrc
+          pixi install
 
       - name: Run pytest checks on HDF5 output
         shell: "bash --login -eo pipefail {0}"
-        env:
-          PATH: "$HOME/.local/bin:${{ env.PATH }}"
         run: |
           pixi run pytest test/unit
 
