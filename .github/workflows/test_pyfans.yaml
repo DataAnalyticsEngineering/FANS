@@ -1,6 +1,13 @@
 name: Test PyFans
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - "*"
 
 jobs:
   test-pyfans:
