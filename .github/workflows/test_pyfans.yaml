@@ -23,7 +23,7 @@ jobs:
     - name: Install dependencies
       run: |
         apt update
-        apt install -y cmake make g++ wget python3-dev python3-venv
+        apt install -y wget python3-venv
 
     - name: Install preCICE
       run: |
