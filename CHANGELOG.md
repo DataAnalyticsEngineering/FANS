@@ -2,6 +2,7 @@
 
 ## latest
 
+- Native support for MacOS https://github.com/DataAnalyticsEngineering/FANS/pull/25
 - Remove Ubuntu 20.04 from testing and Docker support https://github.com/DataAnalyticsEngineering/FANS/pull/51
 - Add support for `--version` command line argument for checking the version of FANS
 - Modify way to provide micro structure in JSON input https://github.com/DataAnalyticsEngineering/FANS/pull/43

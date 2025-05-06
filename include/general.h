@@ -41,14 +41,20 @@ using namespace Eigen;
 #define FANS_MALLOC_H
 
 /* Usage: V *data = FANS_malloc<V>(n); */
-
 template <class V>
-inline V *FANS_malloc(size_t n)
+inline V *FANS_malloc(std::size_t n)
 {
-    // V* out = new V[n];
-    V *out = (V *) aligned_alloc(4 * sizeof(V), n * sizeof(V));
-
-    return out;
+    if (n == 0)
+        throw std::invalid_argument("FANS_malloc: zero-byte request");
+    void *p = fftw_malloc(n * sizeof(V)); // SIMD-friendly alignment
+    if (!p)
+        throw std::bad_alloc();
+    return static_cast<V *>(p);
+}
+template <class V>
+inline void FANS_free(V *p)
+{
+    fftw_free(p);
 }
 #endif // FANS_MALLOC_H
 
