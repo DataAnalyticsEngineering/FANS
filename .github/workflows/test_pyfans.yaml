@@ -23,7 +23,7 @@ jobs:
     - name: Install dependencies
       run: |
         apt update
-        apt install -y cmake make g++ python3 python3-numpy python3-pip wget
+        apt install -y cmake make g++ wget python3-dev python3-venv
 
     - name: Install preCICE
       run: |
@@ -32,6 +32,8 @@ jobs:
 
     - name: Install the Micro Manager
       run: |
+        python3 -m venv .venv
+        . .venv/bin/activate
         pip install micro-manager-precice
 
     - name: Configure
@@ -42,5 +44,6 @@ jobs:
 
     - name: Run a dummy macro-micro coupling test
       run: |
+        . .venv/bin/activate
         cd test/test_pyfans
-        python3 macro-cube.py & micro-manager-precice micro-manager.config.json
+        python3 macro-cube.py & micro-manager-precice micro-manager-config.json

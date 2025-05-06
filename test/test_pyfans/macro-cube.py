@@ -58,7 +58,7 @@ def main():
         participant.advance(dt)
         dt = participant.get_max_time_step_size()
 
-        participant.finalize()
+    participant.finalize()
 
 
 if __name__ == "__main__":

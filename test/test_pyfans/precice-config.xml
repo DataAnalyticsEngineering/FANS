@@ -48,7 +48,7 @@
     </participant>
 
     <participant name="Micro-Manager">
-      <receive-mesh name="cube" from="macro-cube" direct-access="true" safety-factor="0.0"/>
+      <receive-mesh name="cube" from="macro-cube" api-access="true" safety-factor="0.0"/>
       <read-data name="strains1to3" mesh="cube"/>
       <read-data name="strains4to6" mesh="cube"/>
       <write-data name="stresses1to3" mesh="cube"/>
@@ -77,8 +77,8 @@
       <exchange data="cmat5" mesh="cube" from="Micro-Manager" to="macro-cube"/>
       <exchange data="cmat6" mesh="cube" from="Micro-Manager" to="macro-cube"/>
       <exchange data="cmat7" mesh="cube" from="Micro-Manager" to="macro-cube"/>
-      <exchange data="strains1to3" mesh="cube" from="macro-cube" to="Micro-Manager" initialize="yes"/>
-      <exchange data="strains4to6" mesh="cube" from="macro-cube" to="Micro-Manager" initialize="yes"/>
+      <exchange data="strains1to3" mesh="cube" from="macro-cube" to="Micro-Manager"/>
+      <exchange data="strains4to6" mesh="cube" from="macro-cube" to="Micro-Manager"/>
     </coupling-scheme:serial-explicit>
 
 </precice-configuration>
