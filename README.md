@@ -36,7 +36,17 @@ apt-get install \
     libfftw3-mpi-dev
 ```
 
-Additionally, to use the [FANS_Dashboard](FANS_Dashboard/) we recommend to setting up a Python virtual environment. For this, the dependencies are installed with the following command
+On macOS, you can obtain the dependencies using `brew` and set the environment variables:
+
+```zsh
+brew install gnu-time cmake gcc@14
+brew install open-mpi --build-from-source --cc=gcc-14
+brew install fftw hdf5-mpi eigen
+
+export CC=gcc-14 CXX=g++-14 MPICC=mpicc MPICXX=mpicxx
+```
+
+Additionally, to use the [FANS_Dashboard](FANS_Dashboard/) we recommend setting up a Python virtual environment. For this, the dependencies are installed with the following command
 
 ```bash
 apt-get install \

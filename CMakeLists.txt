@@ -56,7 +56,11 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 # From https://stackoverflow.com/questions/73248130/how-to-avoid-the-removal-of-the-rpath-during-cmake-install-step
 
 # Set RPATH to be relative and honor user overrides, whether at the command line or FetchContent
-set(RPATH_BASE "$ORIGIN")
+if(APPLE)
+        set(RPATH_BASE "@loader_path")
+else()
+        set(RPATH_BASE "$ORIGIN")
+endif()
 file(RELATIVE_PATH REL_PATH_LIB
         "/${CMAKE_INSTALL_BINDIR}/"
         "/${CMAKE_INSTALL_LIBDIR}/")
@@ -80,8 +84,6 @@ set(HDF5_ENABLE_PARALLEL ON)
 find_package(HDF5 REQUIRED COMPONENTS CXX)
 
 find_package(Eigen3 REQUIRED)
-
-find_package(OpenMP REQUIRED)
 
 find_package(MPI REQUIRED)
 
@@ -111,7 +113,7 @@ endif ()
 add_library(FANS::FANS ALIAS FANS_FANS)
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
-    target_compile_options(FANS_FANS PUBLIC -march=armv8-a+simd+fp+crypto)
+
 elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
     # Detecting if there is avx2 and fma support on linux
     # Deteced together, because these flags were introduced by Intel Haskell 4th. Gen
@@ -224,9 +226,6 @@ target_link_libraries(FANS_FANS PUBLIC ${FFTW3_LIBRARIES})
 target_compile_definitions(FANS_FANS PUBLIC ${FFTW3_DEFINITIONS})
 
 target_link_libraries(FANS_FANS PUBLIC Eigen3::Eigen)
-
-target_link_libraries(FANS_FANS PUBLIC OpenMP::OpenMP_CXX)
-
 
 target_link_libraries(FANS_main PRIVATE FANS::FANS)
 
