@@ -6,12 +6,14 @@ Test pyFANS as standalone library called from a Python script.
 
 Configure the FANS CMake build with the variable `FANS_LIB` set to `ON`.
 
+## Dependencies
+
+Install the following dependencies
+
 ## Run the test
 
-Run
+The test runs a dummy macro problem (unit cube) which is coupled via preCICE to the Micro Manager. The Micro Manager controls micro simulations created using pyFANS. Run the test by running
 
 ```bash
-python3 run_fans_as_library.py
+python macro-cube.py & micro-manager-precice micro-manager-config.json
 ```
-
-The script creates a pyFANS object and calls the `solve()` method. The script only checks if the pyFANS object is created and the solve function is callable. The result is not checked for correctness.
