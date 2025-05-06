@@ -34,8 +34,6 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     cmake \
     git \
     file \
-# curl for installing pixi
-    curl \
 # FANS dependencies \
     libhdf5-dev \
     libopenmpi-dev \
@@ -48,8 +46,6 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && apt-get autoremove --purge -y \
     && rm -rf /var/lib/apt/lists/*
-
-RUN curl -fsSL https://pixi.sh/install.sh | sh
 
 ################################################################################
 
