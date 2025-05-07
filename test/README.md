@@ -8,6 +8,7 @@ This directory contains tests for the FANS. Tests serve two purposes:
 ## Test Structure
 
 The test directory includes:
+
 - `CMakeLists.txt` - Configures tests for CTest integration
 - `input_files/` - Example input JSON files for each test case
 - Python based validation tests in `pytest/` directory for validating results
