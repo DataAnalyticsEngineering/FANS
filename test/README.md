@@ -36,6 +36,7 @@ pixi run test
 Note: The pytest validation expects result files to be in `build/test/` directory, so make sure to run the tests first.
 
 ## Available Test Cases
+
 For a 3D microstructure image of resolution `32 x 32 x 32` with a single spherical inclusion, the following test cases are available:
 - Linear thermal homogenization problem with isotropic heat conductivity - `test_LinearThermal.json`
 - Small strain mechanical homogenization problem with linear elasticity - `test_LinearElastic.json`
