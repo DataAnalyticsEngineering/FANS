@@ -38,6 +38,7 @@ Note: The pytest validation expects result files to be in `build/test/` director
 ## Available Test Cases
 
 For a 3D microstructure image of resolution `32 x 32 x 32` with a single spherical inclusion, the following test cases are available:
+
 - Linear thermal homogenization problem with isotropic heat conductivity - `test_LinearThermal.json`
 - Small strain mechanical homogenization problem with linear elasticity - `test_LinearElastic.json`
 - Small strain mechanical homogenization problem with nonlinear pseudoplasticity - `test_PseudoPlastic.json`
