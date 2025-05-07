@@ -24,9 +24,7 @@ from scipy.linalg import eigvalsh
     ]
 )
 def test_files(request):
-    base_dir = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "../../build/test/"
-    )
+    base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../")
 
     json_path = os.path.join(base_dir, request.param[0])
     h5_path = os.path.join(base_dir, request.param[1])
