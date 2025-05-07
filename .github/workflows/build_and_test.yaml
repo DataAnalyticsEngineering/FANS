@@ -70,7 +70,11 @@ jobs:
 
       - name: Tests
         working-directory: ${{ env.FANS_BUILD_DIR }}
-        run: su -c "ctest" ${{ env.FANS_MPI_USER }}
+        run: |
+          su -c "ctest" ${{ env.FANS_MPI_USER }}
+          find . -name "*.h5" -exec chmod 644 {} \;
+          echo "Available H5 files for pytest:"
+          find . -name "*.h5" -type f | sort
 
       - uses: actions/upload-artifact@v4
         if: failure()
