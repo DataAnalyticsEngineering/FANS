@@ -27,7 +27,7 @@ foreach(N RANGE ${N_TESTS})
 
     add_test(
         NAME ${FANS_TEST_CASE}
-        COMMAND mpiexec -n ${FANS_N_MPI_PROCESSES} ${FANS_EXECUTABLE} input_files/test_${FANS_TEST_CASE}.json test_${FANS_TEST_CASE}.h5
+        COMMAND mpiexec -n ${FANS_N_MPI_PROCESSES} ${FANS_EXECUTABLE} input_files/test_${FANS_TEST_CASE}.json ${FANS_TEST_OUTPUT_DIR}/test_${FANS_TEST_CASE}.h5
         WORKING_DIRECTORY ${FANS_TEST_INPUT_DIR}
     )
 endforeach()

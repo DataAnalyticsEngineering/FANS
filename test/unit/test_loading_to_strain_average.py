@@ -7,26 +7,22 @@ from fans_dashboard.core.utils import identify_hierarchy, extract_and_organize_d
 
 @pytest.fixture(
     params=[
-        (os.path.join("input_files", "test_J2Plasticity.json"), "test_J2Plasticity.h5"),
-        (
-            os.path.join("input_files", "test_LinearElastic.json"),
-            "test_LinearElastic.h5",
-        ),
-        (
-            os.path.join("input_files", "test_LinearThermal.json"),
-            "test_LinearThermal.h5",
-        ),
-        (
-            os.path.join("input_files", "test_PseudoPlastic.json"),
-            "test_PseudoPlastic.h5",
-        ),
+        "test_J2Plasticity",
+        "test_LinearElastic",
+        "test_LinearThermal",
+        "test_PseudoPlastic",
     ]
 )
 def test_files(request):
-    base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../")
+    json_base_dir = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "../input_files/"
+    )
+    h5_base_dir = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "../../build/test/"
+    )
 
-    json_path = os.path.join(base_dir, request.param[0])
-    h5_path = os.path.join(base_dir, request.param[1])
+    json_path = os.path.join(json_base_dir, f"{request.param}.json")
+    h5_path = os.path.join(h5_base_dir, f"{request.param}.h5")
 
     if os.path.exists(json_path) and os.path.exists(h5_path):
         return json_path, h5_path
