@@ -27,10 +27,10 @@ class Solver {
     double             TOL;      //!< Tolerance on relative error norm
     Matmodel<howmany> *matmodel; //!< Material Model
 
-    int    *ms;  // Micro-structure Binary
-    double *v_r; //!< Residual vector
-    double *v_u;
-    double *buffer_padding;
+    unsigned short *ms;  // Micro-structure
+    double         *v_r; //!< Residual vector
+    double         *v_u;
+    double         *buffer_padding;
 
     RealArray      v_r_real; // can't do the "classname()" intialization here, and Map doesn't have a default constructor
     RealArray      v_u_real;
@@ -429,9 +429,9 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
         stress_average += stress.segment(n_str * idx[0], n_str);
         strain_average += strain.segment(n_str * idx[0], n_str);
 
-        // phase_stress_average[mat_index] += stress.segment(n_str * idx[0], n_str);
-        // phase_strain_average[mat_index] += strain.segment(n_str * idx[0], n_str);
-        // phase_counts[mat_index]++;
+        phase_stress_average[mat_index] += stress.segment(n_str * idx[0], n_str);
+        phase_strain_average[mat_index] += strain.segment(n_str * idx[0], n_str);
+        phase_counts[mat_index]++;
     });
 
     MPI_Allreduce(MPI_IN_PLACE, stress_average.data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -439,18 +439,18 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
     stress_average /= (n_x * n_y * n_z);
     strain_average /= (n_x * n_y * n_z);
 
-    // // Reduce per-phase accumulations across all processes
-    // for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
-    //     MPI_Allreduce(MPI_IN_PLACE, phase_stress_average[mat_index].data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    //     MPI_Allreduce(MPI_IN_PLACE, phase_strain_average[mat_index].data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    //     MPI_Allreduce(MPI_IN_PLACE, &phase_counts[mat_index], 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    // Reduce per-phase accumulations across all processes
+    for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
+        MPI_Allreduce(MPI_IN_PLACE, phase_stress_average[mat_index].data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(MPI_IN_PLACE, phase_strain_average[mat_index].data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(MPI_IN_PLACE, &phase_counts[mat_index], 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
-    //     // Compute average for each phase
-    //     if (phase_counts[mat_index] > 0) {
-    //         phase_stress_average[mat_index] /= phase_counts[mat_index];
-    //         phase_strain_average[mat_index] /= phase_counts[mat_index];
-    //     }
-    // }
+        // Compute average for each phase
+        if (phase_counts[mat_index] > 0) {
+            phase_stress_average[mat_index] /= phase_counts[mat_index];
+            phase_strain_average[mat_index] /= phase_counts[mat_index];
+        }
+    }
 
     if (world_rank == 0) {
         printf("# Effective Stress .. (");
@@ -491,14 +491,14 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
                 writeData("stress_average", "stress_average", stress_average.data(), dims, 1);
                 writeData("strain_average", "strain_average", strain_average.data(), dims, 1);
 
-                // for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
-                //     char stress_name[512];
-                //     char strain_name[512];
-                //     sprintf(stress_name, "phase_stress_average_phase%d", mat_index);
-                //     sprintf(strain_name, "phase_strain_average_phase%d", mat_index);
-                //     writeData("phase_stress_average", stress_name, phase_stress_average[mat_index].data(), dims, 1);
-                //     writeData("phase_strain_average", strain_name, phase_strain_average[mat_index].data(), dims, 1);
-                // }
+                for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
+                    char stress_name[512];
+                    char strain_name[512];
+                    sprintf(stress_name, "phase_stress_average_phase%d", mat_index);
+                    sprintf(strain_name, "phase_strain_average_phase%d", mat_index);
+                    writeData("phase_stress_average", stress_name, phase_stress_average[mat_index].data(), dims, 1);
+                    writeData("phase_strain_average", strain_name, phase_strain_average[mat_index].data(), dims, 1);
+                }
                 dims[0] = iter + 1;
                 writeData("absolute_error", "absolute_error", err_all.data(), dims, 1);
             }
@@ -568,8 +568,8 @@ MatrixXd Solver<howmany>::get_homogenized_tangent(double pert_param)
     vector<double> g0       = this->matmodel->macroscale_loading;
     bool           islinear = dynamic_cast<LinearModel<howmany> *>(this->matmodel) != nullptr;
 
-    // this->reader.errorParameters["type"] = "relative";
-    // this->TOL                            = max(1e-6, this->TOL);
+    this->reader.errorParameters["type"] = "relative";
+    this->TOL                            = max(1e-6, this->TOL);
 
     // TODO: a deep copy of the solver object is needed here to avoid modifying the history of the solver object
 

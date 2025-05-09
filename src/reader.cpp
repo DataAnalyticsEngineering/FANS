@@ -12,30 +12,31 @@
 
 void Reader::ComputeVolumeFractions()
 {
-    int    local_max  = INT_MIN;
-    int    local_min  = INT_MAX;
-    size_t local_size = local_n0 * dims[1] * dims[2];
+    unsigned short local_max  = 0;
+    unsigned short local_min  = USHRT_MAX;
+    size_t         local_size = local_n0 * dims[1] * dims[2];
 
     // Find the local maximum and minimum material indices
     for (size_t i = 0; i < local_size; i++) {
-        if (ms[i] > local_max) {
-            local_max = ms[i];
+        unsigned short val = static_cast<unsigned short>(ms[i]);
+        if (val > local_max) {
+            local_max = val;
         }
-        if (ms[i] < local_min) {
-            local_min = ms[i];
+        if (val < local_min) {
+            local_min = val;
         }
     }
 
     // Find the global maximum and minimum material indices
-    int global_max, global_min;
-    MPI_Allreduce(&local_max, &global_max, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
-    MPI_Allreduce(&local_min, &global_min, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
+    unsigned short global_max, global_min;
+    MPI_Allreduce(&local_max, &global_max, 1, MPI_UNSIGNED_SHORT, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&local_min, &global_min, 1, MPI_UNSIGNED_SHORT, MPI_MIN, MPI_COMM_WORLD);
 
-    // Calculate total number of materials (accounting for negative indices)
+    // Calculate total number of materials
     n_mat = global_max - global_min + 1;
 
     if (world_rank == 0) {
-        printf("# Number of materials: %i (from %i to %i)\n", n_mat, global_min, global_max);
+        printf("# Number of materials: %i (from %u to %u)\n", n_mat, global_min, global_max);
         printf("# Volume fractions\n");
     }
 
@@ -44,7 +45,8 @@ void Reader::ComputeVolumeFractions()
     std::vector<double> v_frac(n_mat, 0.0);
 
     for (size_t i = 0; i < local_size; i++) {
-        int index = ms[i] - global_min; // Adjust index to start from 0
+        unsigned short val   = static_cast<unsigned short>(ms[i]);
+        int            index = val - global_min; // Adjust index to start from 0
         vol_frac[index]++;
     }
 
@@ -53,7 +55,8 @@ void Reader::ComputeVolumeFractions()
         MPI_Allreduce(&(vol_frac[i]), &vf, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
         v_frac[i] = double(vf) / double(dims[0] * dims[1] * dims[2]);
         if (world_rank == 0)
-            printf("# material %4i    vol. frac. %10.4f%%  \n", i + global_min, 100. * v_frac[i]);
+            printf("# material %4u    vol. frac. %10.4f%%  \n",
+                   static_cast<unsigned int>(i) + global_min, 100. * v_frac[i]);
     }
 }
 
@@ -209,7 +212,7 @@ void Reader ::ReadMS(int hm)
 
     hid_t dspace = H5Dget_space(dset_id);
     int   rank   = H5Sget_simple_extent_dims(dspace, _dims, NULL);
-    data_type    = H5T_NATIVE_INT; // H5Dget_type(dset_id);
+    data_type    = H5T_NATIVE_USHORT; // H5Dget_type(dset_id);
 
     // Check if microstructure dataset has ZYX ordering through the permute_order attribute
     hid_t attr_id = H5Aexists(dset_id, "permute_order") ? H5Aopen(dset_id, "permute_order", H5P_DEFAULT) : -1;
@@ -323,16 +326,16 @@ void Reader ::ReadMS(int hm)
                    static_cast<size_t>(memcount[1]) *
                    static_cast<size_t>(memcount[2]);
 
-    int *tmp = FANS_malloc<int>(nElem);
-    status   = H5Dread(dset_id, H5T_NATIVE_INT,
-                       memspace, filespace, plist_id, tmp);
+    unsigned short *tmp = FANS_malloc<unsigned short>(nElem);
+    status              = H5Dread(dset_id, data_type,
+                                  memspace, filespace, plist_id, tmp);
     if (status < 0)
         throw std::runtime_error("[ReadMS] H5Dread failed");
 
     /* allocate the final buffer in logical order:  Nx × Ny × Nz */
-    ms = FANS_malloc<int>(static_cast<size_t>(local_n0) *
-                          static_cast<size_t>(dims[1]) *
-                          static_cast<size_t>(dims[2]));
+    ms = FANS_malloc<unsigned short>(static_cast<size_t>(local_n0) *
+                                     static_cast<size_t>(dims[1]) *
+                                     static_cast<size_t>(dims[2]));
 
     if (is_zyx) {
         /* tmp =  [z][y][x] , we need ms = [x][y][z] */
@@ -343,7 +346,7 @@ void Reader ::ReadMS(int hm)
                     size_t idx_ms  = (x * dims[1] + y) * dims[2] + z;  // x-major
                     ms[idx_ms]     = tmp[idx_tmp];
                 }
-        // FANS_free(tmp);
+        FANS_free(tmp);
     } else {
         /* XYZ case: the slab is already in correct order */
         ms = tmp; // steal the buffer; no copy

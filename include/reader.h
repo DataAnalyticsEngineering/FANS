@@ -28,11 +28,11 @@ class Reader {
     vector<string> resultsToWrite;
 
     // contents of microstructure file:
-    vector<int>    dims;
-    vector<double> l_e;
-    vector<double> L;
-    int           *ms; // Micro-structure Binary
-    bool           is_zyx = true;
+    vector<int>     dims;
+    vector<double>  l_e;
+    vector<double>  L;
+    unsigned short *ms; // Micro-structure Binary
+    bool            is_zyx = true;
 
     int world_rank;
     int world_size;
@@ -159,6 +159,8 @@ void Reader::WriteSlab(
         data_type = H5T_NATIVE_UCHAR;
     else if (std::is_same<T, int>())
         data_type = H5T_NATIVE_INT;
+    else if (std::is_same<T, unsigned short>())
+        data_type = H5T_NATIVE_USHORT;
     else
         throw std::invalid_argument("WriteSlab: unsupported data type");
 
