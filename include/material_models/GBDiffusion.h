@@ -4,6 +4,31 @@
 #include "matmodel.h"
 #include <Eigen/StdVector> // For Eigen's aligned_allocator
 
+/**
+ * @class GBDiffusion
+ * @brief Material model for grain boundary diffusion in polycrystals
+ *
+ * This model implements diffusion in a polycrystalline material, differentiating between
+ * bulk crystal diffusion (isotropic) and grain boundary diffusion (transversely isotropic).
+ * The grain boundaries are characterized by their normal vectors and can have different
+ * diffusion properties parallel and perpendicular to the boundary plane.
+ *
+ * The model extends both ThermalModel and LinearModel<1> to provide a linear diffusion
+ * formulation that can be used in a thermal-like solver in FANS.
+ *
+ * @details The model:
+ *   - Reads microstructure data containing grain boundaries from HDF5 files
+ *   - Supports uniform or material-specific diffusivity values
+ *   - Handles bulk regions with isotropic diffusion (D_bulk)
+ *   - Handles grain boundaries with transversely isotropic diffusion (D_par, D_perp)
+ *   - Provides visualization of grain boundary normals in post-processing
+ *
+ * Required material parameters in JSON format:
+ *   - GB_unformity: Boolean flag for uniform GB properties
+ *   - D_bulk: Bulk diffusion coefficient(s)
+ *   - D_par: Diffusion coefficient parallel to grain boundaries
+ *   - D_perp: Diffusion coefficient perpendicular to grain boundaries
+ */
 class GBDiffusion : public ThermalModel, public LinearModel<1> {
   public:
     GBDiffusion(Reader &reader)
