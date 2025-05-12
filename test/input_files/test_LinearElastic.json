@@ -20,14 +20,9 @@
     },
     "n_it": 100,
     "macroscale_loading":   [
-                                [[1,     0,     0,     0,     0,     0]],
-                                [[0,     1,     0,     0,     0,     0]],
-                                [[0,     0,     1,     0,     0,     0]],
-                                [[0,     0,     0,     1,     0,     0]],
-                                [[0,     0,     0,     0,     1,     0]],
-                                [[0,     0,     0,     0,     0,     1]]
+                                [[0.001, -0.002, 0.003, 0.0015, -0.0025, 0.001]]
                             ],
 
-    "results": ["stress_average", "strain_average", "absolute_error", "phase_stress_average", "phase_strain_average",
+    "results": ["homogenized_tangent", "stress_average", "strain_average", "absolute_error",
                 "microstructure", "displacement", "stress", "strain"]
 }

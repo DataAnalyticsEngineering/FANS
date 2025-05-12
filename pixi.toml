@@ -1,0 +1,17 @@
+[workspace]
+channels = ["conda-forge"]
+name = "FANS"
+platforms = ["linux-64", "win-64", "osx-64", "osx-arm64"]
+
+[dependencies]
+python = ">=3.13.3,<3.14"
+pytest = ">=8.3.5,<9"
+pre-commit = ">=4.2.0,<5"
+
+
+[pypi-dependencies]
+fans-dashboard = { path = "FANS_Dashboard", editable = true }
+
+
+[tasks]
+test = "pytest -v -s"

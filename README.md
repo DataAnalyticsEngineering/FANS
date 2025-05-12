@@ -16,11 +16,11 @@ Fourier Accelerated Nodal Solvers (FANS) is an FFT-based homogenization solver d
 
 FANS has the following dependencies:
 
-- A C++ compiler with OpenMP support (e.g. GCC, or Clang with OpenMP libraries installed)
+- A C++ compiler (e.g. GCC)
 - CMake (version 3.0 or higher) (+ Unix file utility for creating .deb packages)
 - Git (for cloning this repo)
 - MPI (mpicc and mpic++)
-- HDF5 with parallel support
+- HDF5 with MPI support
 - Eigen3
 - FFTW3 with MPI support
 
@@ -47,21 +47,16 @@ brew install fftw hdf5-mpi eigen
 export CC=gcc-14 CXX=g++-14 MPICC=mpicc MPICXX=mpicxx
 ```
 
-Also, we recommend to set up a Python virtual environment for the `FANS_Dashboard`:
+### Setting up a Python environment
+
+Also, we recommend to set up a Python virtual environment for the [`FANS_Dashboard.ipynb`](FANS_Dashboard/FANS_Dashboard.ipynb) via [pixi](https://pixi.sh/) with all required Python dependencies in an isolated environment:
 
 ```bash
-apt-get install \
-    time \
-    htop \
-    python3 \
-    python3-pip \
-    python3-venv \
-    python-is-python3 \
-    python3-dev
+# Install pixi if you don't have it already
+curl -fsSL https://pixi.sh/install.sh | sh
 
-python -m venv ~/venvs/FANS
-source ~/venvs/FANS/bin/activate
-python -m pip install h5py lxml
+# Create and activate the environment
+pixi shell
 ```
 
 We also provide a [set of Docker images](docker/) to work with FANS within an isolated environment.

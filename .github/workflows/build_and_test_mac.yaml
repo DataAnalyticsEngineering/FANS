@@ -31,6 +31,9 @@ jobs:
           brew install open-mpi --build-from-source --cc=gcc-14
           brew install fftw hdf5-mpi eigen
 
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0.8.8
+
       - name: Generate build directory
         run: mkdir -p ${{ env.FANS_BUILD_DIR }}
 
@@ -77,3 +80,22 @@ jobs:
         with:
           name: macOS 15 CTest logs
           path: ${{ env.FANS_BUILD_DIR }}/Testing/Temporary/LastTest.log
+
+      # ────────────────────────────────────────────────────────────────
+      # Pytest checks
+      # ────────────────────────────────────────────────────────────────
+      - name: Install Pixi Python deps
+        run: |
+          pixi --version
+          pixi install
+
+      - name: Run pytest checks on HDF5 output
+        run: pixi run test
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} PyTest logs
+          path: |
+            **/pytest*.xml
+            **/.pytest_cache
