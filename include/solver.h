@@ -27,10 +27,10 @@ class Solver {
     double             TOL;      //!< Tolerance on relative error norm
     Matmodel<howmany> *matmodel; //!< Material Model
 
-    unsigned char *ms;  // Micro-structure Binary
-    double        *v_r; //!< Residual vector
-    double        *v_u;
-    double        *buffer_padding;
+    unsigned short *ms;  // Micro-structure
+    double         *v_r; //!< Residual vector
+    double         *v_u;
+    double         *buffer_padding;
 
     RealArray      v_r_real; // can't do the "classname()" intialization here, and Map doesn't have a default constructor
     RealArray      v_u_real;
@@ -119,40 +119,40 @@ Solver<howmany>::Solver(Reader reader, Matmodel<howmany> *mat)
     Matrix<double, 8, 8>             AA;
     Matrix<double, howmany, howmany> block;
     fundamentalSolution = Matrix<double, howmany, Dynamic>(howmany, (local_n1 * n_x * (n_z / 2 + 1) * (howmany + 1)) / 2);
+    fundamentalSolution.setZero();
 
     for (int i_y = 0; i_y < local_n1; ++i_y) {
         for (int i_x = 0; i_x < n_x; ++i_x) {
             for (int i_z = 0; i_z < n_z / 2 + 1; ++i_z) {
-                if (i_x == 0 && local_1_start + i_y == 0 && i_z == 0) {
-                    fundamentalSolution.template middleCols<howmany>(0).template triangularView<Lower>() = MatrixXd::Zero(howmany, howmany).triangularView<Lower>();
-                    continue;
-                }
-                A(0, 0) = 1.0;
-                A(1, 0) = etax(i_x);
-                A(2, 0) = etay(local_1_start + i_y);
-                A(3, 0) = etax(i_x) * etay(local_1_start + i_y);
-                A(4, 0) = etaz(i_z);
-                A(5, 0) = etax(i_x) * etaz(i_z);
-                A(6, 0) = etaz(i_z) * etay(local_1_start + i_y);
-                A(7, 0) = etax(i_x) * etay(local_1_start + i_y) * etaz(i_z);
-                AA      = A.real() * A.real().transpose() + A.imag() * A.imag().transpose();
+                if (i_x != 0 || (local_1_start + i_y) != 0 || i_z != 0) {
 
-                for (int i = 0; i < howmany; i++) {
-                    for (int j = i; j < howmany; j++) {
-                        block(i, j) = (Ker0.template block<8, 8>(8 * i, 8 * j).array() * AA.array()).sum();
-                        block(j, i) = block(i, j); // we'd like to avoid this, but block.selfadjointView<Upper>().inverse() does not work
+                    A(0, 0) = 1.0;
+                    A(1, 0) = etax(i_x);
+                    A(2, 0) = etay(local_1_start + i_y);
+                    A(3, 0) = etax(i_x) * etay(local_1_start + i_y);
+                    A(4, 0) = etaz(i_z);
+                    A(5, 0) = etax(i_x) * etaz(i_z);
+                    A(6, 0) = etaz(i_z) * etay(local_1_start + i_y);
+                    A(7, 0) = etax(i_x) * etay(local_1_start + i_y) * etaz(i_z);
+                    AA      = A.real() * A.real().transpose() + A.imag() * A.imag().transpose();
+
+                    for (int i = 0; i < howmany; i++) {
+                        for (int j = i; j < howmany; j++) {
+                            block(i, j) = (Ker0.template block<8, 8>(8 * i, 8 * j).array() * AA.array()).sum();
+                            block(j, i) = block(i, j); // we'd like to avoid this, but block.selfadjointView<Upper>().inverse() does not work
+                        }
                     }
-                }
-                ptrdiff_t ind = i_y * n_x * (n_z / 2 + 1) + i_x * (n_z / 2 + 1) + i_z;
-                if (ind % 2 == 0) {
-                    fundamentalSolution.template middleCols<howmany>((ind / 2) * (howmany + 1)).template triangularView<Lower>() = block.inverse().template triangularView<Lower>();
-                } else {
-                    fundamentalSolution.template middleCols<howmany>((ind / 2) * (howmany + 1) + 1).template triangularView<Upper>() = block.inverse().template triangularView<Upper>();
+                    ptrdiff_t ind = i_y * n_x * (n_z / 2 + 1) + i_x * (n_z / 2 + 1) + i_z;
+                    if (ind % 2 == 0) {
+                        fundamentalSolution.template middleCols<howmany>((ind / 2) * (howmany + 1)).template triangularView<Lower>() = block.inverse().template triangularView<Lower>();
+                    } else {
+                        fundamentalSolution.template middleCols<howmany>((ind / 2) * (howmany + 1) + 1).template triangularView<Upper>() = block.inverse().template triangularView<Upper>();
+                    }
                 }
             }
         }
     }
-    // Divided by n_el to scale the Fundamental solution so explicit normalization is not needed for FFT and IFFT
+    // // Divided by n_el to scale the Fundamental solution so explicit normalization is not needed for FFT and IFFT
     fundamentalSolution /= (double) (n_x * n_y * n_z);
 
     tot_time = clock() - tot_time;

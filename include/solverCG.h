@@ -126,7 +126,7 @@ void SolverCG<howmany>::LineSearchSecant()
     double r1pd;
     double rpd = dotProduct(v_r_real, d_real);
 
-    while (((_iter < MaxIter) && (err > tol)) || (_iter < 2)) {
+    while (((_iter < MaxIter) && (err > tol))) {
 
         v_u_real += d_real * (alpha_new - alpha_old);
         this->template compute_residual<0>(rnew_real, v_u_real);
