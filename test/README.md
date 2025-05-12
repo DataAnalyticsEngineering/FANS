@@ -1,6 +1,6 @@
 # Tests
 
-This directory contains tests for the FANS. Tests serve two purposes:
+This directory contains tests for FANS. Tests serve two purposes:
 
 1. Verify the correct functioning of the code.
 2. Provide example problems that demonstrate how FANS can be used.
