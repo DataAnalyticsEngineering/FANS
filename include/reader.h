@@ -31,7 +31,7 @@ class Reader {
     vector<int>     dims;
     vector<double>  l_e;
     vector<double>  L;
-    unsigned short *ms; // Micro-structure Binary
+    unsigned short *ms; // Micro-structure
     bool            is_zyx = true;
 
     int world_rank;

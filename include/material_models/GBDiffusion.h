@@ -25,9 +25,22 @@
  *
  * Required material parameters in JSON format:
  *   - GB_unformity: Boolean flag for uniform GB properties
- *   - D_bulk: Bulk diffusion coefficient(s)
- *   - D_par: Diffusion coefficient parallel to grain boundaries
- *   - D_perp: Diffusion coefficient perpendicular to grain boundaries
+ *
+ *   When GB_unformity is true (uniform properties):
+ *   {
+ *     "GB_unformity": true,
+ *     "D_bulk": 1.0,        // Isotropic diffusion coefficient for all crystals
+ *     "D_par": 2.0,         // Diffusion coefficient parallel to the grain boundary for all GBs
+ *     "D_perp": 0.5         // Diffusion coefficient perpendicular to the grain boundary for all GBs
+ *   }
+ *
+ *   When GB_unformity is false (tag-specific properties):
+ *   {
+ *     "GB_unformity": false,
+ *     "D_bulk": [...],  // Array of length (num_crystals + num_GB elements), but D_bulk is only used for crystals (0 to num_crystals)
+ *     "D_par":  [...],   // Array of length (num_crystals + num_GB elements), but D_par  is only used for GBs (num_crystals to num_crystals + num_GB)
+ *     "D_perp": [...]   // Array of length (num_crystals + num_GB elements), but D_perp is only used for GBs (num_crystals to num_crystals + num_GB)
+ *   }
  */
 class GBDiffusion : public ThermalModel, public LinearModel<1> {
   public:
