@@ -17,7 +17,7 @@ The test directory includes:
 
 ### Using CTest
 
-Tests are configured by the main CMake system. To run all FANS tests:
+Tests are configured by CMake when FANS is built. If your CMake build folder is named `build`, run the FANS tests in the following way
 
 ```bash
 cd ../build
