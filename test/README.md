@@ -28,7 +28,7 @@ This will run all test cases and generate result files in `build/test/`.
 
 ## Result Validation
 
-After running the tests, verify the results using pytests in the `pytest/` directory with the following command:
+After running the tests, the results are verified using pytest. We recommend running pytest via a pre-configured Pixi task,
 
 ```bash
 pixi run test
