@@ -34,7 +34,7 @@ After running the tests, the results are verified using pytest. We recommend run
 pixi run test
 ```
 
-Note: The pytest validation expects result files to be in `build/test/` directory, so make sure to run the tests first.
+Note: The validation tests expect result files to be in `build/test/` directory, so make sure to run the tests first.
 
 ## Available Test Cases
 
