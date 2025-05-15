@@ -126,12 +126,6 @@ Where `<version>` should match your system's default GCC version. You can discov
 apt search libstdc++
 ```
 
-Additionally, if you are using Clang with OpenMP features, make sure to install:
-
-```bash
-sudo apt install libomp-dev
-```
-
 ---
 
 ### Platform Distinctions in Presets
