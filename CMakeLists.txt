@@ -108,11 +108,11 @@ else ()
 endif ()
 add_library(FANS::FANS ALIAS FANS_FANS)
 
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
-    target_compile_options(FANS_FANS PUBLIC -march=armv8-a+simd+fp+crypto)
-elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
-    target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
-endif ()
+# if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
+#     target_compile_options(FANS_FANS PUBLIC -march=armv8-a+simd+fp+crypto)
+# elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+#     target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
+# endif ()
 
 add_executable(FANS_main)
 add_custom_command(
