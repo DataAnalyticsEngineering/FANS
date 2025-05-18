@@ -43,6 +43,8 @@ class Matmodel {
 
     vector<double> macroscale_loading;
 
+    virtual ~Matmodel() = default;
+
   protected:
     double l_e_x;
     double l_e_y;
