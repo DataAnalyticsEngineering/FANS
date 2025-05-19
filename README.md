@@ -171,14 +171,16 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 ### Microstructure Definition
 
 ```json
-"ms_filename": "microstructures/sphere32.h5",
-"ms_datasetname": "/sphere/32x32x32/ms",
-"ms_L": [1.0, 1.0, 1.0]
+"microstructure": {
+        "filepath": "microstructures/sphere32.h5",
+        "datasetname": "/sphere/32x32x32/ms",
+        "L": [1.0, 1.0, 1.0]
+    }
 ```
 
-- `ms_filename`: This specifies the path to the HDF5 file that contains the microstructure data.
-- `ms_datasetname`: This is the path within the HDF5 file to the specific dataset that represents the microstructure.
-- `ms_L`: Microstructure length defines the physical dimensions of the microstructure in the x, y, and z directions.
+- `filepath`: This specifies the path to the HDF5 file that contains the microstructure data.
+- `datasetname`: This is the path within the HDF5 file to the specific dataset that represents the microstructure.
+- `L`: Microstructure length defines the physical dimensions of the microstructure in the x, y, and z directions.
 
 ### Problem Type and Material Model
 
