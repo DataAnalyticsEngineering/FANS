@@ -17,7 +17,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # with -fno-implicit-templates I get linker errors when using std:: stuff
 # TODO: should be developer specific, by using e.g. CMake Presets
-# moved flags to CMakePresets.json to support multiple compilers cleanly
 set(CMAKE_PREFIX_PATH $ENV{CMAKE_PREFIX_PATH})
 
 # IPO
@@ -54,9 +53,12 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # From https://stackoverflow.com/questions/73248130/how-to-avoid-the-removal-of-the-rpath-during-cmake-install-step
-
 # Set RPATH to be relative and honor user overrides, whether at the command line or FetchContent
-set(RPATH_BASE "$ORIGIN")
+if(APPLE)
+        set(RPATH_BASE "@loader_path")
+else()
+        set(RPATH_BASE "$ORIGIN")
+endif()
 file(RELATIVE_PATH REL_PATH_LIB
         "/${CMAKE_INSTALL_BINDIR}/"
         "/${CMAKE_INSTALL_LIBDIR}/")
@@ -108,11 +110,11 @@ else ()
 endif ()
 add_library(FANS::FANS ALIAS FANS_FANS)
 
-# if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
-#     target_compile_options(FANS_FANS PUBLIC -march=armv8-a+simd+fp+crypto)
-# elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
-#     target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
-# endif ()
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
+    target_compile_options(FANS_FANS PUBLIC -march=armv8-a+simd+fp+crypto)
+elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+    target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
+endif ()
 
 add_executable(FANS_main)
 add_custom_command(

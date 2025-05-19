@@ -1,10 +1,5 @@
 {
   "version": 6,
-  "cmakeMinimumRequired": {
-    "major": 3,
-    "minor": 23,
-    "patch": 0
-  },
   "configurePresets": [
     {
       "name": "gcc-release",
@@ -14,6 +9,7 @@
       "binaryDir": "${sourceDir}/build/gcc-release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS": "-fmax-errors=1 -O3",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
@@ -25,6 +21,7 @@
       "binaryDir": "${sourceDir}/build/gcc-debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_CXX_FLAGS": "-fmax-errors=1 -O3",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
@@ -36,7 +33,7 @@
       "binaryDir": "${sourceDir}/build/clang-release-linux",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_FLAGS": "-stdlib=libstdc++",
+        "CMAKE_CXX_FLAGS": "-stdlib=libstdc++ -O3",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
@@ -48,7 +45,7 @@
       "binaryDir": "${sourceDir}/build/clang-debug-linux",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_CXX_FLAGS": "-stdlib=libstdc++",
+        "CMAKE_CXX_FLAGS": "-stdlib=libstdc++ -O3",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
@@ -61,6 +58,11 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
       }
     },
     {
@@ -72,6 +74,11 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
       }
     }
   ],
