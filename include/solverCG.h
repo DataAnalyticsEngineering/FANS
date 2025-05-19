@@ -91,13 +91,8 @@ void SolverCG<howmany>::internalSolve()
 
         d_real = s_real + fmax(0, (delta - deltamid) / delta0) * d_real;
 
-        if (islinear) {
+        if (islinear && !this->isMixedBCActive()) {
             Matrix<double, howmany * 8, 1> res_e;
-            if (this->isMixedBCActive()) {
-                // if it is mixed and linear, we need to update the residual
-                this->updateMixedBC();
-                this->template compute_residual<2>(v_r_real, v_u_real);
-            }
             this->template compute_residual_basic<0>(rnew_real, d_real,
                                                      [&](Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx) -> Matrix<double, howmany * 8, 1> & {
                                                          res_e.noalias() = linearModel->phase_stiffness[mat_index] * ue;
@@ -122,7 +117,7 @@ template <int howmany>
 void SolverCG<howmany>::LineSearchSecant()
 {
     double err       = 10.0;
-    int    MaxIter   = 10;
+    int    MaxIter   = 5;
     double tol       = 1e-2;
     int    _iter     = 0;
     double alpha_new = 0.0001;
