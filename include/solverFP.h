@@ -44,6 +44,7 @@ void SolverFP<howmany>::internalSolve()
 
         this->convolution();
         v_u_real -= v_r_real;
+        this->updateMixedBC();
         this->template compute_residual<2>(v_r_real, v_u_real);
 
         iter++;

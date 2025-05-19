@@ -5,25 +5,26 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "mixedBCs.h"
 
 using namespace std;
 
 class Reader {
   public:
     // contents of input file:
-    char                           ms_filename[4096];    // Name of Micro-structure hdf5 file
-    char                           ms_datasetname[4096]; // Absolute path of Micro-structure in hdf5 file
-    char                           results_prefix[4096];
-    int                            n_mat;
-    json                           materialProperties;
-    double                         TOL;
-    json                           errorParameters;
-    json                           microstructure;
-    int                            n_it;
-    vector<vector<vector<double>>> g0;
-    string                         problemType;
-    string                         matmodel;
-    string                         method;
+    char             ms_filename[4096];    // Name of Micro-structure hdf5 file
+    char             ms_datasetname[4096]; // Absolute path of Micro-structure in hdf5 file
+    char             results_prefix[4096];
+    int              n_mat;
+    json             materialProperties;
+    double           TOL;
+    json             errorParameters;
+    json             microstructure;
+    int              n_it;
+    vector<LoadCase> load_cases;
+    string           problemType;
+    string           matmodel;
+    string           method;
 
     vector<string> resultsToWrite;
 

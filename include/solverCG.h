@@ -93,6 +93,11 @@ void SolverCG<howmany>::internalSolve()
 
         if (islinear) {
             Matrix<double, howmany * 8, 1> res_e;
+            if (this->isMixedBCActive()) {
+                // if it is mixed and linear, we need to update the residual
+                this->updateMixedBC();
+                this->template compute_residual<2>(v_r_real, v_u_real);
+            }
             this->template compute_residual_basic<0>(rnew_real, d_real,
                                                      [&](Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx) -> Matrix<double, howmany * 8, 1> & {
                                                          res_e.noalias() = linearModel->phase_stiffness[mat_index] * ue;
@@ -129,6 +134,7 @@ void SolverCG<howmany>::LineSearchSecant()
     while (((_iter < MaxIter) && (err > tol))) {
 
         v_u_real += d_real * (alpha_new - alpha_old);
+        this->updateMixedBC();
         this->template compute_residual<0>(rnew_real, v_u_real);
         r1pd = dotProduct(rnew_real, d_real);
 

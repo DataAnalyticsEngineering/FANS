@@ -6,7 +6,7 @@
 typedef Map<Array<double, Dynamic, Dynamic>, Unaligned, OuterStride<>> RealArray;
 
 template <int howmany>
-class Solver {
+class Solver : private MixedBCController<howmany> {
   public:
     Solver(Reader reader, Matmodel<howmany> *matmodel);
 
@@ -61,6 +61,23 @@ class Solver {
 
     MatrixXd homogenized_tangent;
     MatrixXd get_homogenized_tangent(double pert_param);
+
+    void enableMixedBC(const MixedBC &mbc, size_t step)
+    {
+        this->activate(*this, mbc, step);
+    }
+    void disableMixedBC()
+    {
+        this->mixed_active = false;
+    }
+    bool isMixedBCActive()
+    {
+        return this->mixed_active;
+    }
+    void updateMixedBC()
+    {
+        this->update(*this);
+    }
 
   protected:
     fftw_plan planfft, planifft;
@@ -583,6 +600,7 @@ MatrixXd Solver<howmany>::get_homogenized_tangent(double pert_param)
         }
 
         matmodel->setGradient(pert_strain);
+        disableMixedBC();
         solve();
         perturbed_stress = get_homogenized_stress();
 
