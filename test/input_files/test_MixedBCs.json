@@ -1,0 +1,35 @@
+{
+    "microstructure": {
+        "filepath": "microstructures/sphere32.h5",
+        "datasetname": "/sphere/32x32x32/ms",
+        "L": [1.0, 1.0, 1.0]
+    },
+
+    "problem_type": "mechanical",
+    "matmodel": "LinearElasticIsotropic",
+    "material_properties":{
+        "bulk_modulus": [62.5000, 222.222],
+        "shear_modulus": [28.8462, 166.6667]
+    },
+
+    "method": "cg",
+    "error_parameters":{
+        "measure": "Linfinity",
+        "type": "absolute",
+        "tolerance": 1e-16
+    },
+    "n_it": 1000,
+    "macroscale_loading":   [   {
+                                    "strain_indices" : [],
+                                    "stress_indices" : [0,1,2,3,4,5],
+                                    "strain" : [[],[]],
+                                    "stress" : [[-0.05, -0.05, -0.05, 0.0, 0.0, 0.0],
+                                                [-0.1 , -0.1 , -0.1 , 0.0, 0.0, 0.0]]
+                                },
+                                [[-0.000201177817616389, -0.00020117781761638944, -0.0002011778176163894, 4.374921101288884e-22, 1.0822171975093186e-22, 1.424850916865268e-22],
+                                 [-0.00040235563523281944, -0.0004023556352328199, -0.0004023556352328192, -2.5780780156705695e-21, 1.5365687671739435e-22, -4.551108956175545e-22]]
+                            ],
+
+    "results": ["stress_average", "strain_average", "absolute_error", "phase_stress_average", "phase_strain_average",
+                "microstructure", "displacement", "stress", "strain"]
+}
