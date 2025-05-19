@@ -2,9 +2,6 @@
 // In this file we solve a micro problem with FANS which is controlled by the Micro Manager
 // This file is compiled with pybind11 to be available as a python module
 //
-// To check if python is able to import it, run:
-// python3 -c "import micro; micro.MicroSimulation(1)"
-// from the same directory
 
 #include "micro.hpp"
 #include "setup.h"
@@ -29,8 +26,6 @@ py::array_t<double> merge_arrays(py::array_t<double> array1, py::array_t<double>
 
 MicroSimulation::MicroSimulation(int sim_id, char *input_file)
 {
-    MPI_Init(NULL, NULL);
-
     // initialize fftw mpi
     fftw_mpi_init();
 

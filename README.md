@@ -15,11 +15,11 @@ Fourier Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver fo
 
 FANS has the following dependencies:
 
-- A C++ compiler (e.g. GCC, or Clang)
+- A C++ compiler (e.g. GCC)
 - CMake (version 3.0 or higher) (+ Unix file utility for creating .deb packages)
 - Git (for cloning this repo)
 - MPI (mpicc and mpic++)
-- HDF5 with parallel support
+- HDF5 with MPI support
 - Eigen3
 - FFTW3 with MPI support
 
@@ -41,30 +41,22 @@ On macOS, you can obtain the dependencies using `brew` and set the environment v
 ```zsh
 brew install gnu-time cmake gcc@14
 brew install open-mpi --build-from-source --cc=gcc-14
-brew install fftw hdf5-mpi eigen
+brew install hdf5-mpi --build-from-source --cc=gcc-14
+brew install fftw eigen
 
 export CC=gcc-14 CXX=g++-14 MPICC=mpicc MPICXX=mpicxx
 ```
 
-Additionally, to use the [FANS_Dashboard](FANS_Dashboard/) we recommend setting up a Python virtual environment. For this, the dependencies are installed with the following command
+### Setting up a Python environment
+
+Also, we recommend to set up a Python virtual environment for the [`FANS_Dashboard.ipynb`](FANS_Dashboard/FANS_Dashboard.ipynb) via [pixi](https://pixi.sh/) with all required Python dependencies in an isolated environment:
 
 ```bash
-apt-get install \
-    time \
-    htop \
-    python3 \
-    python3-pip \
-    python3-venv \
-    python-is-python3 \
-    python3-dev
-```
+# Install pixi if not done already
+curl -fsSL https://pixi.sh/install.sh | sh
 
-The virtual environment is created and setup in the following way
-
-```bash
-python -m venv ~/venvs/FANS
-source ~/venvs/FANS/bin/activate
-python -m pip install h5py lxml
+# Create and activate the environment
+pixi shell
 ```
 
 We also provide a [set of Docker images](docker/) which already have FANS built-in.
@@ -164,14 +156,16 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 ### Microstructure Definition
 
 ```json
-"ms_filename": "microstructures/sphere32.h5",
-"ms_datasetname": "/sphere/32x32x32/ms",
-"ms_L": [1.0, 1.0, 1.0]
+"microstructure": {
+        "filepath": "microstructures/sphere32.h5",
+        "datasetname": "/sphere/32x32x32/ms",
+        "L": [1.0, 1.0, 1.0]
+    }
 ```
 
-- `ms_filename`: This specifies the path to the HDF5 file that contains the microstructure data.
-- `ms_datasetname`: This is the path within the HDF5 file to the specific dataset that represents the microstructure.
-- `ms_L`: Microstructure length defines the physical dimensions of the microstructure in the x, y, and z directions.
+- `filepath`: This specifies the path to the HDF5 file that contains the microstructure data.
+- `datasetname`: This is the path within the HDF5 file to the specific dataset that represents the microstructure.
+- `L`: Microstructure length defines the physical dimensions of the microstructure in the x, y, and z directions.
 
 ### Problem Type and Material Model
 

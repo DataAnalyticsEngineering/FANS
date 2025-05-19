@@ -179,6 +179,8 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/setup.h
 
         include/material_models/LinearThermal.h
+        include/material_models/GBDiffusion.h
+
         include/material_models/LinearElastic.h
         include/material_models/PseudoPlastic.h
         include/material_models/J2Plasticity.h

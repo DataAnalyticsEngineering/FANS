@@ -1,0 +1,24 @@
+{
+    "micro_file_name": "PyFANS",
+    "coupling_params": {
+        "precice_config_file_name": "precice-config.xml",
+        "macro_mesh_name": "cube",
+        "read_data_names": {"strains1to3": "vector",
+                            "strains4to6": "vector"
+                            },
+        "write_data_names": {"stresses1to3": "vector",
+                            "stresses4to6": "vector",
+                            "cmat1":"vector",
+                            "cmat2":"vector",
+                            "cmat3":"vector",
+                            "cmat4":"vector",
+                            "cmat5":"vector",
+                            "cmat6":"vector",
+                            "cmat7":"vector"
+                        }
+    },
+    "simulation_params": {
+        "micro_dt": 1e-1,
+        "macro_domain_bounds": [0, 1, 0, 1, 0, 1]
+    }
+}

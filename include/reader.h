@@ -28,10 +28,11 @@ class Reader {
     vector<string> resultsToWrite;
 
     // contents of microstructure file:
-    vector<int>    dims;
-    vector<double> l_e;
-    vector<double> L;
-    unsigned char *ms; // Micro-structure Binary
+    vector<int>     dims;
+    vector<double>  l_e;
+    vector<double>  L;
+    unsigned short *ms; // Micro-structure
+    bool            is_zyx = true;
 
     int world_rank;
     int world_size;
@@ -128,105 +129,148 @@ void Reader::WriteData(T *data, const char *file_name, const char *dset_name, hs
 }
 
 // this function has to be here because of the template
+/* ---------------------------------------------------------------------------
+ * Write a 4-D slab (local_n0 × Ny × Nz × howmany) from THIS MPI rank into an
+ * HDF5 dataset whose global layout on disk is
+ *
+ *            Z  Y  X  k   (i.e. "zyx" + extra dim k)
+ *
+ * The caller supplies the data in logical order
+ *            X  Y  Z  k .
+ *
+ * We therefore transpose in-memory once per write call.
+ * --------------------------------------------------------------------------*/
 template <typename T>
-void Reader::WriteSlab(T *data, int _howmany, const char *file_name, const char *dset_name)
+void Reader::WriteSlab(
+    T          *data,     // in:  local slab, layout [X][Y][Z][k]
+    int         _howmany, // global size of the 4th axis (k)
+    const char *file_name,
+    const char *dset_name)
 {
-
+    /*------------------------------------------------------------------*/
+    /* 0. map C++ type -> native HDF5 type                              */
+    /*------------------------------------------------------------------*/
     hid_t data_type;
-    if (std::is_same<T, double>()) {
+    if (std::is_same<T, double>())
         data_type = H5T_NATIVE_DOUBLE;
-    } else if (std::is_same<T, float>()) {
+    else if (std::is_same<T, float>())
         data_type = H5T_NATIVE_FLOAT;
-    } else if (std::is_same<T, unsigned char>()) {
+    else if (std::is_same<T, unsigned char>())
         data_type = H5T_NATIVE_UCHAR;
-    } else if (std::is_same<T, int>()) {
+    else if (std::is_same<T, int>())
         data_type = H5T_NATIVE_INT;
-    } else {
-        throw std::invalid_argument("Conversion of this data type to H5 data type not yet implemented");
-    }
+    else if (std::is_same<T, unsigned short>())
+        data_type = H5T_NATIVE_USHORT;
+    else
+        throw std::invalid_argument("WriteSlab: unsupported data type");
 
-    hid_t   file_id, dset_id;    /* file and dataset identifiers */
-    hid_t   filespace, memspace; /* file and memory dataspace identifiers */
-    hid_t   plist_id;            /* property list identifier */
-    herr_t  status;
-    int     rank = 4;
-    hsize_t dimsf[rank]; /* dataset dimensions */
-    hsize_t count[rank]; /* hyperslab selection parameters */
-    hsize_t offset[rank];
+    /*------------------------------------------------------------------*/
+    /* 1. open or create the HDF5 file                                  */
+    /*------------------------------------------------------------------*/
+    hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
+    // H5Pset_fapl_mpio(plist_id, comm, info);   /* if you need MPI-IO */
 
-    plist_id = H5Pcreate(H5P_FILE_ACCESS);
-    // H5Pset_fapl_mpio(plist_id, comm, info);
-
-    // TODO: refactor this into a general error handling method
-    /* Save old error handler */
+    /* temporarily silence “file not found” during H5Fopen */
     herr_t (*old_func)(hid_t, void *);
     void *old_client_data;
     H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
-    /* Turn off error handling */
-    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    H5Eset_auto(H5E_DEFAULT, nullptr, nullptr);
 
-    file_id = H5Fopen(file_name, H5F_ACC_RDWR, plist_id);
-    /* Restore previous error handler */
-    H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
-
-    if (file_id < 0) {
+    hid_t file_id = H5Fopen(file_name, H5F_ACC_RDWR, plist_id);
+    H5Eset_auto(H5E_DEFAULT, old_func, old_client_data); /* restore */
+    if (file_id < 0)                                     /* create if absent */
         file_id = H5Fcreate(file_name, H5F_ACC_EXCL, H5P_DEFAULT, plist_id);
-    }
     H5Pclose(plist_id);
 
-    dimsf[0] = this->dims[0];
-    dimsf[1] = this->dims[1];
-    dimsf[2] = this->dims[2];
-    dimsf[3] = _howmany;
+    /*------------------------------------------------------------------*/
+    /* 2. create the dataset (global dims =  Z Y X k ) if necessary     */
+    /*------------------------------------------------------------------*/
+    const hsize_t Nx   = static_cast<hsize_t>(dims[0]);
+    const hsize_t Ny   = static_cast<hsize_t>(dims[1]);
+    const hsize_t Nz   = static_cast<hsize_t>(dims[2]);
+    const hsize_t kDim = static_cast<hsize_t>(_howmany);
 
-    filespace = H5Screate_simple(rank, dimsf, NULL);
+    const int rank        = 4;
+    hsize_t   dimsf[rank] = {Nz, Ny, Nx, kDim}; /* <<< Z Y X k */
 
-    // dset_name = "test123";
     safe_create_group(file_id, dset_name);
 
-    /* Save old error handler */
+    /* silence “dataset not found” during open */
     H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
-    /* Turn off error handling */
-    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+    H5Eset_auto(H5E_DEFAULT, nullptr, nullptr);
 
-    dset_id = H5Dopen(file_id, dset_name, H5P_DEFAULT);
-    /* Restore previous error handler */
-    H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
+    hid_t dset_id = H5Dopen2(file_id, dset_name, H5P_DEFAULT);
+    H5Eset_auto(H5E_DEFAULT, old_func, old_client_data); /* restore */
 
     if (dset_id < 0) {
-        dset_id = H5Dcreate(file_id, dset_name, data_type, filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        hid_t filespace = H5Screate_simple(rank, dimsf, nullptr);
+        dset_id         = H5Dcreate2(file_id, dset_name, data_type,
+                                     filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        H5Sclose(filespace);
 
-        // hid_t dcpl_id;
-        // // Create the dataset with compression
-        // dcpl_id = H5Pcreate(H5P_DATASET_CREATE);
-        // H5Pset_chunk(dcpl_id, rank, dimsf);
-        // H5Pset_deflate(dcpl_id, 9); // Compression level 9, 6 is best for size and speed
-        // dset_id = H5Dcreate(file_id, dset_name, data_type, filespace, H5P_DEFAULT, dcpl_id, H5P_DEFAULT);
-        // H5Pclose(dcpl_id);
+        /*--------------------------------------------------------------*/
+        /*  add the attribute  permute_order = "zyx"                    */
+        /*--------------------------------------------------------------*/
+        const char perm_str[] = "zyx";
+        hid_t      atype      = H5Tcopy(H5T_C_S1);
+        H5Tset_size(atype, 4); /* 3 chars + '\0' */
+        hid_t aspace = H5Screate(H5S_SCALAR);
+        hid_t attr   = H5Acreate2(dset_id, "permute_order",
+                                  atype, aspace, H5P_DEFAULT, H5P_DEFAULT);
+        H5Awrite(attr, atype, perm_str);
+        H5Aclose(attr);
+        H5Sclose(aspace);
+        H5Tclose(atype);
     }
 
-    count[0]  = local_n0;
-    count[1]  = dimsf[1];
-    count[2]  = dimsf[2];
-    count[3]  = dimsf[3];
-    offset[0] = local_0_start;
-    offset[1] = 0;
-    offset[2] = 0;
-    offset[3] = 0;
-    memspace  = H5Screate_simple(rank, count, NULL);
+    /*------------------------------------------------------------------*/
+    /* 3. build FILE hyperslab  (slice along file-dim 2 = X axis)       */
+    /*------------------------------------------------------------------*/
+    hsize_t fcount[4]  = {Nz, Ny, static_cast<hsize_t>(local_n0), kDim};
+    hsize_t foffset[4] = {0, 0, static_cast<hsize_t>(local_0_start), 0};
 
-    filespace = H5Dget_space(dset_id);
-    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL, count, NULL);
+    hid_t filespace = H5Dget_space(dset_id);
+    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, foffset, nullptr, fcount, nullptr);
+
+    /*------------------------------------------------------------------*/
+    /* 4. transpose local slab  [X][Y][Z][k]  ->  [Z][Y][X][k]          */
+    /*------------------------------------------------------------------*/
+    const size_t NxLoc = static_cast<size_t>(local_n0);
+    const size_t NyLoc = static_cast<size_t>(Ny);
+    const size_t NzLoc = static_cast<size_t>(Nz);
+    const size_t kLoc  = static_cast<size_t>(kDim);
+
+    size_t         slabElems = NxLoc * NyLoc * NzLoc * kLoc;
+    std::vector<T> tmp(slabElems); /* automatic RAII buffer */
+
+    for (size_t x = 0; x < NxLoc; ++x)
+        for (size_t y = 0; y < NyLoc; ++y)
+            for (size_t z = 0; z < NzLoc; ++z) {
+                size_t srcBase = (((x * NyLoc) + y) * NzLoc + z) * kLoc; /* X-major */
+                size_t dstBase = (((z * NyLoc) + y) * NxLoc + x) * kLoc; /* Z-major */
+                std::memcpy(&tmp[dstBase], &data[srcBase], kLoc * sizeof(T));
+            }
+
+    /*------------------------------------------------------------------*/
+    /* 5. MEMORY dataspace matches FILE slab exactly                    */
+    /*------------------------------------------------------------------*/
+    hid_t memspace = H5Screate_simple(4, fcount, nullptr);
 
     plist_id = H5Pcreate(H5P_DATASET_XFER);
     // H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
 
-    status = H5Dwrite(dset_id, data_type, memspace, filespace, plist_id, data);
+    herr_t status = H5Dwrite(dset_id, data_type,
+                             memspace, filespace, plist_id, tmp.data());
+    if (status < 0)
+        throw std::runtime_error("WriteSlab: H5Dwrite failed");
 
-    H5Dclose(dset_id);
-    H5Sclose(filespace);
+    /*------------------------------------------------------------------*/
+    /* 6. tidy up                                                       */
+    /*------------------------------------------------------------------*/
     H5Sclose(memspace);
+    H5Sclose(filespace);
     H5Pclose(plist_id);
+    H5Dclose(dset_id);
     H5Fclose(file_id);
 }
 

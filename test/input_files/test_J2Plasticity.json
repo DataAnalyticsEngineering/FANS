@@ -181,7 +181,7 @@
                             ]
                     ],
 
-    "results": ["stress_average", "strain_average", "absolute_error", "phase_stress_average", "phase_strain_average",
+    "results": ["stress_average", "strain_average", "absolute_error",
                 "microstructure", "displacement", "stress", "strain",
                 "plastic_strain", "kinematic_hardening_variable", "isotropic_hardening_variable"]
 }

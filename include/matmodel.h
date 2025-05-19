@@ -141,13 +141,25 @@ Matrix<double, howmany * 8, 1> &Matmodel<howmany>::element_residual(Matrix<doubl
 template <int howmany>
 void Matmodel<howmany>::getStrainStress(double *strain, double *stress, Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx)
 {
+    eps.noalias() = B * ue + g0;
+    sigma.setZero();
+    for (int i = 0; i < 8; ++i) {
+        get_sigma(n_str * i, mat_index, element_idx);
+    }
 
-    eps.template topRows<n_str>().noalias() = g0.template topRows<n_str>() + B_el_mean * ue;
-    get_sigma(0, mat_index, element_idx);
+    Matrix<double, n_str, 1> avg_strain = Matrix<double, n_str, 1>::Zero();
+    Matrix<double, n_str, 1> avg_stress = Matrix<double, n_str, 1>::Zero();
+
+    for (int i = 0; i < 8; ++i) {
+        for (int j = 0; j < n_str; ++j) {
+            avg_strain(j) += eps(i * n_str + j) * 0.125;
+            avg_stress(j) += sigma(i * n_str + j) * 0.125;
+        }
+    }
 
     for (int i = 0; i < n_str; ++i) {
-        strain[i] = eps(i, 0);
-        stress[i] = sigma(i, 0);
+        strain[i] = avg_strain(i);
+        stress[i] = avg_stress(i);
     }
 }
 

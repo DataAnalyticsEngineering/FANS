@@ -205,3 +205,7 @@ test/input_files/**/*.json
 !test_LinearThermal.json
 !test_PseudoPlastic.json
 !test_J2Plasticity.json
+
+# pixi environments
+.pixi
+*.egg-info
