@@ -2,7 +2,7 @@
 
 ## latest
 
-- Add support for macroscale mixed stress-strain boundary conditions https://github.com/DataAnalyticsEngineering/FANS/pull/56
+- Add support for macroscale mixed stress-strain boundary conditions https://github.com/DataAnalyticsEngineering/FANS/pull/58
 - Add grain boundary diffusion material model for polycrystals https://github.com/DataAnalyticsEngineering/FANS/pull/52
 - Add a pixi environment for the FANS_dashboard and some tests https://github.com/DataAnalyticsEngineering/FANS/pull/55
 - Remove MPI initialization from pyFANS and add an integration test for it https://github.com/DataAnalyticsEngineering/FANS/pull/46
