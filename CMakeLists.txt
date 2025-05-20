@@ -17,7 +17,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # with -fno-implicit-templates I get linker errors when using std:: stuff
 # TODO: should be developer specific, by using e.g. CMake Presets
-set(CMAKE_CXX_FLAGS "-O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 set(CMAKE_PREFIX_PATH $ENV{CMAKE_PREFIX_PATH})
 
 # IPO
