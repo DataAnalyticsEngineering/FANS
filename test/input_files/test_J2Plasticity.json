@@ -182,6 +182,6 @@
                     ],
 
     "results": ["stress_average", "strain_average", "absolute_error",
-                "microstructure", "displacement", "stress", "strain",
+                "microstructure", "displacement", "displacement_fluctuation", "stress", "strain",
                 "plastic_strain", "kinematic_hardening_variable", "isotropic_hardening_variable"]
 }

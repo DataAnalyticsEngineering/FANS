@@ -6,20 +6,74 @@
     },
 
     "problem_type": "mechanical",
-    "matmodel": "LinearElasticIsotropic",
+    "matmodel": "PseudoPlasticLinearHardening",
     "material_properties":{
         "bulk_modulus": [62.5000, 222.222],
-        "shear_modulus": [28.8462, 166.6667]
+        "shear_modulus": [28.8462, 166.6667],
+        "yield_stress": [0.1, 100000],
+        "hardening_parameter": [0.0, 0.0]
     },
 
     "method": "cg",
     "error_parameters":{
         "measure": "Linfinity",
         "type": "absolute",
-        "tolerance": 1e-16
+        "tolerance": 1e-10
     },
     "n_it": 1000,
     "macroscale_loading":   [   {
+                                    "strain_indices" : [2,3,4,5],
+                                    "stress_indices" : [0,1],
+                                    "strain" : [[0.0005, 0.0, 0.0, 0.0],
+                                                [0.001 , 0.0, 0.0, 0.0],
+                                                [0.0015, 0.0, 0.0, 0.0],
+                                                [0.002 , 0.0, 0.0, 0.0],
+                                                [0.0025, 0.0, 0.0, 0.0],
+                                                [0.003 , 0.0, 0.0, 0.0],
+                                                [0.0035, 0.0, 0.0, 0.0],
+                                                [0.004 , 0.0, 0.0, 0.0],
+                                                [0.0045, 0.0, 0.0, 0.0],
+                                                [0.005 , 0.0, 0.0, 0.0],
+                                                [0.0055, 0.0, 0.0, 0.0],
+                                                [0.006 , 0.0, 0.0, 0.0],
+                                                [0.0065, 0.0, 0.0, 0.0],
+                                                [0.007 , 0.0, 0.0, 0.0],
+                                                [0.0075, 0.0, 0.0, 0.0],
+                                                [0.008 , 0.0, 0.0, 0.0],
+                                                [0.0085, 0.0, 0.0, 0.0],
+                                                [0.009 , 0.0, 0.0, 0.0],
+                                                [0.0095, 0.0, 0.0, 0.0],
+                                                [0.010 , 0.0, 0.0, 0.0],
+                                                [0.0105, 0.0, 0.0, 0.0],
+                                                [0.011 , 0.0, 0.0, 0.0],
+                                                [0.0115, 0.0, 0.0, 0.0],
+                                                [0.012 , 0.0, 0.0, 0.0]],
+                                    "stress" : [[0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0],
+                                                [0.0, 0.0]]
+                                },
+                                {
                                     "strain_indices" : [],
                                     "stress_indices" : [0,1,2,3,4,5],
                                     "strain" : [[],[]],
@@ -31,5 +85,5 @@
                             ],
 
     "results": ["stress_average", "strain_average", "absolute_error", "phase_stress_average", "phase_strain_average",
-                "microstructure", "displacement", "stress", "strain"]
+                "microstructure", "displacement", "displacement_fluctuation", "stress", "strain"]
 }
