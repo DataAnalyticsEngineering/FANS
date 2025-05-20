@@ -42,7 +42,8 @@ On macOS, you can obtain the dependencies using `brew` and set the environment v
 ```zsh
 brew install gnu-time cmake gcc@14
 brew install open-mpi --build-from-source --cc=gcc-14
-brew install fftw hdf5-mpi eigen
+brew install hdf5-mpi --build-from-source --cc=gcc-14
+brew install fftw eigen
 
 export CC=gcc-14 CXX=g++-14 MPICC=mpicc MPICXX=mpicxx
 ```

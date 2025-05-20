@@ -44,6 +44,8 @@ class Matmodel {
     vector<double>               macroscale_loading;
     Matrix<double, n_str, n_str> kapparef_mat; // Reference conductivity matrix
 
+    virtual ~Matmodel() = default;
+
   protected:
     double l_e_x;
     double l_e_y;

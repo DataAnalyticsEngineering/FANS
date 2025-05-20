@@ -9,6 +9,7 @@ template <int howmany>
 class Solver : private MixedBCController<howmany> {
   public:
     Solver(Reader reader, Matmodel<howmany> *matmodel);
+    virtual ~Solver() = default;
 
     Reader reader;
 

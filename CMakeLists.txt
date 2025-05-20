@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0...3.28)
+cmake_minimum_required(VERSION 3.21)
 
 # ##############################################################################
 # GENERAL SETTINGS
@@ -17,7 +17,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # with -fno-implicit-templates I get linker errors when using std:: stuff
 # TODO: should be developer specific, by using e.g. CMake Presets
-set(CMAKE_CXX_FLAGS "-fmax-errors=1 -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 set(CMAKE_PREFIX_PATH $ENV{CMAKE_PREFIX_PATH})
 
 # IPO
@@ -54,7 +54,6 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # From https://stackoverflow.com/questions/73248130/how-to-avoid-the-removal-of-the-rpath-during-cmake-install-step
-
 # Set RPATH to be relative and honor user overrides, whether at the command line or FetchContent
 if(APPLE)
         set(RPATH_BASE "@loader_path")
@@ -115,36 +114,8 @@ add_library(FANS::FANS ALIAS FANS_FANS)
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
 
 elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
-    # Detecting if there is avx2 and fma support on linux
-    # Deteced together, because these flags were introduced by Intel Haskell 4th. Gen
-    # Distinguishing between mac/linux because lscpu is used, which is not supported on mac.
-    if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-        # macOS: Assume AVX2 and FMA are supported as per requirement
-        message(STATUS "Assuming AVX2 and FMA support on macOS; using -mavx2 and -mfma.")
-        target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
-    elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        # Linux: Check for AVX2 support using lscpu
-        execute_process(COMMAND lscpu OUTPUT_VARIABLE LSCPU_OUTPUT ERROR_QUIET)
-
-        # Default to AVX; enable AVX2 if supported by hardware
-        set(FANS_USE_AVX2 FALSE)
-        if (LSCPU_OUTPUT MATCHES "avx2")
-            set(FANS_USE_AVX2 TRUE)
-        endif()
-
-        # Apply compiler options based on hardware detection
-        if (FANS_USE_AVX2)
-            message(STATUS "AVX2 and FMA supported by hardware; using -mavx2 and -mfma.")
-            target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
-        else()
-            message(WARNING "AVX2 and FMA not supported by hardware; falling back to AVX.")
-            target_compile_options(FANS_FANS PUBLIC -mavx)
-        endif()
-    else()
-        message(WARNING "Unsupported system for AVX2 detection; defaulting to -mavx.")
-        target_compile_options(FANS_FANS PUBLIC -mavx)
-    endif()
-endif()
+    target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
+endif ()
 
 add_executable(FANS_main)
 add_custom_command(
