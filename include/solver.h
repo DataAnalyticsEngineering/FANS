@@ -487,16 +487,19 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
     const double     dx  = reader.l_e[0];
     const double     dy  = reader.l_e[1];
     const double     dz  = reader.l_e[2];
+    const double     Lx2 = reader.L[0] / 2.0;
+    const double     Ly2 = reader.L[1] / 2.0;
+    const double     Lz2 = reader.L[2] / 2.0;
     constexpr double rs2 = 1.0 / std::sqrt(2.0);
     VectorXd         u_total(local_n0 * n_y * n_z * howmany);
     /* ---------- single sweep ------------------------------------------------- */
     ptrdiff_t n = 0;
     for (ptrdiff_t ix = 0; ix < local_n0; ++ix) {
-        const double x = (local_0_start + ix) * dx;
+        const double x = (local_0_start + ix) * dx - Lx2;
         for (ptrdiff_t iy = 0; iy < n_y; ++iy) {
-            const double y = iy * dy;
+            const double y = iy * dy - Ly2;
             for (ptrdiff_t iz = 0; iz < n_z; ++iz, ++n) {
-                const double z = iz * dz;
+                const double z = iz * dz - Lz2;
                 if (howmany == 3) { /* ===== mechanics (vector) ===== */
                     const double    g11 = strain_average[0];
                     const double    g22 = strain_average[1];
