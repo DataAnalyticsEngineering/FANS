@@ -17,6 +17,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # with -fno-implicit-templates I get linker errors when using std:: stuff
 # TODO: should be developer specific, by using e.g. CMake Presets
+set(CMAKE_CXX_FLAGS "-O3")
 set(CMAKE_PREFIX_PATH $ENV{CMAKE_PREFIX_PATH})
 
 # IPO
@@ -111,7 +112,7 @@ endif ()
 add_library(FANS::FANS ALIAS FANS_FANS)
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
-    target_compile_options(FANS_FANS PUBLIC -march=armv8-a+simd+fp+crypto)
+
 elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
     target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
 endif ()

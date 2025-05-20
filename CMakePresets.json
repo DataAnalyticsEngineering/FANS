@@ -6,73 +6,21 @@
       "displayName": "GCC Release (Linux)",
       "description": "GCC compiler with Release build type",
       "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/gcc-release",
+      "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_CXX_FLAGS": "-fmax-errors=1 -O3",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-      }
-    },
-    {
-      "name": "gcc-debug",
-      "displayName": "GCC Debug (Linux)",
-      "description": "GCC compiler with Debug build type",
-      "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/gcc-debug",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_CXX_FLAGS": "-fmax-errors=1 -O3",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-      }
-    },
-    {
-      "name": "clang-release-linux",
-      "displayName": "Clang Release (Linux)",
-      "description": "Clang on Linux using libstdc++ for Release",
-      "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/clang-release-linux",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_CXX_FLAGS": "-stdlib=libstdc++ -O3",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-      }
-    },
-    {
-      "name": "clang-debug-linux",
-      "displayName": "Clang Debug (Linux)",
-      "description": "Clang on Linux using libstdc++ for Debug",
-      "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/clang-debug-linux",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_CXX_FLAGS": "-stdlib=libstdc++ -O3",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
     {
       "name": "clang-release-macos",
       "displayName": "Clang Release (macOS)",
-      "description": "macOS system Clang using libc++ for Release",
+      "description": "macOS system Clang for Release",
       "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/clang-release-macos",
+      "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-      },
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Darwin"
-      }
-    },
-    {
-      "name": "clang-debug-macos",
-      "displayName": "Clang Debug (macOS)",
-      "description": "macOS system Clang using libc++ for Debug",
-      "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/build/clang-debug-macos",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       },
       "condition": {
@@ -88,24 +36,8 @@
       "configurePreset": "gcc-release"
     },
     {
-      "name": "gcc-debug",
-      "configurePreset": "gcc-debug"
-    },
-    {
-      "name": "clang-release-linux",
-      "configurePreset": "clang-release-linux"
-    },
-    {
-      "name": "clang-debug-linux",
-      "configurePreset": "clang-debug-linux"
-    },
-    {
       "name": "clang-release-macos",
       "configurePreset": "clang-release-macos"
-    },
-    {
-      "name": "clang-debug-macos",
-      "configurePreset": "clang-debug-macos"
     }
   ]
 }
