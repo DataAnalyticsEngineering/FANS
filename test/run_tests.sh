@@ -19,3 +19,5 @@ $TIME_CMD mpiexec -n $num_processes ./FANS input_files/test_LinearElastic.json t
 $TIME_CMD mpiexec -n $num_processes ./FANS input_files/test_PseudoPlastic.json test_PseudoPlastic.h5 > test_PseudoPlastic.log 2>&1
 
 $TIME_CMD mpiexec -n $num_processes ./FANS input_files/test_J2Plasticity.json test_J2Plasticity.h5 > test_J2Plasticity.log 2>&1
+
+$TIME_CMD mpiexec -n $num_processes ./FANS input_files/test_MixedBCs.json test_MixedBCs.h5 > test_MixedBCs.log 2>&1

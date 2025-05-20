@@ -23,5 +23,5 @@
                             ],
 
     "results": ["homogenized_tangent", "stress_average", "strain_average", "absolute_error",
-                "microstructure", "displacement", "stress", "strain"]
+                "microstructure", "displacement", "displacement_fluctuation", "stress", "strain"]
 }

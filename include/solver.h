@@ -6,7 +6,7 @@
 typedef Map<Array<double, Dynamic, Dynamic>, Unaligned, OuterStride<>> RealArray;
 
 template <int howmany>
-class Solver {
+class Solver : private MixedBCController<howmany> {
   public:
     Solver(Reader reader, Matmodel<howmany> *matmodel);
     virtual ~Solver() = default;
@@ -62,6 +62,23 @@ class Solver {
 
     MatrixXd homogenized_tangent;
     MatrixXd get_homogenized_tangent(double pert_param);
+
+    void enableMixedBC(const MixedBC &mbc, size_t step)
+    {
+        this->activate(*this, mbc, step);
+    }
+    void disableMixedBC()
+    {
+        this->mixed_active = false;
+    }
+    bool isMixedBCActive()
+    {
+        return this->mixed_active;
+    }
+    void updateMixedBC()
+    {
+        this->update(*this);
+    }
 
   protected:
     fftw_plan planfft, planifft;
@@ -464,6 +481,49 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
         printf(") \n\n");
     }
 
+    /* ====================================================================== *
+     *  u_total = g0·X  +  ũ          (vector or scalar, decided at compile time)
+     * ====================================================================== */
+    const double     dx  = reader.l_e[0];
+    const double     dy  = reader.l_e[1];
+    const double     dz  = reader.l_e[2];
+    const double     Lx2 = reader.L[0] / 2.0;
+    const double     Ly2 = reader.L[1] / 2.0;
+    const double     Lz2 = reader.L[2] / 2.0;
+    constexpr double rs2 = 1.0 / std::sqrt(2.0);
+    VectorXd         u_total(local_n0 * n_y * n_z * howmany);
+    /* ---------- single sweep ------------------------------------------------- */
+    ptrdiff_t n = 0;
+    for (ptrdiff_t ix = 0; ix < local_n0; ++ix) {
+        const double x = (local_0_start + ix) * dx - Lx2;
+        for (ptrdiff_t iy = 0; iy < n_y; ++iy) {
+            const double y = iy * dy - Ly2;
+            for (ptrdiff_t iz = 0; iz < n_z; ++iz, ++n) {
+                const double z = iz * dz - Lz2;
+                if (howmany == 3) { /* ===== mechanics (vector) ===== */
+                    const double    g11 = strain_average[0];
+                    const double    g22 = strain_average[1];
+                    const double    g33 = strain_average[2];
+                    const double    g12 = strain_average[3] * rs2;
+                    const double    g13 = strain_average[4] * rs2;
+                    const double    g23 = strain_average[5] * rs2;
+                    const double    ux  = g11 * x + g12 * y + g13 * z;
+                    const double    uy  = g12 * x + g22 * y + g23 * z;
+                    const double    uz  = g13 * x + g23 * y + g33 * z;
+                    const ptrdiff_t b   = 3 * n;
+                    u_total[b]          = v_u[b] + ux;
+                    u_total[b + 1]      = v_u[b + 1] + uy;
+                    u_total[b + 2]      = v_u[b + 2] + uz;
+                } else { /* ===== scalar (howmany==1) ==== */
+                    const double g1 = strain_average[0];
+                    const double g2 = strain_average[1];
+                    const double g3 = strain_average[2];
+                    u_total[n]      = v_u[n] + (g1 * x + g2 * y + g3 * z);
+                }
+            }
+        }
+    }
+
     // Concatenate reader.ms_datasetname and reader.results_prefix into reader.ms_datasetname
     strcat(reader.ms_datasetname, "_results/");
     strcat(reader.ms_datasetname, reader.results_prefix);
@@ -504,7 +564,8 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
                 writeData("absolute_error", "absolute_error", err_all.data(), dims, 1);
             }
             writeSlab("microstructure", "microstructure", ms, 1);
-            writeSlab("displacement", "displacement", v_u, howmany);
+            writeSlab("displacement_fluctuation", "displacement_fluctuation", v_u, howmany);
+            writeSlab("displacement", "displacement", u_total.data(), howmany);
             writeSlab("residual", "residual", v_r, howmany);
             writeSlab("strain", "strain", strain.data(), n_str);
             writeSlab("stress", "stress", stress.data(), n_str);
@@ -584,6 +645,7 @@ MatrixXd Solver<howmany>::get_homogenized_tangent(double pert_param)
         }
 
         matmodel->setGradient(pert_strain);
+        disableMixedBC();
         solve();
         perturbed_stress = get_homogenized_stress();
 
