@@ -50,9 +50,11 @@ def test_displacement_averaging(test_files):
     # Check which fields are available in the results
     results = input_data.get("results", [])
 
-    # Check if displacement field is available
-    if "displacement" not in results:
-        pytest.skip(f"Skipping test: No displacement field found in {input_json_file}")
+    # Check if displacement_fluctuation field is available
+    if "displacement_fluctuation" not in results:
+        pytest.skip(
+            f"Skipping test: No displacement_fluctuation field found in {input_json_file}"
+        )
         return
 
     # Extract hierarchy information from the h5 file
@@ -61,7 +63,7 @@ def test_displacement_averaging(test_files):
     # Load the data from the HDF5 file
     microstructures_to_load = list(hierarchy.keys())
 
-    quantities_to_load = ["displacement"]
+    quantities_to_load = ["displacement_fluctuation"]
 
     time_steps_to_load = []
     load_cases_to_load = []
@@ -87,13 +89,15 @@ def test_displacement_averaging(test_files):
     for microstructure in microstructures_to_load:
         for load_case in load_cases_to_load:
             if load_case in hierarchy[microstructure]:
-                if "displacement" not in data[microstructure][load_case]:
+                if "displacement_fluctuation" not in data[microstructure][load_case]:
                     print(
-                        f"Skipping {microstructure}/{load_case}: Missing displacement field"
+                        f"Skipping {microstructure}/{load_case}: Missing displacement_fluctuation field"
                     )
                     continue
 
-                displacement_data = data[microstructure][load_case]["displacement"]
+                displacement_data = data[microstructure][load_case][
+                    "displacement_fluctuation"
+                ]
 
                 # Compute average manually by averaging over spatial dimensions (1, 2, 3)
                 # displacement_data shape: time_steps x Nx x Ny x Nz x components

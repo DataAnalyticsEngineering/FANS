@@ -91,7 +91,7 @@ void SolverCG<howmany>::internalSolve()
 
         d_real = s_real + fmax(0, (delta - deltamid) / delta0) * d_real;
 
-        if (islinear) {
+        if (islinear && !this->isMixedBCActive()) {
             Matrix<double, howmany * 8, 1> res_e;
             this->template compute_residual_basic<0>(rnew_real, d_real,
                                                      [&](Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx) -> Matrix<double, howmany * 8, 1> & {
@@ -117,7 +117,7 @@ template <int howmany>
 void SolverCG<howmany>::LineSearchSecant()
 {
     double err       = 10.0;
-    int    MaxIter   = 10;
+    int    MaxIter   = 5;
     double tol       = 1e-2;
     int    _iter     = 0;
     double alpha_new = 0.0001;
@@ -129,6 +129,7 @@ void SolverCG<howmany>::LineSearchSecant()
     while (((_iter < MaxIter) && (err > tol))) {
 
         v_u_real += d_real * (alpha_new - alpha_old);
+        this->updateMixedBC();
         this->template compute_residual<0>(rnew_real, v_u_real);
         r1pd = dotProduct(rnew_real, d_real);
 

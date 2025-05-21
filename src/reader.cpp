@@ -85,7 +85,6 @@ void Reader ::ReadInputFile(char fn[])
         errorParameters = j["error_parameters"];
         TOL             = errorParameters["tolerance"].get<double>();
         n_it            = j["n_it"].get<int>();
-        g0              = j["macroscale_loading"].get<vector<vector<vector<double>>>>();
 
         problemType = j["problem_type"].get<string>();
         matmodel    = j["matmodel"].get<string>();
@@ -93,6 +92,29 @@ void Reader ::ReadInputFile(char fn[])
 
         json j_mat     = j["material_properties"];
         resultsToWrite = j["results"].get<vector<string>>(); // Read the results_to_write field
+
+        load_cases.clear();
+        const auto &ml = j["macroscale_loading"];
+        if (!ml.is_array())
+            throw std::runtime_error("macroscale_loading must be an array");
+
+        const int n_str = (problemType == "thermal" ? 3 : 6);
+
+        for (const auto &entry : ml) {
+            LoadCase lc;
+            if (entry.is_array()) { // ---------- legacy pure-strain ----------
+                lc.mixed   = false;
+                lc.g0_path = entry.get<vector<vector<double>>>();
+                lc.n_steps = lc.g0_path.size();
+                if (lc.g0_path[0].size() != static_cast<size_t>(n_str))
+                    throw std::invalid_argument("Invalid length of loading vector");
+            } else { // ---------- mixed BC object ------------
+                lc.mixed   = true;
+                lc.mbc     = MixedBC::from_json(entry, n_str);
+                lc.n_steps = lc.mbc.F_E_path.rows();
+            }
+            load_cases.push_back(std::move(lc));
+        }
 
         if (world_rank == 0) {
             printf("# microstructure file name: \t '%s'\n", ms_filename);
