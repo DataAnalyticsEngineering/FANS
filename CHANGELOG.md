@@ -1,6 +1,6 @@
 # FANS Changelog
 
-## latest
+## v0.4.0
 
 - Support compilaion on MacOS X via conda-forge https://github.com/DataAnalyticsEngineering/FANS/pull/59
 - Add support for macroscale mixed stress-strain boundary conditions https://github.com/DataAnalyticsEngineering/FANS/pull/58
