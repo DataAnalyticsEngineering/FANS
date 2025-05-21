@@ -27,7 +27,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push fans-ci image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ${{ github.workspace }}
           file: docker/Dockerfile
@@ -42,7 +42,7 @@ jobs:
           build-args: UBUNTU_VERSION=${{ matrix.ubuntu-version }}
 
       - name: Build and push fans-dev image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ${{ github.workspace }}
           file: docker/Dockerfile
