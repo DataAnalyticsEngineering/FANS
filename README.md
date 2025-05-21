@@ -1,8 +1,10 @@
 # Fourier-Accelerated Nodal Solvers (FANS)
 
-Fourier Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver for microscale multiphysics problems. FANS is written in C++, built using CMake, and it has MPI parallelization.
+Fourier-Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver for microscale multiphysics problems. FANS is written in C++, built using CMake, and it has MPI parallelization.
 
-<img src="docs/images/FANS_example.png" alt="Example Image" width="400" height="300">
+<p align="center">
+  <img src="docs/images/FANS_example.png" alt="Example Image" width="400" height="300">
+</p>
 
 ## Table of contents
 
@@ -43,6 +45,7 @@ FANS has the following dependencies:
   brew install open-mpi --build-from-source --cc=gcc-14
   brew install hdf5-mpi --build-from-source --cc=gcc-14
   brew install fftw eigen
+
   export CC=gcc-14 CXX=g++-14 MPICC=mpicc MPICXX=mpicxx
   ```
 
@@ -58,7 +61,7 @@ curl -fsSL https://pixi.sh/install.sh | sh
 pixi shell
 ```
 
-We also provide a [set of Docker images](docker/) which already have FANS built-in.
+We also provide a set of Docker images. For further information, please refer to the [Docker README](docker/README.md).
 
 ### Installing dependencies using Spack
 
@@ -156,10 +159,10 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 
 ```json
 "microstructure": {
-        "filepath": "microstructures/sphere32.h5",
-        "datasetname": "/sphere/32x32x32/ms",
-        "L": [1.0, 1.0, 1.0]
-    }
+                    "filepath": "microstructures/sphere32.h5",
+                    "datasetname": "/sphere/32x32x32/ms",
+                    "L": [1.0, 1.0, 1.0]
+                  }
 ```
 
 - `filepath`: This specifies the path to the HDF5 file that contains the microstructure data.
@@ -171,9 +174,9 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 ```json
 "matmodel": "LinearElasticIsotropic",
 "material_properties": {
-    "bulk_modulus": [62.5000, 222.222],
-    "shear_modulus": [28.8462, 166.6667]
-}
+                         "bulk_modulus": [62.5000, 222.222],
+                         "shear_modulus": [28.8462, 166.6667]
+                       }
 ```
 
 - `problem_type`: This defines the type of physical problem you are solving. Common options include `thermal` problems and `mechanical` problems.
@@ -195,10 +198,10 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 ```json
 "method": "cg",
 "error_parameters":{
-    "measure": "Linfinity",
-    "type": "absolute",
-    "tolerance": 1e-10
-},
+                     "measure": "Linfinity",
+                     "type": "absolute",
+                     "tolerance": 1e-10
+                   },
 "n_it": 100,
 ```
 
@@ -229,20 +232,22 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 ```
 
 - `macroscale_loading`: This defines the external loading applied to the microstructure. It is an array of arrays, where each sub-array represents a loading condition applied to the system. The format of the loading array depends on the problem type:
-- For `thermal` problems, the array typically has 3 components, representing the temperature gradients in the x, y, and z directions.
-- For `mechanical` problems, the array must have 6 components, corresponding to the components of the strain tensor in Mandel notation (e.g., [[ε_11, ε_22, ε_33, √2 ε_12, √2 ε_13, √2 ε_23]]).
+- For `thermal` problems, the array typically has 3 components, representing the temperature gradients in the $x$, $y$, and $z$ directions.
+- For `mechanical` problems, the array must have 6 components, corresponding to the components of the strain tensor in Mandel notation (e.g., $[\varepsilon_{11},\; \varepsilon_{22},\; \varepsilon_{33},\; \sqrt{2}\varepsilon_{12},\; \sqrt{2}\varepsilon_{13},\; \sqrt{2}\varepsilon_{23}]$).
 
 In the case of path/time-dependent loading as shown, for example as in plasticity problems, the `macroscale_loading` array can include multiple steps with corresponding loading conditions.
 
 FANS also supports mixed boundary conditions, where some components can be strain-controlled while others are stress-controlled:
 
 ```json
-"macroscale_loading":   [{ "strain_indices" : [2,3,4,5],
+"macroscale_loading":   [{
+                           "strain_indices" : [2,3,4,5],
                            "stress_indices" : [0,1],
                            "strain" : [[0.005 , 0.0, 0.0, 0.0],
                                        [0.010 , 0.0, 0.0, 0.0]],
                            "stress" : [[0.0, 0.0],
-                                       [0.0, 0.0]]}]
+                                       [0.0, 0.0]]
+                          }]
 ```
 
 ### Results Specification
