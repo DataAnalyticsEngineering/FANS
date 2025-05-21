@@ -6,9 +6,10 @@
 typedef Map<Array<double, Dynamic, Dynamic>, Unaligned, OuterStride<>> RealArray;
 
 template <int howmany>
-class Solver {
+class Solver : private MixedBCController<howmany> {
   public:
     Solver(Reader reader, Matmodel<howmany> *matmodel);
+    virtual ~Solver() = default;
 
     Reader reader;
 
@@ -27,10 +28,10 @@ class Solver {
     double             TOL;      //!< Tolerance on relative error norm
     Matmodel<howmany> *matmodel; //!< Material Model
 
-    unsigned char *ms;  // Micro-structure Binary
-    double        *v_r; //!< Residual vector
-    double        *v_u;
-    double        *buffer_padding;
+    unsigned short *ms;  // Micro-structure
+    double         *v_r; //!< Residual vector
+    double         *v_u;
+    double         *buffer_padding;
 
     RealArray      v_r_real; // can't do the "classname()" intialization here, and Map doesn't have a default constructor
     RealArray      v_u_real;
@@ -61,6 +62,23 @@ class Solver {
 
     MatrixXd homogenized_tangent;
     MatrixXd get_homogenized_tangent(double pert_param);
+
+    void enableMixedBC(const MixedBC &mbc, size_t step)
+    {
+        this->activate(*this, mbc, step);
+    }
+    void disableMixedBC()
+    {
+        this->mixed_active = false;
+    }
+    bool isMixedBCActive()
+    {
+        return this->mixed_active;
+    }
+    void updateMixedBC()
+    {
+        this->update(*this);
+    }
 
   protected:
     fftw_plan planfft, planifft;
@@ -119,40 +137,40 @@ Solver<howmany>::Solver(Reader reader, Matmodel<howmany> *mat)
     Matrix<double, 8, 8>             AA;
     Matrix<double, howmany, howmany> block;
     fundamentalSolution = Matrix<double, howmany, Dynamic>(howmany, (local_n1 * n_x * (n_z / 2 + 1) * (howmany + 1)) / 2);
+    fundamentalSolution.setZero();
 
     for (int i_y = 0; i_y < local_n1; ++i_y) {
         for (int i_x = 0; i_x < n_x; ++i_x) {
             for (int i_z = 0; i_z < n_z / 2 + 1; ++i_z) {
-                if (i_x == 0 && local_1_start + i_y == 0 && i_z == 0) {
-                    fundamentalSolution.template middleCols<howmany>(0).template triangularView<Lower>() = MatrixXd::Zero(howmany, howmany).triangularView<Lower>();
-                    continue;
-                }
-                A(0, 0) = 1.0;
-                A(1, 0) = etax(i_x);
-                A(2, 0) = etay(local_1_start + i_y);
-                A(3, 0) = etax(i_x) * etay(local_1_start + i_y);
-                A(4, 0) = etaz(i_z);
-                A(5, 0) = etax(i_x) * etaz(i_z);
-                A(6, 0) = etaz(i_z) * etay(local_1_start + i_y);
-                A(7, 0) = etax(i_x) * etay(local_1_start + i_y) * etaz(i_z);
-                AA      = A.real() * A.real().transpose() + A.imag() * A.imag().transpose();
+                if (i_x != 0 || (local_1_start + i_y) != 0 || i_z != 0) {
 
-                for (int i = 0; i < howmany; i++) {
-                    for (int j = i; j < howmany; j++) {
-                        block(i, j) = (Ker0.template block<8, 8>(8 * i, 8 * j).array() * AA.array()).sum();
-                        block(j, i) = block(i, j); // we'd like to avoid this, but block.selfadjointView<Upper>().inverse() does not work
+                    A(0, 0) = 1.0;
+                    A(1, 0) = etax(i_x);
+                    A(2, 0) = etay(local_1_start + i_y);
+                    A(3, 0) = etax(i_x) * etay(local_1_start + i_y);
+                    A(4, 0) = etaz(i_z);
+                    A(5, 0) = etax(i_x) * etaz(i_z);
+                    A(6, 0) = etaz(i_z) * etay(local_1_start + i_y);
+                    A(7, 0) = etax(i_x) * etay(local_1_start + i_y) * etaz(i_z);
+                    AA      = A.real() * A.real().transpose() + A.imag() * A.imag().transpose();
+
+                    for (int i = 0; i < howmany; i++) {
+                        for (int j = i; j < howmany; j++) {
+                            block(i, j) = (Ker0.template block<8, 8>(8 * i, 8 * j).array() * AA.array()).sum();
+                            block(j, i) = block(i, j); // we'd like to avoid this, but block.selfadjointView<Upper>().inverse() does not work
+                        }
                     }
-                }
-                ptrdiff_t ind = i_y * n_x * (n_z / 2 + 1) + i_x * (n_z / 2 + 1) + i_z;
-                if (ind % 2 == 0) {
-                    fundamentalSolution.template middleCols<howmany>((ind / 2) * (howmany + 1)).template triangularView<Lower>() = block.inverse().template triangularView<Lower>();
-                } else {
-                    fundamentalSolution.template middleCols<howmany>((ind / 2) * (howmany + 1) + 1).template triangularView<Upper>() = block.inverse().template triangularView<Upper>();
+                    ptrdiff_t ind = i_y * n_x * (n_z / 2 + 1) + i_x * (n_z / 2 + 1) + i_z;
+                    if (ind % 2 == 0) {
+                        fundamentalSolution.template middleCols<howmany>((ind / 2) * (howmany + 1)).template triangularView<Lower>() = block.inverse().template triangularView<Lower>();
+                    } else {
+                        fundamentalSolution.template middleCols<howmany>((ind / 2) * (howmany + 1) + 1).template triangularView<Upper>() = block.inverse().template triangularView<Upper>();
+                    }
                 }
             }
         }
     }
-    // Divided by n_el to scale the Fundamental solution so explicit normalization is not needed for FFT and IFFT
+    // // Divided by n_el to scale the Fundamental solution so explicit normalization is not needed for FFT and IFFT
     fundamentalSolution /= (double) (n_x * n_y * n_z);
 
     tot_time = clock() - tot_time;
@@ -463,6 +481,53 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
         printf(") \n\n");
     }
 
+    /* ====================================================================== *
+     *  u_total = g0·X  +  ũ          (vector or scalar, decided at compile time)
+     * ====================================================================== */
+    const double     dx  = reader.l_e[0];
+    const double     dy  = reader.l_e[1];
+    const double     dz  = reader.l_e[2];
+    const double     Lx2 = reader.L[0] / 2.0;
+    const double     Ly2 = reader.L[1] / 2.0;
+    const double     Lz2 = reader.L[2] / 2.0;
+    constexpr double rs2 = 1.0 / std::sqrt(2.0);
+    VectorXd         u_total(local_n0 * n_y * n_z * howmany);
+    /* ---------- single sweep ------------------------------------------------- */
+    ptrdiff_t n = 0;
+    for (ptrdiff_t ix = 0; ix < local_n0; ++ix) {
+        const double x = (local_0_start + ix) * dx - Lx2;
+        for (ptrdiff_t iy = 0; iy < n_y; ++iy) {
+            const double y = iy * dy - Ly2;
+            for (ptrdiff_t iz = 0; iz < n_z; ++iz, ++n) {
+                const double z = iz * dz - Lz2;
+                if (howmany == 3) { /* ===== mechanics (vector) ===== */
+                    const double    g11 = strain_average[0];
+                    const double    g22 = strain_average[1];
+                    const double    g33 = strain_average[2];
+                    const double    g12 = strain_average[3] * rs2;
+                    const double    g13 = strain_average[4] * rs2;
+                    const double    g23 = strain_average[5] * rs2;
+                    const double    ux  = g11 * x + g12 * y + g13 * z;
+                    const double    uy  = g12 * x + g22 * y + g23 * z;
+                    const double    uz  = g13 * x + g23 * y + g33 * z;
+                    const ptrdiff_t b   = 3 * n;
+                    u_total[b]          = v_u[b] + ux;
+                    u_total[b + 1]      = v_u[b + 1] + uy;
+                    u_total[b + 2]      = v_u[b + 2] + uz;
+                } else { /* ===== scalar (howmany==1) ==== */
+                    const double g1 = strain_average[0];
+                    const double g2 = strain_average[1];
+                    const double g3 = strain_average[2];
+                    u_total[n]      = v_u[n] + (g1 * x + g2 * y + g3 * z);
+                }
+            }
+        }
+    }
+
+    // Concatenate reader.ms_datasetname and reader.results_prefix into reader.ms_datasetname
+    strcat(reader.ms_datasetname, "_results/");
+    strcat(reader.ms_datasetname, reader.results_prefix);
+
     // Write results to results h5 file
     auto writeData = [&](const char *resultName, const char *resultPrefix, auto *data, hsize_t *dims, int ndims) {
         if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), resultName) != reader.resultsToWrite.end()) {
@@ -499,7 +564,8 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
                 writeData("absolute_error", "absolute_error", err_all.data(), dims, 1);
             }
             writeSlab("microstructure", "microstructure", ms, 1);
-            writeSlab("displacement", "displacement", v_u, howmany);
+            writeSlab("displacement_fluctuation", "displacement_fluctuation", v_u, howmany);
+            writeSlab("displacement", "displacement", u_total.data(), howmany);
             writeSlab("residual", "residual", v_r, howmany);
             writeSlab("strain", "strain", strain.data(), n_str);
             writeSlab("stress", "stress", stress.data(), n_str);
@@ -579,6 +645,7 @@ MatrixXd Solver<howmany>::get_homogenized_tangent(double pert_param)
         }
 
         matmodel->setGradient(pert_strain);
+        disableMixedBC();
         solve();
         perturbed_stress = get_homogenized_stress();
 

@@ -3,6 +3,7 @@
 
 // Thermal models
 #include "material_models/LinearThermal.h"
+#include "material_models/GBDiffusion.h"
 
 // Mechanical models
 #include "material_models/LinearElastic.h"
@@ -19,6 +20,8 @@ Matmodel<1> *createMatmodel(const Reader &reader)
         return new LinearThermalIsotropic(reader.l_e, reader.materialProperties);
     } else if (reader.matmodel == "LinearThermalTriclinic") {
         return new LinearThermalTriclinic(reader.l_e, reader.materialProperties);
+    } else if (reader.matmodel == "GBDiffusion") {
+        return new GBDiffusion(const_cast<Reader &>(reader));
     } else {
         throw std::invalid_argument(reader.matmodel + " is not a valid matmodel for thermal problem");
     }

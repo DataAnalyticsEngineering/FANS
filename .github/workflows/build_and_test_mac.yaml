@@ -1,5 +1,5 @@
-name: Build and Test
-# Builds FANS inside various docker containers and runs the tests.
+name: Build and test macOS 15
+# Builds FANS for macOS 15 on Apple Silicon CPU and runs the tests.
 
 on:
   push:
@@ -14,23 +14,23 @@ concurrency:
   cancel-in-progress: ${{github.event_name == 'pull_request'}}
 
 jobs:
-  build:
-    name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }}
-    runs-on: ubuntu-latest
-    container: unistuttgartdae/fans-ci:${{ matrix.UBUNTU_VERSION }}
-    defaults:
-      run:
-        shell: "bash --login -eo pipefail {0}"
+  build-macos:
+    name: macOS 15
+    runs-on: macos-15
     env:
       FANS_BUILD_DIR: build
-      FANS_MPI_USER: fans
     strategy:
       fail-fast: false
-      matrix:
-        UBUNTU_VERSION: [noble, jammy]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install FANS dependencies
+        run: |
+          brew install gnu-time cmake gcc@14
+          brew install open-mpi --build-from-source --cc=gcc-14
+          brew install hdf5-mpi --build-from-source --cc=gcc-14
+          brew install fftw eigen
 
       - name: Set up pixi
         uses: prefix-dev/setup-pixi@v0.8.8
@@ -40,6 +40,11 @@ jobs:
 
       - name: Configure
         working-directory: ${{ env.FANS_BUILD_DIR }}
+        env:
+          CC: gcc-14
+          CXX: g++-14
+          MPICC: mpicc
+          MPICXX: mpicxx
         run: |
           cmake --version
           cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
@@ -47,17 +52,17 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CMakeCache
+          name: macOS 15 CMakeCache
           path: ${{ env.FANS_BUILD_DIR }}/CMakeCache.txt
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CMakeLogs
+          name: macOS 15 CMakeLogs
           path: '${{ env.FANS_BUILD_DIR }}/CMakeFiles/*.log'
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CompileCommands
+          name: macOS 15 CompileCommands
           path: ${{ env.FANS_BUILD_DIR }}/compile_commands.json
 
       - name: Compile
@@ -65,18 +70,16 @@ jobs:
         run:
           cmake --build . -j $(nproc) || cmake --build . -j1
 
-      - name: Adjust user rights
-        run: chown -R ${{ env.FANS_MPI_USER }} ${{ env.FANS_BUILD_DIR }}
-
       - name: Tests
         working-directory: ${{ env.FANS_BUILD_DIR }}
-        run: |
-          su -c "ctest" ${{ env.FANS_MPI_USER }}
+        env:
+          CTEST_OUTPUT_ON_FAILURE: 1
+        run: ctest
 
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CTest logs
+          name: macOS 15 CTest logs
           path: ${{ env.FANS_BUILD_DIR }}/Testing/Temporary/LastTest.log
 
       # ────────────────────────────────────────────────────────────────

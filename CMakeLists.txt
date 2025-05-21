@@ -1,11 +1,11 @@
-cmake_minimum_required(VERSION 3.0...3.28)
+cmake_minimum_required(VERSION 3.21)
 
 # ##############################################################################
 # GENERAL SETTINGS
 # ##############################################################################
 
 project(FANS
-        VERSION 0.3.0
+        VERSION 0.4.0
         LANGUAGES C CXX
 )
 
@@ -17,7 +17,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # with -fno-implicit-templates I get linker errors when using std:: stuff
 # TODO: should be developer specific, by using e.g. CMake Presets
-set(CMAKE_CXX_FLAGS "-fmax-errors=1 -O3")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 set(CMAKE_PREFIX_PATH $ENV{CMAKE_PREFIX_PATH})
 
 # IPO
@@ -54,9 +54,12 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # From https://stackoverflow.com/questions/73248130/how-to-avoid-the-removal-of-the-rpath-during-cmake-install-step
-
 # Set RPATH to be relative and honor user overrides, whether at the command line or FetchContent
-set(RPATH_BASE "$ORIGIN")
+if(APPLE)
+        set(RPATH_BASE "@loader_path")
+else()
+        set(RPATH_BASE "$ORIGIN")
+endif()
 file(RELATIVE_PATH REL_PATH_LIB
         "/${CMAKE_INSTALL_BINDIR}/"
         "/${CMAKE_INSTALL_LIBDIR}/")
@@ -81,11 +84,20 @@ find_package(HDF5 REQUIRED COMPONENTS CXX)
 
 find_package(Eigen3 REQUIRED)
 
-find_package(OpenMP REQUIRED)
-
 find_package(MPI REQUIRED)
 
 find_package(FFTW3 REQUIRED COMPONENTS DOUBLE MPI)
+
+option(FANS_LIBRARY_FOR_MICRO_MANAGER "Building FANS as a library to be used by the Micro Manager." OFF)
+
+if (FANS_LIBRARY_FOR_MICRO_MANAGER)
+    include(FetchContent)
+    FetchContent_Declare(
+        pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11.git
+        GIT_TAG v2.12.0
+    )
+    FetchContent_MakeAvailable(pybind11)
+endif()
 
 # ##############################################################################
 # TARGETS
@@ -100,7 +112,7 @@ endif ()
 add_library(FANS::FANS ALIAS FANS_FANS)
 
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
-    target_compile_options(FANS_FANS PUBLIC -march=armv8-a+simd+fp+crypto)
+
 elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
     target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
 endif ()
@@ -114,6 +126,10 @@ add_custom_command(
         ${CMAKE_CURRENT_SOURCE_DIR}/test/$<TARGET_FILE_NAME:FANS_main>
         COMMENT "Create a symlink for FANS executable to ${CMAKE_CURRENT_SOURCE_DIR}/test/"
 )
+
+if (FANS_LIBRARY_FOR_MICRO_MANAGER)
+    add_subdirectory(pyfans)
+endif ()
 
 # ##############################################################################
 # HEADERS
@@ -132,12 +148,22 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/solverFP.h
         include/solver.h
         include/setup.h
+        include/mixedBCs.h
 
         include/material_models/LinearThermal.h
+        include/material_models/GBDiffusion.h
+
         include/material_models/LinearElastic.h
         include/material_models/PseudoPlastic.h
         include/material_models/J2Plasticity.h
 )
+
+# version.h is generated and added to the build include directory
+configure_file(
+    "${PROJECT_SOURCE_DIR}/include/version.h.in"
+    "${PROJECT_BINARY_DIR}/include/version.h" @ONLY
+)
+target_include_directories(FANS_main PRIVATE "${PROJECT_BINARY_DIR}/include")
 
 # ##############################################################################
 # SOURCES
@@ -174,9 +200,6 @@ target_link_libraries(FANS_FANS PUBLIC ${FFTW3_LIBRARIES})
 target_compile_definitions(FANS_FANS PUBLIC ${FFTW3_DEFINITIONS})
 
 target_link_libraries(FANS_FANS PUBLIC Eigen3::Eigen)
-
-target_link_libraries(FANS_FANS PUBLIC OpenMP::OpenMP_CXX)
-
 
 target_link_libraries(FANS_main PRIVATE FANS::FANS)
 

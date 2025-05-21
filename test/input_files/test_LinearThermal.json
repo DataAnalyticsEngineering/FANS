@@ -1,7 +1,9 @@
 {
-    "ms_filename": "microstructures/sphere32.h5",
-    "ms_datasetname": "/sphere/32x32x32/ms",
-    "ms_L": [1.0, 1.0, 1.0],
+    "microstructure": {
+        "filepath": "microstructures/sphere32.h5",
+        "datasetname": "/sphere/32x32x32/ms",
+        "L": [1.0, 1.0, 1.0]
+    },
 
     "problem_type": "thermal",
     "matmodel": "LinearThermalIsotropic",
@@ -17,11 +19,9 @@
     },
     "n_it": 100,
     "macroscale_loading":   [
-                                [[1, 0, 0]],
-                                [[0, 1, 0]],
-                                [[0, 0, 1]]
+                                [[0.01, 0.02, -0.01]]
                             ],
 
-    "results": ["stress_average", "strain_average", "absolute_error", "phase_stress_average", "phase_strain_average",
-                "microstructure", "displacement", "stress", "strain"]
+    "results": ["homogenized_tangent", "stress_average", "strain_average", "absolute_error",
+                "microstructure", "displacement", "displacement_fluctuation", "stress", "strain"]
 }

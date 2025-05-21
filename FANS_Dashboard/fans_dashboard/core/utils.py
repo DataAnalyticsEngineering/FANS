@@ -1,7 +1,7 @@
 import h5py
 import numpy as np
 from collections import defaultdict
-from postprocessing import compute_rank2tensor_measures
+from fans_dashboard.core.postprocessing import compute_rank2tensor_measures
 
 
 def recursively_find_structure(group, current_path=""):

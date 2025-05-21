@@ -1,0 +1,56 @@
+name: Test PyFans
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - "*"
+
+jobs:
+  test-pyfans:
+    runs-on: ubuntu-latest
+    container: unistuttgartdae/fans-ci:noble
+    defaults:
+      run:
+        shell: "bash --login -eo pipefail {0}"
+    env:
+      FANS_BUILD_DIR: build
+      FANS_MPI_USER: fans
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Generate build directory
+      run: mkdir -p ${{ env.FANS_BUILD_DIR }}
+
+    - name: Install dependencies
+      run: |
+        apt update
+        apt install -y wget python3-venv
+
+    - name: Install preCICE
+      run: |
+        wget https://github.com/precice/precice/releases/download/v3.2.0/libprecice3_3.2.0_noble.deb
+        apt install -y ./libprecice3_3.2.0_noble.deb
+
+    - name: Install the Micro Manager
+      run: |
+        python3 -m venv .venv
+        . .venv/bin/activate
+        pip install micro-manager-precice
+
+    - name: Configure
+      working-directory: ${{ env.FANS_BUILD_DIR }}
+      run: |
+        cmake .. -DFANS_LIBRARY_FOR_MICRO_MANAGER=ON
+        make
+
+    - name: Run a dummy macro-micro coupling test
+      run: |
+        . .venv/bin/activate
+        cd test/test_pyfans
+        python3 macro-cube.py & micro-manager-precice micro-manager-config.json

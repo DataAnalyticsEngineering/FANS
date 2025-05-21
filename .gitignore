@@ -198,10 +198,15 @@ test/input_files/**/*.json
 **/scratch/
 
 # Test microstructure files
-!sphere.h5
+!sphere32.h5
 
 # Test input files
 !test_LinearElastic.json
 !test_LinearThermal.json
 !test_PseudoPlastic.json
 !test_J2Plasticity.json
+!test_MixedBCs.json
+
+# pixi environments
+.pixi
+*.egg-info
