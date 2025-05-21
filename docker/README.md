@@ -5,7 +5,7 @@ We provide a set of docker images for different use cases on our [Dockerhub prof
 - **fans-ci**: Contains the minimum tools to build FANS (including dev packages of dependencies with the required headers), but does not include FANS itself. Meant for a CI workflow.
 - **fans-dev**: Based upon fans-ci, but offers a non-root user (`fans`) and handling of UID and GID to not mess up permissions when volume mounting into the container. Meant as an quick to setup build environment for FANS.
 
-Both images are built for linux/amd64 and linux/arm64 as well as for the three most recent Ubuntu LTS versions (jammy and noble). The Ubuntu version can be selected through tags, e.g. `fans-dev:jammy`; `noble` is equivalent to the `latest` tag. The architecture is selected automatically depending on your host platform.
+Both images are built for linux/amd64 and linux/arm64 as well as for the two most recent Ubuntu LTS versions (jammy and noble). The Ubuntu version can be selected through tags, e.g. `fans-dev:jammy`; `noble` is equivalent to the `latest` tag. The architecture is selected automatically depending on your host platform.
 
 ## Set up a Container
 
