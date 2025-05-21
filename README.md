@@ -263,8 +263,8 @@ FANS also supports mixed boundary conditions, where some components can be strai
   - `absolute_error`: The L-infinity error of finite element nodal residual at each iteration.
   - `phase_stress_average` and `phase_strain_average`: Volume averaged- homogenized stress and strain for each phase within the microstructure.
   - `microstructure`: The original microstructure data.
-  - `displacement`: The displacement field at each voxel in the microstructure.
-  - `displacement_fluctuation`: The displacement fluctuation field (for mechanical problems) and temperature fluctuation field (for thermal problems).
+  - `displacement`: The displacement field (for mechanical problems) and temperature field (for thermal problems) at each voxel in the microstructure.
+  - `displacement_fluctuation`: The periodic displacement fluctuation field (for mechanical problems) and periodic temperature fluctuation field (for thermal problems at each voxel in the microstructure).
   - `stress` and `strain`: The stress and strain fields at each voxel in the microstructure.
 
 - Additional material model specific results can be included depending on the problem type and material model.
