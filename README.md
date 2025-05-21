@@ -1,4 +1,4 @@
-# Fourier Accelerated Nodal Solver (FANS)
+# Fourier-Accelerated Nodal Solvers (FANS)
 
 Fourier Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver for microscale multiphysics problems. FANS is written in C++, built using CMake, and it has MPI parallelization.
 
@@ -15,8 +15,8 @@ Fourier Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver fo
 
 FANS has the following dependencies:
 
-- A C++ compiler (e.g. GCC)
-- CMake (version 3.0 or higher) (+ Unix file utility for creating .deb packages)
+- A C++ compiler (e.g. GCC, Clang, etc.)
+- CMake (version 3.21 or higher)
 - Git (for cloning this repo)
 - MPI (mpicc and mpic++)
 - HDF5 with MPI support
@@ -25,27 +25,27 @@ FANS has the following dependencies:
 
 ### Installing dependencies
 
-We recommend installing the dependencies using a package manager. For example, using `apt`, the following command is run
+-   On Debian based systems, we recommend installing the dependencies using using `apt`,
 
-```bash
-apt-get install \
-    libhdf5-dev \
-    libopenmpi-dev \
-    libeigen3-dev \
-    libfftw3-dev \
-    libfftw3-mpi-dev
-```
+    ```bash
+    apt-get install \
+        libhdf5-dev \
+        libopenmpi-dev \
+        libeigen3-dev \
+        libfftw3-dev \
+        libfftw3-mpi-dev
+    ```
 
-On macOS, you can obtain the dependencies using `brew` and set the environment variables:
+-   On macOS, you can obtain the dependencies using `brew` and set the environment variables:
 
-```zsh
-brew install gnu-time cmake gcc@14
-brew install open-mpi --build-from-source --cc=gcc-14
-brew install hdf5-mpi --build-from-source --cc=gcc-14
-brew install fftw eigen
+    ```zsh
+    brew install gnu-time cmake gcc@14
+    brew install open-mpi --build-from-source --cc=gcc-14
+    brew install hdf5-mpi --build-from-source --cc=gcc-14
+    brew install fftw eigen
 
-export CC=gcc-14 CXX=g++-14 MPICC=mpicc MPICXX=mpicxx
-```
+    export CC=gcc-14 CXX=g++-14 MPICC=mpicc MPICXX=mpicxx
+    ```
 
 ### Setting up a Python environment
 
@@ -63,7 +63,7 @@ We also provide a [set of Docker images](docker/) which already have FANS built-
 
 ### Installing dependencies using Spack
 
-Spack is a package manager designed for high-performance computing environments. It simplifies the installation of complex software stacks, making it ideal for setting up FANS on remote systems.
+Spack is a package manager designed for high-performance computing environments. It simplifies the installation of complex software stacks, making it ideal for setting up FANS on HPC systems.
 
 1. **Install Spack** by following these [installation instructions](https://spack.readthedocs.io/en/latest/getting_started.html).
 
@@ -177,8 +177,18 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 }
 ```
 
-- `problem_type`: This defines the type of physical problem you are solving. Common options include "thermal" problems and "mechanical" problems.
-- `matmodel`: This specifies the material model to be used in the simulation. Examples include `LinearThermalIsotropic` for isotropic linear thermal problems, `LinearElasticIsotropic` for isotropic linear elastic mechanical problems, `PseudoPlasticLinearHardening`/`PseudoPlasticNonLinearHardening` for plasticity mimicking model with linear/nonlinear hardening, and `J2ViscoPlastic_LinearIsotropicHardening`/`J2ViscoPlastic_NonLinearIsotropicHardening` for rate dependent J2 plasticity model with linear/nonlinear isotropic hardening.
+- `problem_type`: This defines the type of physical problem you are solving. Common options include `thermal` problems and `mechanical` problems.
+- `matmodel`: This specifies the material model to be used in the simulation. Examples include
+
+    - `LinearThermalIsotropic` for linear isotropic conductive material model
+    - `LinearThermalTriclinic` for linear triclinic conductive material model
+    - `GBDiffusion` for diffusion model with transversely isotropic grain boundary and isotropic bulk for polycrystalline materials
+
+    - `LinearElasticIsotropic` for linear isotropic elastic material model
+    - `LinearElasticTriclinic` for linear triclinic elastic material model
+    - `PseudoPlasticLinearHardening` / `PseudoPlasticNonLinearHardening` for plasticity mimicking model with linear/nonlinear hardening
+    - `J2ViscoPlastic_LinearIsotropicHardening` / `J2ViscoPlastic_NonLinearIsotropicHardening` for rate independent / dependent J2 plasticity model with kinematic and linear/nonlinear isotropic hardening.
+
 - `material_properties`: This provides the necessary material parameters for the chosen material model. For thermal problems, you might specify `conductivity`, while mechanical problems might require `bulk_modulus`, `shear_modulus`, and more properties for advanced material models. These properties can be defined as arrays to represent multiple phases within the microstructure.
 
 ### Solver Settings
@@ -225,11 +235,22 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 
 In the case of path/time-dependent loading as shown, for example as in plasticity problems, the `macroscale_loading` array can include multiple steps with corresponding loading conditions.
 
+FANS also supports mixed boundary conditions, where some components can be strain-controlled while others are stress-controlled:
+
+```json
+"macroscale_loading":   [{ "strain_indices" : [2,3,4,5],
+                           "stress_indices" : [0,1],
+                           "strain" : [[0.005 , 0.0, 0.0, 0.0],
+                                       [0.010 , 0.0, 0.0, 0.0]],
+                           "stress" : [[0.0, 0.0],
+                                       [0.0, 0.0]]}]
+```
+
 ### Results Specification
 
 ```json
 "results": ["stress_average", "strain_average", "absolute_error", "phase_stress_average", "phase_strain_average",
-            "microstructure", "displacement", "stress", "strain"]
+            "microstructure", "displacement", "displacement_fluctuation", "stress", "strain"]
 ```
 
 - `results`: This array lists the quantities that should be stored into the results HDF5 file during the simulation. Each string in the array corresponds to a specific result:
@@ -238,10 +259,15 @@ In the case of path/time-dependent loading as shown, for example as in plasticit
   - `absolute_error`: The L-infinity error of finite element nodal residual at each iteration.
   - `phase_stress_average` and `phase_strain_average`: Volume averaged- homogenized stress and strain for each phase within the microstructure.
   - `microstructure`: The original microstructure data.
-  - `displacement`: The displacement fluctuation field (for mechanical problems) and temperature fluctuation field (for thermal problems).
+  - `displacement`: The displacement field at each voxel in the microstructure.
+  - `displacement_fluctuation`: The displacement fluctuation field (for mechanical problems) and temperature fluctuation field (for thermal problems).
   - `stress` and `strain`: The stress and strain fields at each voxel in the microstructure.
 
 - Additional material model specific results can be included depending on the problem type and material model.
+
+## Acknowledgements
+
+Funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) under Germany’s Excellence Strategy - EXC 2075 – 390740016. Contributions by Felix Fritzen are funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) within the Heisenberg program - DFG-FR2702/8 - 406068690; DFG-FR2702/10 - 517847245 and through NFDI-MatWerk - NFDI 38/1 - 460247524. We acknowledge the support by the Stuttgart Center for Simulation Science ([SimTech](https://www.simtech.uni-stuttgart.de/)).
 
 ## Contributors
 
@@ -250,3 +276,4 @@ In the case of path/time-dependent loading as shown, for example as in plasticit
 - [Ishaan Desai](https://github.com/IshaanDesai)
 - [Moritz Sigg](https://github.com/siggmo)
 - [Claudius Haag](https://github.com/claudiushaag)
+- [Felix Fritzen](https://github.com/EMMAOpenSource)

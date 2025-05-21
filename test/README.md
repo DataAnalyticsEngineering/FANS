@@ -44,6 +44,7 @@ For a 3D microstructure image of resolution `32 x 32 x 32` with a single spheric
 - Small strain mechanical homogenization problem with linear elasticity - `test_LinearElastic.json`
 - Small strain mechanical homogenization problem with nonlinear pseudoplasticity - `test_PseudoPlastic.json`
 - Small strain mechanical homogenization problem with Von-Mises plasticity - `test_J2Plasticity.json`
+- Small strain mechanical homogenization problem with linear pseudoplasticity and mixed stress-strain control boundary conditions - `test_MixedBCs.json`
 
 Each test case has corresponding input JSON files in the `input_files/` directory. Tests can be run individually as example problems. For instance,
 
