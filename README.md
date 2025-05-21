@@ -180,14 +180,14 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 - `problem_type`: This defines the type of physical problem you are solving. Common options include `thermal` problems and `mechanical` problems.
 - `matmodel`: This specifies the material model to be used in the simulation. Examples include
 
-    - `LinearThermalIsotropic` for linear isotropic conductive material model
-    - `LinearThermalTriclinic` for linear triclinic conductive material model
-    - `GBDiffusion` for diffusion model with transversely isotropic grain boundary and isotropic bulk for polycrystalline materials
+  - `LinearThermalIsotropic` for linear isotropic conductive material model
+  - `LinearThermalTriclinic` for linear triclinic conductive material model
+  - `GBDiffusion` for diffusion model with transversely isotropic grain boundary and isotropic bulk for polycrystalline materials
 
-    - `LinearElasticIsotropic` for linear isotropic elastic material model
-    - `LinearElasticTriclinic` for linear triclinic elastic material model
-    - `PseudoPlasticLinearHardening` / `PseudoPlasticNonLinearHardening` for plasticity mimicking model with linear/nonlinear hardening
-    - `J2ViscoPlastic_LinearIsotropicHardening` / `J2ViscoPlastic_NonLinearIsotropicHardening` for rate independent / dependent J2 plasticity model with kinematic and linear/nonlinear isotropic hardening.
+  - `LinearElasticIsotropic` for linear isotropic elastic material model
+  - `LinearElasticTriclinic` for linear triclinic elastic material model
+  - `PseudoPlasticLinearHardening` / `PseudoPlasticNonLinearHardening` for plasticity mimicking model with linear/nonlinear hardening
+  - `J2ViscoPlastic_LinearIsotropicHardening` / `J2ViscoPlastic_NonLinearIsotropicHardening` for rate independent / dependent J2 plasticity model with kinematic and linear/nonlinear isotropic hardening.
 
 - `material_properties`: This provides the necessary material parameters for the chosen material model. For thermal problems, you might specify `conductivity`, while mechanical problems might require `bulk_modulus`, `shear_modulus`, and more properties for advanced material models. These properties can be defined as arrays to represent multiple phases within the microstructure.
 
