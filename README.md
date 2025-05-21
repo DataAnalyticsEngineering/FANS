@@ -25,27 +25,25 @@ FANS has the following dependencies:
 
 ### Installing dependencies
 
--   On Debian based systems, we recommend installing the dependencies using using `apt`,
+- On Debian based systems, we recommend installing the dependencies using using `apt`,
+  ```bash
+  apt-get install \
+      libhdf5-dev \
+      libopenmpi-dev \
+      libeigen3-dev \
+      libfftw3-dev \
+      libfftw3-mpi-dev
+  ```
 
-    ```bash
-    apt-get install \
-        libhdf5-dev \
-        libopenmpi-dev \
-        libeigen3-dev \
-        libfftw3-dev \
-        libfftw3-mpi-dev
-    ```
+- On macOS, you can obtain the dependencies using `brew` and set the environment variables:
 
--   On macOS, you can obtain the dependencies using `brew` and set the environment variables:
-
-    ```zsh
-    brew install gnu-time cmake gcc@14
-    brew install open-mpi --build-from-source --cc=gcc-14
-    brew install hdf5-mpi --build-from-source --cc=gcc-14
-    brew install fftw eigen
-
-    export CC=gcc-14 CXX=g++-14 MPICC=mpicc MPICXX=mpicxx
-    ```
+  ```zsh
+  brew install gnu-time cmake gcc@14
+  brew install open-mpi --build-from-source --cc=gcc-14
+  brew install hdf5-mpi --build-from-source --cc=gcc-14
+  brew install fftw eigen
+  export CC=gcc-14 CXX=g++-14 MPICC=mpicc MPICXX=mpicxx
+  ```
 
 ### Setting up a Python environment
 
