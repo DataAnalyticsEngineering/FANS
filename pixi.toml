@@ -7,11 +7,17 @@ platforms = ["linux-64", "win-64", "osx-64", "osx-arm64"]
 python = ">=3.13.3,<3.14"
 pytest = ">=8.3.5,<9"
 pre-commit = ">=4.2.0,<5"
+sympy = ">=1.14.0,<2"
+quaternion = ">=2024.0.8,<2025"
+beartype = ">=0.20.2,<0.21"
 
 
 [pypi-dependencies]
 fans-dashboard = { path = "FANS_Dashboard", editable = true }
+msutils = {git = "https://github.com/DataAnalyticsEngineering/MSUtils.git"}
+pyrecest = {git = "https://github.com/FlorianPfaff/pyRecEst.git"}
 
 
 [tasks]
 test = "pytest -v -s"
+precommit = "pre-commit run --all-files"
