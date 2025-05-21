@@ -26,6 +26,7 @@ FANS has the following dependencies:
 ### Installing dependencies
 
 - On Debian based systems, we recommend installing the dependencies using using `apt`,
+
   ```bash
   apt-get install \
       libhdf5-dev \
