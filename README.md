@@ -233,7 +233,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 
 - `macroscale_loading`: This defines the external loading applied to the microstructure. It is an array of arrays, where each sub-array represents a loading condition applied to the system. The format of the loading array depends on the problem type:
 - For `thermal` problems, the array typically has 3 components, representing the temperature gradients in the $x$, $y$, and $z$ directions.
-- For `mechanical` problems, the array must have 6 components, corresponding to the components of the strain tensor in Mandel notation (e.g., $[\varepsilon_{11},\; \varepsilon_{22},\; \varepsilon_{33},\; \sqrt{2}\varepsilon_{12},\; \sqrt{2}\varepsilon_{13},\; \sqrt{2}\varepsilon_{23}]$).
+- For `mechanical` problems, the array must have 6 components, corresponding to the components of the strain tensor in Mandel notation (e.g., $[\varepsilon_{11}, \varepsilon_{22}, \varepsilon_{33}, \sqrt{2}\varepsilon_{12}, \sqrt{2}\varepsilon_{13}, \sqrt{2}\varepsilon_{23}]$).
 
 In the case of path/time-dependent loading as shown, for example as in plasticity problems, the `macroscale_loading` array can include multiple steps with corresponding loading conditions.
 
