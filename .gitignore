@@ -181,6 +181,9 @@ dmypy.json
 # pyright type checker
 .pyright/
 
+# Conda packages
+*.conda
+
 # End of standard Python ignores
 
 
