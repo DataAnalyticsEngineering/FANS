@@ -2,7 +2,7 @@
 
 ## v0.4.1
 
-- remove std::sqrt from constexpr - failed on Clang
+- remove std::sqrt from constexpr - failed on Clang https://github.com/DataAnalyticsEngineering/FANS/pull/64
 
 ## v0.4.0
 
