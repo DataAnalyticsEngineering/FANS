@@ -490,7 +490,7 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
     const double     Lx2 = reader.L[0] / 2.0;
     const double     Ly2 = reader.L[1] / 2.0;
     const double     Lz2 = reader.L[2] / 2.0;
-    constexpr double rs2 = 1.0 / std::sqrt(2.0);
+    constexpr double rs2 = 0.7071067811865475; // 1.0 / std::sqrt(2.0)
     VectorXd         u_total(local_n0 * n_y * n_z * howmany);
     /* ---------- single sweep ------------------------------------------------- */
     ptrdiff_t n = 0;

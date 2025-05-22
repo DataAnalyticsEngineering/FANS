@@ -1,5 +1,9 @@
 # FANS Changelog
 
+## latest
+
+- remove std::sqrt from constexpr - failed on Clang
+
 ## v0.4.0
 
 - Support compilaion on MacOS X via conda-forge https://github.com/DataAnalyticsEngineering/FANS/pull/59
