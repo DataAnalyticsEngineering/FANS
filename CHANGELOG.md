@@ -1,6 +1,6 @@
 # FANS Changelog
 
-## latest
+## v0.4.1
 
 - remove std::sqrt from constexpr - failed on Clang
 
