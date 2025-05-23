@@ -147,7 +147,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/8e/37/efad0257dc6e593a18957422533ff0f87ede7c9c6ea010a2177d738fb82f/pure_eval-0.2.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/8a/0b/9fcc47d19c48b59121088dd6da2488a49d5f72dacf8262e2790a1d2c7d15/pygments-2.19.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/05/e7/df2285f3d08fee213f2d041540fa4fc9ca6c2d44cf36d3a035bf2a8d2bcc/pyparsing-3.2.3-py3-none-any.whl
-      - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#37090d82e4ef0980d79944906136f935ae1b7697
+      - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#658870c2db20b3dc0b5846bb26760a5c85a24e4f
       - pypi: https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/18/a6/f048826bc87528c208e90604c3bf573801e54bd91e390cbd2dfa860e82dc/pyzmq-26.4.0-cp313-cp313-manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/c1/b1/3baf80dc6d2b7bc27a95a67752d0208e410351e3feb4eb78de5f77454d8d/referencing-0.36.2-py3-none-any.whl
@@ -281,7 +281,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/8e/37/efad0257dc6e593a18957422533ff0f87ede7c9c6ea010a2177d738fb82f/pure_eval-0.2.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/8a/0b/9fcc47d19c48b59121088dd6da2488a49d5f72dacf8262e2790a1d2c7d15/pygments-2.19.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/05/e7/df2285f3d08fee213f2d041540fa4fc9ca6c2d44cf36d3a035bf2a8d2bcc/pyparsing-3.2.3-py3-none-any.whl
-      - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#37090d82e4ef0980d79944906136f935ae1b7697
+      - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#658870c2db20b3dc0b5846bb26760a5c85a24e4f
       - pypi: https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/d7/20/fb2c92542488db70f833b92893769a569458311a76474bda89dc4264bd18/pyzmq-26.4.0-cp313-cp313-macosx_10_15_universal2.whl
       - pypi: https://files.pythonhosted.org/packages/c1/b1/3baf80dc6d2b7bc27a95a67752d0208e410351e3feb4eb78de5f77454d8d/referencing-0.36.2-py3-none-any.whl
@@ -414,7 +414,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/8e/37/efad0257dc6e593a18957422533ff0f87ede7c9c6ea010a2177d738fb82f/pure_eval-0.2.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/8a/0b/9fcc47d19c48b59121088dd6da2488a49d5f72dacf8262e2790a1d2c7d15/pygments-2.19.1-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/05/e7/df2285f3d08fee213f2d041540fa4fc9ca6c2d44cf36d3a035bf2a8d2bcc/pyparsing-3.2.3-py3-none-any.whl
-      - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#37090d82e4ef0980d79944906136f935ae1b7697
+      - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#658870c2db20b3dc0b5846bb26760a5c85a24e4f
       - pypi: https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/d7/20/fb2c92542488db70f833b92893769a569458311a76474bda89dc4264bd18/pyzmq-26.4.0-cp313-cp313-macosx_10_15_universal2.whl
       - pypi: https://files.pythonhosted.org/packages/c1/b1/3baf80dc6d2b7bc27a95a67752d0208e410351e3feb4eb78de5f77454d8d/referencing-0.36.2-py3-none-any.whl
@@ -440,7 +440,7 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: 5c91f527211d14fc6a90ed0a3304830815421167025c0d9ae3a19333f96a5150
+    hash: dd289956b038a2ae15b7d68d9962af78fa86a8cd32308cc05aacacb158651566
     globs:
     - pixi.toml
 - conda: .
@@ -454,7 +454,7 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: 5c91f527211d14fc6a90ed0a3304830815421167025c0d9ae3a19333f96a5150
+    hash: dd289956b038a2ae15b7d68d9962af78fa86a8cd32308cc05aacacb158651566
     globs:
     - pixi.toml
 - conda: .
@@ -468,7 +468,7 @@ packages:
   - fftw * mpi_openmpi_*
   - hdf5 >=1.14.3,<1.14.4.0a0 mpi_openmpi_*
   input:
-    hash: 5c91f527211d14fc6a90ed0a3304830815421167025c0d9ae3a19333f96a5150
+    hash: dd289956b038a2ae15b7d68d9962af78fa86a8cd32308cc05aacacb158651566
     globs:
     - pixi.toml
 - conda: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -3533,7 +3533,7 @@ packages:
   - railroad-diagrams ; extra == 'diagrams'
   - jinja2 ; extra == 'diagrams'
   requires_python: '>=3.9'
-- pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#37090d82e4ef0980d79944906136f935ae1b7697
+- pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#658870c2db20b3dc0b5846bb26760a5c85a24e4f
   name: pyrecest
   version: 0.0.0
 - conda: https://conda.anaconda.org/conda-forge/noarch/pytest-8.3.5-pyhd8ed1ab_0.conda
