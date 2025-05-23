@@ -3,7 +3,7 @@
 Fourier-Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver for microscale multiphysics problems. FANS is written in C++, built using CMake, and it has MPI parallelization.
 
 <p align="center">
-  <img src="docs/images/FANS_logo.png" alt="Example Image" width="400" height="400">
+  <img src="docs/images/FANS_logo.png" alt="Example Image" width="300" height="300">
 </p>
 
 ## Table of contents
