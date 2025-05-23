@@ -1,7 +1,13 @@
 # FANS Changelog
 
-## latest
+## v0.4.1
 
+- remove std::sqrt from constexpr - failed on Clang https://github.com/DataAnalyticsEngineering/FANS/pull/64
+
+## v0.4.0
+
+- Support compilaion on MacOS X via conda-forge https://github.com/DataAnalyticsEngineering/FANS/pull/59
+- Add support for macroscale mixed stress-strain boundary conditions https://github.com/DataAnalyticsEngineering/FANS/pull/58
 - Add grain boundary diffusion material model for polycrystals https://github.com/DataAnalyticsEngineering/FANS/pull/52
 - Add a pixi environment for the FANS_dashboard and some tests https://github.com/DataAnalyticsEngineering/FANS/pull/55
 - Remove MPI initialization from pyFANS and add an integration test for it https://github.com/DataAnalyticsEngineering/FANS/pull/46

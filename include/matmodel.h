@@ -41,15 +41,16 @@ class Matmodel {
     virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) {}
     virtual void updateInternalVariables() {}
 
-    vector<double> macroscale_loading;
+    vector<double>               macroscale_loading;
+    Matrix<double, n_str, n_str> kapparef_mat; // Reference conductivity matrix
+
+    virtual ~Matmodel() = default;
 
   protected:
     double l_e_x;
     double l_e_y;
     double l_e_z;
     double v_e;
-
-    Matrix<double, n_str, n_str> kapparef_mat; // Reference conductivity matrix
 
     Matrix<double, n_str, howmany * 8>     B_el_mean; //!< precomputed mean B matrix over the element
     Matrix<double, n_str, howmany * 8>     B_int[8];  //!< precomputed B matrix at all integration points

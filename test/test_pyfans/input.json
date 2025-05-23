@@ -20,7 +20,7 @@
     },
     "n_it": 100,
     "macroscale_loading":   [
-                                [[]]
+                                [[0,0,0,0,0,0]]
                             ],
 
     "results": []
