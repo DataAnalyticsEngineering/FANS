@@ -2,6 +2,7 @@
 
 ## latest
 
+- Bump gcc version from 14 to 15 for macOS builds
 - Add pixi task `h52xdmf` to generate XDMF from H5 files directly as `pixi run h52xdmf {h5filepath}`
 
 ## v0.4.1

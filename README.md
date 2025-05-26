@@ -41,12 +41,12 @@ FANS has the following dependencies:
 - On macOS, you can obtain the dependencies using `brew` and set the environment variables:
 
   ```zsh
-  brew install gnu-time cmake gcc@14
-  brew install open-mpi --build-from-source --cc=gcc-14
-  brew install hdf5-mpi --build-from-source --cc=gcc-14
+  brew install gnu-time cmake gcc@15
+  brew install open-mpi --build-from-source --cc=gcc-15
+  brew install hdf5-mpi --build-from-source --cc=gcc-15
   brew install fftw eigen
 
-  export CC=gcc-14 CXX=g++-14 MPICC=mpicc MPICXX=mpicxx
+  export CC=gcc-15 CXX=g++-15 MPICC=mpicc MPICXX=mpicxx
   ```
 
 ### Setting up a Python environment
