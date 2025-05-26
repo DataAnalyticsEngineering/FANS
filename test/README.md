@@ -51,3 +51,9 @@ Each test case has corresponding input JSON files in the `input_files/` director
 ```bash
 mpiexec -n 2 ./FANS input_files/test_LinearElastic.json test_results.h5
 ```
+
+To quickly visualize the test results, and accompanying XDMF for the HDF5 output can be generated which can be directly opened in ParaView for 3D visualization and analysis:
+
+```bash
+pixi run h52xdmf test_results.h5
+```
