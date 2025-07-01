@@ -503,15 +503,15 @@ packages:
 - pypi: ./FANS_Dashboard
   name: fans-dashboard
   version: 0.4.1
-  sha256: fbc725732aa5a7245e92e8c3a2ae313b46592df142c6f5c4e07a446e96c04da6
+  sha256: 31b4bb066bc7aa0a3f1dc8f4825ad9a7509fb381ad3b52705671f3adfebc0165
   requires_dist:
-  - numpy>=2.2.5,<3
-  - h5py>=3.13.0,<4
-  - plotly>=6.0.1,<7
-  - lxml>=5.4.0,<6
-  - scipy>=1.15.2,<2
-  - meshio>=5.3.5,<6
-  requires_python: '>=3.13'
+  - numpy
+  - h5py
+  - plotly
+  - lxml
+  - scipy
+  - meshio
+  requires_python: '>=3.9'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/noarch/filelock-3.18.0-pyhd8ed1ab_0.conda
   sha256: de7b6d4c4f865609ae88db6fa03c8b7544c2452a1aa5451eb7700aad16824570
