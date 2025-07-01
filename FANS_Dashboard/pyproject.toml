@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name            = "fans-dashboard"
 version         = "0.4.1"
-requires-python = ">=3.9"
+requires-python = ">=3.13"
 dependencies = [
   "numpy>=2.2.5,<3",
   "h5py>=3.13.0,<4",
