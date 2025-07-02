@@ -28,7 +28,7 @@ h52xdmf = { args = ["file"], cmd = "cd \"$INIT_CWD\" && python -m fans_dashboard
 
 [package]
 name = "FANS"
-version = "0.3.0"
+version = "0.4.0"
 
 [package.build]
 backend = { name = "pixi-build-cmake", version = "0.1.*" }
@@ -46,7 +46,8 @@ cmake = "3.21.*"
 [package.host-dependencies]
 cmake = "3.21.*"
 # hdf5 = { version = "*", build = "*openmpi*" } This does not work! Takes nompi version
-hdf5 = { version = "1.14.*", build = "*openmpi*" }
+# hdf5 = { version = "1.14.*", build = "*openmpi*" }
+hdf5 = { version = "*"}
 # fftw = { version = "*", build = "*openmpi*" }
 fftw = { version = "3.3.*", build = "*openmpi*" }
 openmpi-mpicxx = "*"
