@@ -1,5 +1,11 @@
 # FANS Changelog
 
+## v0.4.2
+
+- Reduce dependencies of dashboard for cf-package https://github.com/DataAnalyticsEngineering/FANS/pull/71
+- Add pixi task `h52xdmf` to generate XDMF from H5 files directly as `pixi run h52xdmf {h5filepath}`
+- Add logo of FANS to the README https://github.com/DataAnalyticsEngineering/FANS/pull/70
+
 ## v0.4.1
 
 - remove std::sqrt from constexpr - failed on Clang https://github.com/DataAnalyticsEngineering/FANS/pull/64

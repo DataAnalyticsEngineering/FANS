@@ -3,7 +3,7 @@
 Fourier-Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver for microscale multiphysics problems. FANS is written in C++, built using CMake, and it has MPI parallelization.
 
 <p align="center">
-  <img src="docs/images/FANS_example.png" alt="Example Image" width="400" height="300">
+  <img src="docs/images/FANS_logo.png" alt="Example Image" width="300" height="300">
 </p>
 
 ## Table of contents
@@ -17,7 +17,7 @@ Fourier-Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver fo
 
 FANS has the following dependencies:
 
-- A C++ compiler (e.g. GCC, Clang, etc.)
+- A C++ compiler (e.g., GCC, Clang, etc.)
 - CMake (version 3.21 or higher)
 - Git (for cloning this repo)
 - MPI (mpicc and mpic++)
@@ -27,7 +27,7 @@ FANS has the following dependencies:
 
 ### Installing dependencies
 
-- On Debian based systems, we recommend installing the dependencies using using `apt`,
+- On Debian-based systems, we recommend installing the dependencies using `apt`,
 
   ```bash
   apt-get install \
@@ -51,10 +51,10 @@ FANS has the following dependencies:
 
 ### Setting up a Python environment
 
-Also, we recommend to set up a Python virtual environment for the [`FANS_Dashboard.ipynb`](FANS_Dashboard/FANS_Dashboard.ipynb) via [pixi](https://pixi.sh/) with all required Python dependencies in an isolated environment:
+Also, we recommend setting up a Python virtual environment for the [`FANS_Dashboard.ipynb`](FANS_Dashboard/FANS_Dashboard.ipynb) via [pixi](https://pixi.sh/) with all required Python dependencies in an isolated environment:
 
 ```bash
-# Install pixi if not done already
+# Install Pixi if not done already,
 curl -fsSL https://pixi.sh/install.sh | sh
 
 # Create and activate the environment
@@ -79,7 +79,7 @@ Spack is a package manager designed for high-performance computing environments.
     spack install fftw +mpi
     ```
 
-    Additionally, optimized FFTW implementations can be used depending on your system's architecture, for example `amdfftw` (For AMD systems) or `cray-fftw` (For Cray systems) or `fujitsu-fftw` (For Fujitsu systems).
+    Additionally, optimized FFTW implementations can be used depending on your system's architecture, for example `amdfftw` (For AMD systems) or `cray-fftw` (For Cray systems), or `fujitsu-fftw` (For Fujitsu systems).
 
 3. **Load Dependencies** Once dependencies are installed, load them before building:
 
@@ -142,7 +142,7 @@ Install FANS (system-wide) using the following options:
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/platforms.svg)](https://anaconda.org/conda-forge/fans)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/downloads.svg)](https://anaconda.org/conda-forge/fans)
 
-FANS is also available as a conda-package on [conda-forge/fans](https://anaconda.org/conda-forge/fans). No dependencies have to be manually installed for it to work.
+FANS is also available as a conda package on [conda-forge/fans](https://anaconda.org/conda-forge/fans). No dependencies have to be manually installed for it to work.
 It can be installed via
 
 ```bash
@@ -153,7 +153,7 @@ exposing the executable `FANS`.
 
 ## Input File Format
 
-FANS requires a JSON input file specifying the problem parameters. Example input files can be found in the [`test/input_files`](test/input_files) directory. It is recommended to use these files as a reference to create your own input file.
+FANS requires a JSON input file specifying the problem parameters. Example input files can be found in the [`test/input_files`](test/input_files) directory. It is recommended to use these files as a reference to create your input file.
 
 ### Microstructure Definition
 
@@ -167,7 +167,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 
 - `filepath`: This specifies the path to the HDF5 file that contains the microstructure data.
 - `datasetname`: This is the path within the HDF5 file to the specific dataset that represents the microstructure.
-- `L`: Microstructure length defines the physical dimensions of the microstructure in the x, y, and z directions.
+- `L`: Microstructure length defines the physical dimensions of the microstructure in the $x$, $y$, and $z$ directions.
 
 ### Problem Type and Material Model
 
@@ -189,7 +189,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
   - `LinearElasticIsotropic` for linear isotropic elastic material model
   - `LinearElasticTriclinic` for linear triclinic elastic material model
   - `PseudoPlasticLinearHardening` / `PseudoPlasticNonLinearHardening` for plasticity mimicking model with linear/nonlinear hardening
-  - `J2ViscoPlastic_LinearIsotropicHardening` / `J2ViscoPlastic_NonLinearIsotropicHardening` for rate independent / dependent J2 plasticity model with kinematic and linear/nonlinear isotropic hardening.
+  - `J2ViscoPlastic_LinearIsotropicHardening` / `J2ViscoPlastic_NonLinearIsotropicHardening` for rate-independent / dependent J2 plasticity model with kinematic and linear/nonlinear isotropic hardening.
 
 - `material_properties`: This provides the necessary material parameters for the chosen material model. For thermal problems, you might specify `conductivity`, while mechanical problems might require `bulk_modulus`, `shear_modulus`, and more properties for advanced material models. These properties can be defined as arrays to represent multiple phases within the microstructure.
 
@@ -206,7 +206,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 ```
 
 - `method`: This indicates the numerical method to be used for solving the system of equations. `cg` stands for the Conjugate Gradient method, and `fp` stands for the Fixed Point method.
-- `error_parameters`: This section defines the error parameters for the solver. Error control is applied on the finite element nodal residual of the problem.
+- `error_parameters`: This section defines the error parameters for the solver. Error control is applied to the finite element nodal residual of the problem.
   - `measure`: Specifies the norm used to measure the error. Options include `Linfinity`, `L1`, or `L2`.
   - `type`: Defines the type of error measurement. Options are `absolute` or `relative`.
   - `tolerance`: Sets the tolerance level for the solver, defining the convergence criterion based on the chosen error measure. The solver iterates until the solution meets this tolerance.
@@ -235,7 +235,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 - For `thermal` problems, the array typically has 3 components, representing the temperature gradients in the $x$, $y$, and $z$ directions.
 - For `mechanical` problems, the array must have 6 components, corresponding to the components of the strain tensor in Mandel notation (e.g., $[\varepsilon_{11}, \varepsilon_{22}, \varepsilon_{33}, \sqrt{2}\varepsilon_{12}, \sqrt{2}\varepsilon_{13}, \sqrt{2}\varepsilon_{23}]$).
 
-In the case of path/time-dependent loading as shown, for example as in plasticity problems, the `macroscale_loading` array can include multiple steps with corresponding loading conditions.
+In the case of path/time-dependent loading, as shown, for example, in plasticity problems, the `macroscale_loading` array can include multiple steps with corresponding loading conditions.
 
 FANS also supports mixed boundary conditions, where some components can be strain-controlled while others are stress-controlled:
 
@@ -257,26 +257,26 @@ FANS also supports mixed boundary conditions, where some components can be strai
             "microstructure", "displacement", "displacement_fluctuation", "stress", "strain"]
 ```
 
-- `results`: This array lists the quantities that should be stored into the results HDF5 file during the simulation. Each string in the array corresponds to a specific result:
+- `results`: This array lists the quantities that should be stored in the results HDF5 file during the simulation. Each string in the array corresponds to a specific result:
 
   - `stress_average` and `strain_average`: Volume averaged- homogenized stress and strain over the entire microstructure.
-  - `absolute_error`: The L-infinity error of finite element nodal residual at each iteration.
+  - `absolute_error`: The L-infinity error of the finite element nodal residual at each iteration.
   - `phase_stress_average` and `phase_strain_average`: Volume averaged- homogenized stress and strain for each phase within the microstructure.
   - `microstructure`: The original microstructure data.
   - `displacement`: The displacement field (for mechanical problems) and temperature field (for thermal problems) at each voxel in the microstructure.
   - `displacement_fluctuation`: The periodic displacement fluctuation field (for mechanical problems) and periodic temperature fluctuation field (for thermal problems at each voxel in the microstructure).
   - `stress` and `strain`: The stress and strain fields at each voxel in the microstructure.
 
-- Additional material model specific results can be included depending on the problem type and material model.
+- Additional material model-specific results can be included depending on the problem type and material model.
 
 ## Acknowledgements
 
-Funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) under Germany’s Excellence Strategy - EXC 2075 – 390740016. Contributions by Felix Fritzen are funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) within the Heisenberg program - DFG-FR2702/8 - 406068690; DFG-FR2702/10 - 517847245 and through NFDI-MatWerk - NFDI 38/1 - 460247524. We acknowledge the support by the Stuttgart Center for Simulation Science ([SimTech](https://www.simtech.uni-stuttgart.de/)).
+Funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) under Germany’s Excellence Strategy - EXC 2075 – 390740016. Contributions by Felix Fritzen are funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) within the Heisenberg program - DFG-FR2702/8 - 406068690; DFG-FR2702/10 - 517847245 and through NFDI-MatWerk - NFDI 38/1 - 460247524. We acknowledge the support of the Stuttgart Center for Simulation Science ([SimTech](https://www.simtech.uni-stuttgart.de/)).
 
 ## Contributors
 
 - [Sanath Keshav](https://github.com/sanathkeshav)
-- [Florian Rieg](about:blank)
+- [Florian Rieg](https://github.com/scylent)
 - [Ishaan Desai](https://github.com/IshaanDesai)
 - [Moritz Sigg](https://github.com/siggmo)
 - [Claudius Haag](https://github.com/claudiushaag)

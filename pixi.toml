@@ -4,12 +4,13 @@ name = "FANS"
 platforms = ["linux-64", "win-64", "osx-64", "osx-arm64"]
 
 [dependencies]
-python = ">=3.13.3,<3.14"
-pytest = ">=8.3.5,<9"
+python = ">=3.13.5,<3.14"
+pytest = ">=8.4.1,<9"
 pre-commit = ">=4.2.0,<5"
 sympy = ">=1.14.0,<2"
 quaternion = ">=2024.0.8,<2025"
-beartype = ">=0.20.2,<0.21"
+beartype = ">=0.21.0,<0.22"
+ipykernel = ">=6.29.5,<7"
 
 
 [pypi-dependencies]
@@ -21,3 +22,4 @@ pyrecest = {git = "https://github.com/FlorianPfaff/pyRecEst.git"}
 [tasks]
 test = "pytest -v -s"
 precommit = "pre-commit run --all-files"
+h52xdmf = { args = ["file"], cmd = "cd \"$INIT_CWD\" && python -m fans_dashboard.plotting.h52xdmf -t -v {{file}}" }
