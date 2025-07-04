@@ -753,8 +753,8 @@ packages:
   timestamp: 1745502200340
 - pypi: ./FANS_Dashboard
   name: fans-dashboard
-  version: 0.4.1
-  sha256: 31b4bb066bc7aa0a3f1dc8f4825ad9a7509fb381ad3b52705671f3adfebc0165
+  version: 0.4.2
+  sha256: 353fb2a0d57d42f00ea7172d5e241af687e3bb83c78416fc836e6f9aabb94b19
   requires_dist:
   - numpy
   - h5py
