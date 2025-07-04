@@ -10,6 +10,7 @@ pre-commit = ">=4.2.0,<5"
 sympy = ">=1.14.0,<2"
 quaternion = ">=2024.0.8,<2025"
 beartype = ">=0.21.0,<0.22"
+ipykernel = ">=6.29.5,<7"
 
 
 [pypi-dependencies]
