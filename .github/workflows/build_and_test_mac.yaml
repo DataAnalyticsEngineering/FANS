@@ -33,7 +33,7 @@ jobs:
           brew install fftw eigen
 
       - name: Set up pixi
-        uses: prefix-dev/setup-pixi@v0.8.11
+        uses: prefix-dev/setup-pixi@v0.8.12
 
       - name: Generate build directory
         run: mkdir -p ${{ env.FANS_BUILD_DIR }}
