@@ -22,9 +22,13 @@ pyrecest = {git = "https://github.com/FlorianPfaff/pyRecEst.git"}
 
 
 [tasks]
-test = "pytest -v -s"
+test = { cmd = "pytest -v -s" }
+test_all = { cmd = "pytest -v -s --from-pixi", cwd = "test/pytest", depends-on = ["test-fans"] }
 precommit = "pre-commit run --all-files"
 h52xdmf = { args = ["file"], cmd = "cd \"$INIT_CWD\" && python -m fans_dashboard.plotting.h52xdmf -t -v {{file}}" }
+test-fans = { cmd = "./run_tests.sh -n {{n}}", args = [
+  { arg = "n", default = "2" }, # Number of threads
+], cwd = "test" }
 
 [package]
 name = "fans"
