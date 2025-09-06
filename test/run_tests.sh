@@ -18,6 +18,8 @@ fi
 TIME_CMD="command time -v"
 [[ "$OSTYPE" == "darwin"* ]] && TIME_CMD="command gtime -v"
 
+mkdir -p output
+
 # Run the jobs serially
 $TIME_CMD mpiexec -n $num_processes "$FANS_EXEC" input_files/test_LinearThermal.json output/test_LinearThermal.h5 > test_LinearThermal.log 2>&1
 
