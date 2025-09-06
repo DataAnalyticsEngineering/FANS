@@ -42,14 +42,14 @@ extra-args = [
     "-DCMAKE_BUILD_TYPE=Release",
     "-DCMAKE_C_COMPILER=$PREFIX/bin/mpicc",
     "-DCMAKE_CXX_COMPILER=$PREFIX/bin/mpicxx",
-#    "-DFANS_LIBRARY_FOR_MICRO_MANAGER=ON"
+    "-DFANS_LIBRARY_FOR_MICRO_MANAGER=ON"
     ]
 
 [package.build-dependencies]
 cmake = "3.21.*"
+pybind11 = "*"
 
 [package.host-dependencies]
-cmake = "3.21.*"
 # hdf5 = { version = "*", build = "*openmpi*" } # does not work
 # hdf5 = { version = "*", build = "* mpi_openmpi*" } # works, but why whitespace?
 hdf5 = { version = "1.14.*", build = "*openmpi*" } # works
@@ -59,3 +59,4 @@ fftw = { version = "*", build = "* mpi_openmpi*" } # works
 #fftw = { version = "3.3.*", build = "*openmpi*" } # works
 openmpi-mpicxx = "*"
 eigen = "*"
+
