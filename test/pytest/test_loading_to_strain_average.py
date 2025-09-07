@@ -4,6 +4,7 @@ import json
 import pytest
 from fans_dashboard.core.utils import identify_hierarchy, extract_and_organize_data
 
+
 def test_loading_to_strain_average(test_files):
     """
     This test verifies that the strain_average field in the results matches the macroscale_loading

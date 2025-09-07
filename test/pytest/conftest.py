@@ -1,11 +1,15 @@
 import pytest
 import os
 
+
 def pytest_addoption(parser):
     parser.addoption(
-        "--from-pixi", action="store_true", default=False,
-        help="Run tests from pixi task."
+        "--from-pixi",
+        action="store_true",
+        default=False,
+        help="Run tests from pixi task.",
     )
+
 
 @pytest.fixture(
     params=[

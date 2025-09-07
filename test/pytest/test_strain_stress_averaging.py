@@ -4,6 +4,7 @@ import json
 import pytest
 from fans_dashboard.core.utils import identify_hierarchy, extract_and_organize_data
 
+
 def test_strain_stress_averaging(test_files):
     """
     This test verifies that the average of strain/stress fields matches the strain_average/stress_average

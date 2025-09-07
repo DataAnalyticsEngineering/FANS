@@ -59,4 +59,3 @@ fftw = { version = "*", build = "* mpi_openmpi*" } # works
 #fftw = { version = "3.3.*", build = "*openmpi*" } # works
 openmpi-mpicxx = "*"
 eigen = "*"
-
