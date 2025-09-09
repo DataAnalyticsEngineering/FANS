@@ -27,7 +27,8 @@ jobs:
 
       - name: Install FANS dependencies
         run: |
-          brew install gnu-time cmake gcc@14
+          brew uninstall --force cmake
+          brew install gnu-time gcc@14
           brew install open-mpi --build-from-source --cc=gcc-14
           brew install hdf5-mpi --build-from-source --cc=gcc-14
           brew install fftw eigen
