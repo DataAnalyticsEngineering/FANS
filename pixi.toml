@@ -42,12 +42,14 @@ extra-args = [
     "-DCMAKE_BUILD_TYPE=Release",
     "-DCMAKE_C_COMPILER=$PREFIX/bin/mpicc",
     "-DCMAKE_CXX_COMPILER=$PREFIX/bin/mpicxx",
-    "-DFANS_LIBRARY_FOR_MICRO_MANAGER=ON"
+    "-DFANS_LIBRARY_FOR_MICRO_MANAGER=ON",
+    "-DCMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH=OFF"
     ]
 
 [package.build-dependencies]
 cmake = "3.21.*"
 pybind11 = "*"
+pkg-config = "*"
 
 [package.host-dependencies]
 # hdf5 = { version = "*", build = "*openmpi*" } # does not work
