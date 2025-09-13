@@ -137,7 +137,7 @@ environments:
       - conda: https://prefix.dev/conda-forge/noarch/zipp-3.23.0-pyhd8ed1ab_0.conda
       - conda: https://prefix.dev/conda-forge/linux-64/zstd-1.5.7-hb8e6e7a_2.conda
       - conda: .
-        subdir: linux-64
+        build: h965bdd9_0
       - pypi: https://files.pythonhosted.org/packages/e7/ec/86f59025306dcc6deee5fda54d980d077075b8d9889aac80f158bd585f1b/h5py-3.14.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/b3/01/15d5fc74ebb49eac4e5df031fbc50713dcc081f4e0068ed963a510b7d457/lxml-6.0.1-cp313-cp313-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/94/54/e7d793b573f298e1c9013b8c4dade17d481164aa517d1d7148619c2cedbf/markdown_it_py-4.0.0-py3-none-any.whl
@@ -736,16 +736,16 @@ packages:
 - conda: .
   name: fans
   version: 0.4.2
-  build: hbf21a9e_0
+  build: h965bdd9_0
   subdir: linux-64
   depends:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
-  - libgcc >=15
-  - libstdcxx >=15
+  - libgcc >=13
+  - libstdcxx >=13
   input:
-    hash: 4d7153ad97408d8b5b0ed4a6bb3da1ff91d0578d7042d54d7163d458a3974041
+    hash: 8b78f64ca13c52956ddf3670bee0991cb2c191da924ffd7dfb94eab972203ff1
     globs: []
 - conda: .
   name: fans
@@ -756,9 +756,9 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
-  - libcxx >=17
+  - libcxx >=21
   input:
-    hash: 4d7153ad97408d8b5b0ed4a6bb3da1ff91d0578d7042d54d7163d458a3974041
+    hash: 8b78f64ca13c52956ddf3670bee0991cb2c191da924ffd7dfb94eab972203ff1
     globs: []
 - conda: .
   name: fans
@@ -769,9 +769,9 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
-  - libcxx >=17
+  - libcxx >=21
   input:
-    hash: 4d7153ad97408d8b5b0ed4a6bb3da1ff91d0578d7042d54d7163d458a3974041
+    hash: 8b78f64ca13c52956ddf3670bee0991cb2c191da924ffd7dfb94eab972203ff1
     globs: []
 - pypi: ./FANS_Dashboard
   name: fans-dashboard
