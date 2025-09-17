@@ -42,7 +42,7 @@ jobs:
 
       - name: Run pytest checks on HDF5 output
         run: pixi run test
-        
+
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
