@@ -32,18 +32,16 @@ class PseudoPlastic : public MechModel {
         }
         n_mat = bulk_modulus.size();
 
-        // Initialize stiffness matrix (assuming for two materials, otherwise needs extension)
-        Matrix<double, 6, 6> *Ce      = new Matrix<double, 6, 6>[n_mat];
-        Matrix<double, 6, 6>  topLeft = Matrix<double, 6, 6>::Zero();
-        topLeft.topLeftCorner(3, 3).setConstant(1);
+        Matrix<double, 6, 6> Pvol = Matrix<double, 6, 6>::Zero();
+        Pvol.topLeftCorner(3, 3).setConstant(1.0 / 3.0); // volumetric projector
+        const Matrix<double, 6, 6> I6   = Matrix<double, 6, 6>::Identity();
+        const Matrix<double, 6, 6> Pdev = I6 - Pvol; // deviatoric projector
 
-        kapparef_mat = Matrix<double, n_str, n_str>::Zero();
-        for (int i = 0; i < n_mat; ++i) {
-            Ce[i] = 3 * bulk_modulus[i] * topLeft +
-                    2 * shear_modulus[i] * (-1.0 / 3.0 * topLeft + Matrix<double, 6, 6>::Identity());
-            kapparef_mat += Ce[i];
+        Matrix<double, 6, 6> Ce_sum = Matrix<double, 6, 6>::Zero();
+        for (size_t i = 0; i < n_mat; ++i) {
+            Ce_sum += 3.0 * bulk_modulus[i] * Pvol + 2.0 * shear_modulus[i] * Pdev;
         }
-        kapparef_mat /= n_mat;
+        kapparef_mat = Ce_sum / static_cast<double>(n_mat);
     }
 
     void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) override

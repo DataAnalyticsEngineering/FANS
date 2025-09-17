@@ -149,8 +149,8 @@ def plot_subplots(
 
     # Update layout with the overall plot title and styling
     fig.update_layout(
-        height=1000,
-        width=1600,
+        height=500,
+        width=800,
         title_text=title,
         title_font=dict(size=fontsize),
         showlegend=False,  # Legends removed

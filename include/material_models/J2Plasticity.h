@@ -22,17 +22,16 @@ class J2Plasticity : public MechModel {
         }
         n_mat = bulk_modulus.size();
 
-        Matrix<double, 6, 6> *Ce      = new Matrix<double, 6, 6>[n_mat];
-        Matrix<double, 6, 6>  topLeft = Matrix<double, 6, 6>::Zero();
-        topLeft.topLeftCorner(3, 3).setConstant(1);
+        Matrix<double, 6, 6> Pvol = Matrix<double, 6, 6>::Zero();
+        Pvol.topLeftCorner(3, 3).setConstant(1.0 / 3.0); // volumetric projector
+        const Matrix<double, 6, 6> I6   = Matrix<double, 6, 6>::Identity();
+        const Matrix<double, 6, 6> Pdev = I6 - Pvol; // deviatoric projector
 
-        kapparef_mat = Matrix<double, n_str, n_str>::Zero();
-        for (int i = 0; i < n_mat; ++i) {
-            Ce[i] = 3 * bulk_modulus[i] * topLeft +
-                    2 * shear_modulus[i] * (-1.0 / 3.0 * topLeft + Matrix<double, 6, 6>::Identity());
-            kapparef_mat += Ce[i];
+        Matrix<double, 6, 6> Ce_sum = Matrix<double, 6, 6>::Zero();
+        for (size_t i = 0; i < n_mat; ++i) {
+            Ce_sum += 3.0 * bulk_modulus[i] * Pvol + 2.0 * shear_modulus[i] * Pdev;
         }
-        kapparef_mat /= n_mat;
+        kapparef_mat = Ce_sum / static_cast<double>(n_mat);
 
         // Allocate the member matrices/vectors for performance optimization
         sqrt_two_over_three = sqrt(2.0 / 3.0);
@@ -81,7 +80,7 @@ class J2Plasticity : public MechModel {
         treps       = eps_elastic.head<3>().sum();
 
         // Compute trial stress
-        sigma_trial_n1.head<3>().setConstant(bulk_modulus[mat_index] * treps);
+        sigma_trial_n1.head<3>().setConstant((bulk_modulus[mat_index] - 2.0 * shear_modulus[mat_index] / 3.0) * treps);
         sigma_trial_n1.head<3>() += 2 * shear_modulus[mat_index] * eps_elastic.head<3>();
         sigma_trial_n1.tail<3>() = 2 * shear_modulus[mat_index] * eps_elastic.tail<3>();
 
@@ -90,16 +89,19 @@ class J2Plasticity : public MechModel {
         dev.head<3>().array() -= sigma_trial_n1.head<3>().mean();
 
         // Compute trial q and q_bar
-        q_trial_n1              = compute_q_trial(psi_t[element_idx](i / n_str), mat_index);
-        qbar_trial_n1.head<3>() = -H[mat_index] * (2.0 / 3.0) * psi_bar_t[element_idx].col(i / n_str).head<3>();
-        qbar_trial_n1.tail<3>().setZero(); // Lower part is zero
+        q_trial_n1    = compute_q_trial(psi_t[element_idx](i / n_str), mat_index);
+        qbar_trial_n1 = -(2.0 / 3.0) * H[mat_index] * psi_bar_t[element_idx].col(i / n_str);
 
         // Calculate the trial yield function
         dev_minus_qbar      = dev - qbar_trial_n1;
         norm_dev_minus_qbar = dev_minus_qbar.norm();
 
         // Avoid division by zero
-        n = (norm_dev_minus_qbar < 1e-12) ? n.setZero() : dev_minus_qbar / norm_dev_minus_qbar;
+        if (norm_dev_minus_qbar < 1e-12) {
+            n.setZero();
+        } else {
+            n = dev_minus_qbar / norm_dev_minus_qbar;
+        }
 
         f_trial = norm_dev_minus_qbar - sqrt_two_over_three * (yield_stress[mat_index] - q_trial_n1);
 
@@ -191,7 +193,7 @@ class J2ViscoPlastic_NonLinearIsotropicHardening : public J2Plasticity {
         denominator.resize(n_mat);
         sigma_diff.resize(n_mat);
         for (size_t i = 0; i < n_mat; ++i) {
-            denominator[i] = 2 * shear_modulus[i] + H[i] * (2.0 / 3.0) + eta[i] / dt;
+            denominator[i] = 2 * shear_modulus[i] + (2.0 / 3.0) * (K[i] + H[i]) + eta[i] / dt;
             sigma_diff[i]  = sqrt_two_over_three * (sigma_inf[i] - yield_stress[i]);
         }
     }
@@ -239,7 +241,7 @@ class J2ViscoPlastic_NonLinearIsotropicHardening : public J2Plasticity {
     vector<double> sigma_diff;  // sqrt(2/3) * (sigma_inf - yield_stress)
 };
 
-void J2Plasticity::postprocess(Solver<3> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx)
+inline void J2Plasticity::postprocess(Solver<3> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx)
 {
     int      n_str                             = 6; // The plastic strain and stress vectors have 6 components each
     VectorXd mean_plastic_strain               = VectorXd::Zero(solver.local_n0 * solver.n_y * solver.n_z * n_str);
