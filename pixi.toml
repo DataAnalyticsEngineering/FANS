@@ -39,11 +39,14 @@ backend = { name = "pixi-build-cmake", version = "0.3.*" }
 
 [package.build.config]
 extra-args = [
-    "-DFANS_LIBRARY_FOR_MICRO_MANAGER=ON",
+#    "-DFANS_LIBRARY_FOR_MICRO_MANAGER=ON",
     "-DCMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH=OFF",
     "-DCMAKE_FIND_FRAMEWORK=Never",
     "-DCMAKE_FIND_APPBUNDLE=Never"
     ]
+
+[workspace.target.osx.build-variants]
+cxx_compiler_version = ["18"]
 
 [workspace.target.osx-arm64.build-variants]
 cxx_compiler_version = ["18"]
