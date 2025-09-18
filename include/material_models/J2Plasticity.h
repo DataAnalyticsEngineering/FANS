@@ -22,16 +22,12 @@ class J2Plasticity : public MechModel {
         }
         n_mat = bulk_modulus.size();
 
-        Matrix<double, 6, 6> Pvol = Matrix<double, 6, 6>::Zero();
-        Pvol.topLeftCorner(3, 3).setConstant(1.0 / 3.0); // volumetric projector
-        const Matrix<double, 6, 6> I6   = Matrix<double, 6, 6>::Identity();
-        const Matrix<double, 6, 6> Pdev = I6 - Pvol; // deviatoric projector
-
-        Matrix<double, 6, 6> Ce_sum = Matrix<double, 6, 6>::Zero();
-        for (size_t i = 0; i < n_mat; ++i) {
-            Ce_sum += 3.0 * bulk_modulus[i] * Pvol + 2.0 * shear_modulus[i] * Pdev;
-        }
-        kapparef_mat = Ce_sum / static_cast<double>(n_mat);
+        const double Kbar      = std::accumulate(bulk_modulus.begin(), bulk_modulus.end(), 0.0) / static_cast<double>(n_mat);
+        const double Gbar      = std::accumulate(shear_modulus.begin(), shear_modulus.end(), 0.0) / static_cast<double>(n_mat);
+        const double lambdabar = Kbar - 2.0 * Gbar / 3.0;
+        kapparef_mat.setZero();
+        kapparef_mat.topLeftCorner(3, 3).setConstant(lambdabar);
+        kapparef_mat.diagonal().array() += 2.0 * Gbar;
 
         // Allocate the member matrices/vectors for performance optimization
         sqrt_two_over_three = sqrt(2.0 / 3.0);
