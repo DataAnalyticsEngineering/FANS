@@ -32,18 +32,12 @@ class PseudoPlastic : public MechModel {
         }
         n_mat = bulk_modulus.size();
 
-        // Initialize stiffness matrix (assuming for two materials, otherwise needs extension)
-        Matrix<double, 6, 6> *Ce      = new Matrix<double, 6, 6>[n_mat];
-        Matrix<double, 6, 6>  topLeft = Matrix<double, 6, 6>::Zero();
-        topLeft.topLeftCorner(3, 3).setConstant(1);
-
-        kapparef_mat = Matrix<double, n_str, n_str>::Zero();
-        for (int i = 0; i < n_mat; ++i) {
-            Ce[i] = 3 * bulk_modulus[i] * topLeft +
-                    2 * shear_modulus[i] * (-1.0 / 3.0 * topLeft + Matrix<double, 6, 6>::Identity());
-            kapparef_mat += Ce[i];
-        }
-        kapparef_mat /= n_mat;
+        const double Kbar      = std::accumulate(bulk_modulus.begin(), bulk_modulus.end(), 0.0) / static_cast<double>(n_mat);
+        const double Gbar      = std::accumulate(shear_modulus.begin(), shear_modulus.end(), 0.0) / static_cast<double>(n_mat);
+        const double lambdabar = Kbar - 2.0 * Gbar / 3.0;
+        kapparef_mat.setZero();
+        kapparef_mat.topLeftCorner(3, 3).setConstant(lambdabar);
+        kapparef_mat.diagonal().array() += 2.0 * Gbar;
     }
 
     void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) override
