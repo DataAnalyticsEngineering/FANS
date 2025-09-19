@@ -27,20 +27,17 @@ jobs:
         with:
           environments: default
 
-      - name: Run pixi environment setup
-        run: pixi s -e default
-
-      - name: Change into test directory
-        run: cd test
-        working-directory: test
-
       - name: Run custom test script
-        run: ./run_tests.sh -n 2
-        working-directory: test
+        run: |
+          cd test
+          ./run_tests.sh -n 2
+        shell: pixi run bash -e {0}
 
       - name: Run pytest
-        run: pytest -v -s --from-pixi
-        working-directory: test/pytest
+        run: |
+          cd test/pytest
+          pytest -v -s --from-pixi
+        shell: pixi run bash -e {0}
 
       - name: Upload test logs
         uses: actions/upload-artifact@v4
