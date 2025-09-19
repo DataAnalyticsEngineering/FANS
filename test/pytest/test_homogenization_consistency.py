@@ -4,6 +4,7 @@ import json
 import pytest
 from fans_dashboard.core.utils import identify_hierarchy, extract_and_organize_data
 
+
 def test_homogenization_consistency(test_files):
     """
     This test verifies that the relationship stress_average = homogenized_tangent * strain_average

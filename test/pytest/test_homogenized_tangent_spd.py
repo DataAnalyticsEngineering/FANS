@@ -5,6 +5,7 @@ import pytest
 from fans_dashboard.core.utils import identify_hierarchy, extract_and_organize_data
 from scipy.linalg import eigvalsh
 
+
 def test_homogenized_tangent_spd(test_files):
     """
     This test verifies that the homogenized tangent is strictly Symmetric Positive Definite (SPD)

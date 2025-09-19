@@ -1,11 +1,15 @@
 import pytest
 import os
 
+
 def pytest_addoption(parser):
     parser.addoption(
-        "--from-pixi", action="store_true", default=False,
-        help="Run tests from pixi task."
+        "--from-pixi",
+        action="store_true",
+        default=False,
+        help="Run tests from pixi task.",
     )
+
 
 @pytest.fixture(
     params=[
@@ -35,4 +39,5 @@ def test_files(request):
 
     if os.path.exists(json_path) and os.path.exists(h5_path):
         return json_path, h5_path
-    pytest.skip(f"Required test files not found: {json_path} or {h5_path}")
+
+    assert False, f"Required test files not found: {json_path} or {h5_path}"
