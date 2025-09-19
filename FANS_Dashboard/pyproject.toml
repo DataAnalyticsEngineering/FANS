@@ -13,6 +13,7 @@ dependencies = [
   "lxml",
   "scipy",
   "meshio",
+  "nbformat",
 ]
 
 [tool.hatch.build.targets.wheel]

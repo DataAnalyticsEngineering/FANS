@@ -1,5 +1,9 @@
 # FANS Changelog
 
+## latest
+
+- Fix bug in J2 plasticity routine [#80](https://github.com/DataAnalyticsEngineering/FANS/pull/80)
+
 ## v0.4.2
 
 - Reduce dependencies of dashboard for cf-package https://github.com/DataAnalyticsEngineering/FANS/pull/71
