@@ -2,6 +2,10 @@
 channels = ["conda-forge"]
 name = "FANS"
 platforms = ["linux-64", "osx-64", "osx-arm64"]
+preview = ["pixi-build"]
+
+[dependencies]
+fans = { path = "." }
 
 [feature.dashboard.dependencies]
 python = ">=3.13.5,<3.14"
@@ -23,10 +27,44 @@ precommit = "pre-commit run --all-files"
 h52xdmf = { args = ["file"], cmd = "cd \"$INIT_CWD\" && python -m fans_dashboard.plotting.h52xdmf -t -v {{file}}" }
 
 [tasks]
-test = {depends-on = [
-  { task = "pytest", environment = "dashboard" }, # Will be changed later with pixi-build
-]}
+test = { cmd = "pytest -v -s --from-pixi", cwd = "test/pytest", depends-on = ["test-fans"] }
+test-fans = { cmd = "./run_tests.sh -n {{n}}", args = [
+  { arg = "n", default = "2" }, # Number of threads
+], cwd = "test" }
 
 [environments]
 default = {features = ["dashboard"]}
 dashboard = { features = ["dashboard"], no-default-feature = true }
+
+################## Pixi build part
+
+[package]
+name = "fans"
+version = "0.4.2"
+
+[package.build]
+backend = { name = "pixi-build-cmake", version = "0.3.*" }
+
+[package.build.config]
+extra-args = [
+    "-DFANS_LIBRARY_FOR_MICRO_MANAGER=ON",
+    ]
+
+[workspace.target.osx-arm64.build-variants]
+cxx_compiler_version = ["18"]
+
+[workspace.target.linux-64.build-variants]
+cxx_compiler = ["clangxx"]
+cxx_compiler_version = ["18"]
+
+[package.build-dependencies]
+cmake = "==4.0.3"
+pybind11 = "*"
+pkg-config = "*"
+ninja = "1.13.*"
+
+[package.host-dependencies]
+hdf5 = { version = "*", build = "* mpi_openmpi*" }
+fftw = { version = "*", build = "* mpi_openmpi*" } # works
+openmpi-mpicxx = "*"
+eigen = "*"

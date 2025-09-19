@@ -2,6 +2,8 @@
 
 ## latest
 
+- Introduce pixi build workflow and conftest.py for pytest-fixture [#82](https://github.com/DataAnalyticsEngineering/FANS/pull/82)
+- Use dashboard environment for regular pytest [#81](https://github.com/DataAnalyticsEngineering/FANS/pull/81)
 - Fix bug in J2 plasticity routine [#80](https://github.com/DataAnalyticsEngineering/FANS/pull/80)
 
 ## v0.4.2

@@ -14,12 +14,10 @@ jobs:
   build:
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    env:
-      FANS_BUILD_DIR: build
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        os: [ubuntu-latest]
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -31,6 +29,12 @@ jobs:
 
       - name: Run pytest checks on HDF5 output
         run: pixi run test
+
+      - name: Upload test logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: test/*.log
 
       - uses: actions/upload-artifact@v4
         if: failure()
