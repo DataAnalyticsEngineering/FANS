@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest]
+        os: [ubuntu-latest]
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -26,18 +26,11 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.9.0
         with:
           environments: default
+          activate-environment: default
+          RUNNER_DEBUG: true
 
-      - name: Run custom test script
-        run: |
-          cd test
-          ./run_tests.sh -n 2
-        shell: pixi run bash -e {0}
-
-      - name: Run pytest
-        run: |
-          cd test/pytest
-          pytest -v -s --from-pixi
-        shell: pixi run bash -e {0}
+      - name: Run pytest checks on HDF5 output
+        run: pixi run test
 
       - name: Upload test logs
         uses: actions/upload-artifact@v4

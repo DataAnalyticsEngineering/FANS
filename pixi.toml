@@ -28,7 +28,6 @@ h52xdmf = { args = ["file"], cmd = "cd \"$INIT_CWD\" && python -m fans_dashboard
 
 [tasks]
 test = { cmd = "pytest -v -s --from-pixi", cwd = "test/pytest", depends-on = ["test-fans"] }
-test_py = { cmd = "pytest -v -s --from-pixi", cwd = "test/pytest"}
 test-fans = { cmd = "./run_tests.sh -n {{n}}", args = [
   { arg = "n", default = "2" }, # Number of threads
 ], cwd = "test" }
