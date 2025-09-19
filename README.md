@@ -58,7 +58,7 @@ Also, we recommend setting up a Python virtual environment for the [`FANS_Dashbo
 curl -fsSL https://pixi.sh/install.sh | sh
 
 # Create and activate the environment
-pixi shell -e test
+pixi shell -e dashboard
 ```
 
 We also provide a set of Docker images. For further information, please refer to the [Docker README](docker/README.md).

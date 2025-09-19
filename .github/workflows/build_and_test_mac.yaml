@@ -36,7 +36,7 @@ jobs:
       - name: Set up pixi
         uses: prefix-dev/setup-pixi@v0.9.0
         with:
-          environments: test
+          environments: dashboard
 
       - name: Generate build directory
         run: mkdir -p ${{ env.FANS_BUILD_DIR }}
