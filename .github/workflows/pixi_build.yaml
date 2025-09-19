@@ -29,6 +29,7 @@ jobs:
 
       - name: Run pytest checks on HDF5 output
         run: |
+          pixi s -e default
           cd test
           ./run_tests.sh -n 2
           cd pytest
