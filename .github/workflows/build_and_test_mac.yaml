@@ -88,11 +88,6 @@ jobs:
       # ────────────────────────────────────────────────────────────────
       # Pytest checks
       # ────────────────────────────────────────────────────────────────
-      - name: Install Pixi Python deps
-        run: |
-          pixi --version
-          pixi install
-
       - name: Run pytest checks on HDF5 output
         run: pixi run pytest
 
