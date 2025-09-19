@@ -30,7 +30,9 @@ jobs:
           environments: default
 
       - name: Run pytest checks on HDF5 output
-        run: pixi run test
+        run: |
+          pixi run test-fans
+          pixi run test_py
 
       - uses: actions/upload-artifact@v4
         if: failure()
