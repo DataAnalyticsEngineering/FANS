@@ -18,12 +18,12 @@ fi
 mkdir -p output
 
 # Run the jobs serially
-command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_LinearThermal.json output/test_LinearThermal.h5 > test_LinearThermal.log 2>&1
+command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_LinearThermal.json output/test_LinearThermal.h5 > output/test_LinearThermal.log 2>&1
 
-command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_LinearElastic.json output/test_LinearElastic.h5 > test_LinearElastic.log 2>&1
+command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_LinearElastic.json output/test_LinearElastic.h5 > output/test_LinearElastic.log 2>&1
 
-command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_PseudoPlastic.json output/test_PseudoPlastic.h5 > test_PseudoPlastic.log 2>&1
+command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_PseudoPlastic.json output/test_PseudoPlastic.h5 > output/test_PseudoPlastic.log 2>&1
 
-command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_J2Plasticity.json output/test_J2Plasticity.h5 > test_J2Plasticity.log 2>&1
+command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_J2Plasticity.json output/test_J2Plasticity.h5 > output/test_J2Plasticity.log 2>&1
 
-command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_MixedBCs.json output/test_MixedBCs.h5 > test_MixedBCs.log 2>&1
+command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_MixedBCs.json output/test_MixedBCs.h5 > output/test_MixedBCs.log 2>&1
