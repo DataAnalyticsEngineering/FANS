@@ -2,7 +2,9 @@
 
 ## latest
 
-- Introduce pixi build workflow and conftest.py for pytest-fixture [#82](https://github.com/DataAnalyticsEngineering/FANS/pull/82)
+- Bump version in MacOS CI [#85](https://github.com/DataAnalyticsEngineering/FANS/pull/85)
+- Pixi build workflow for MacOS and Linux [#82](https://github.com/DataAnalyticsEngineering/FANS/pull/82) [#84](https://github.com/DataAnalyticsEngineering/FANS/pull/84)
+- Introduce conftest.py for pytest-fixture [#82](https://github.com/DataAnalyticsEngineering/FANS/pull/82)
 - Use dashboard environment for regular pytest [#81](https://github.com/DataAnalyticsEngineering/FANS/pull/81)
 - Fix bug in J2 plasticity routine [#80](https://github.com/DataAnalyticsEngineering/FANS/pull/80)
 
