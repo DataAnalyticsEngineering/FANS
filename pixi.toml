@@ -37,14 +37,14 @@ test-fans = { cmd = "./run_tests.sh -n {{n}}", args = [
 default = {features = ["dashboard"]}
 dashboard = { features = ["dashboard"], no-default-feature = true }
 
-################## Pixi build part
+################## Pixi build part ##################
 
 [package]
 name = "fans"
 version = "0.4.2"
 
 [package.build]
-backend = { name = "pixi-build-cmake", version = "0.3.*" }
+backend = { name = "pixi-build-cmake", version = "*" }
 
 [package.build.config]
 extra-args = [
@@ -52,20 +52,18 @@ extra-args = [
     ]
 
 [workspace.target.osx-arm64.build-variants]
-cxx_compiler_version = ["18"]
 
 [workspace.target.linux-64.build-variants]
 cxx_compiler = ["clangxx"]
-cxx_compiler_version = ["18"]
 
 [package.build-dependencies]
-cmake = "==4.0.3"
+cmake = "*"
 pybind11 = "*"
 pkg-config = "*"
-ninja = "1.13.*"
+ninja = "*"
 
 [package.host-dependencies]
 hdf5 = { version = "*", build = "* mpi_openmpi*" }
-fftw = { version = "*", build = "* mpi_openmpi*" } # works
+fftw = { version = "*", build = "* mpi_openmpi*" }
 openmpi-mpicxx = "*"
 eigen = "*"
