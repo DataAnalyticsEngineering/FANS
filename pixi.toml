@@ -70,3 +70,4 @@ hdf5 = { version = "*", build = "* mpi_openmpi*" }
 fftw = { version = "*", build = "* mpi_openmpi*" }
 openmpi-mpicxx = "*"
 eigen = "*"
+nlohmann_json = "*"

@@ -31,7 +31,7 @@ jobs:
           brew install gnu-time gcc@15
           brew install open-mpi --build-from-source --cc=gcc-15
           brew install hdf5-mpi --build-from-source --cc=gcc-15
-          brew install fftw eigen
+          brew install fftw eigen nlohmann-json
 
       - name: Set up pixi
         uses: prefix-dev/setup-pixi@v0.9.0
