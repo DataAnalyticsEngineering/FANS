@@ -20,5 +20,4 @@ repos:
     hooks:
     -   id: clang-format
         args: ['--style=file']
-        exclude: "include/json.hpp"
         types_or: [c++]

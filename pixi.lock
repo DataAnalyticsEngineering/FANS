@@ -503,7 +503,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/94/54/e7d793b573f298e1c9013b8c4dade17d481164aa517d1d7148619c2cedbf/markdown_it_py-4.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/89/5f/39cbadc320cd78f4834b0a9f7a2fa3c980dca942bf193f315837eacb8870/meshio-5.3.5-py3-none-any.whl
-      - pypi: git+https://github.com/DataAnalyticsEngineering/MSUtils.git#a8061e3854e46b6d6593fe6e922f5a36fbaf2d75
+      - pypi: git+https://github.com/DataAnalyticsEngineering/MSUtils.git#eb09abcabe6233dadd5c5a2da50028ba674e305d
       - pypi: https://files.pythonhosted.org/packages/f8/5a/22741c5c0e5f6e8050242bfc2052ba68bc94b1735ed5bca35404d136d6ec/narwhals-2.5.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a9/82/0340caa499416c78e5d8f5f05947ae4bc3cba53c9f038ab6e9ed964e22f1/nbformat-5.10.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/95/a9/12e2dc726ba1ba775a2c6922d5d5b4488ad60bdab0888c337c194c8e6de8/plotly-6.3.0-py3-none-any.whl
@@ -638,7 +638,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/94/54/e7d793b573f298e1c9013b8c4dade17d481164aa517d1d7148619c2cedbf/markdown_it_py-4.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/89/5f/39cbadc320cd78f4834b0a9f7a2fa3c980dca942bf193f315837eacb8870/meshio-5.3.5-py3-none-any.whl
-      - pypi: git+https://github.com/DataAnalyticsEngineering/MSUtils.git#a8061e3854e46b6d6593fe6e922f5a36fbaf2d75
+      - pypi: git+https://github.com/DataAnalyticsEngineering/MSUtils.git#eb09abcabe6233dadd5c5a2da50028ba674e305d
       - pypi: https://files.pythonhosted.org/packages/f8/5a/22741c5c0e5f6e8050242bfc2052ba68bc94b1735ed5bca35404d136d6ec/narwhals-2.5.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a9/82/0340caa499416c78e5d8f5f05947ae4bc3cba53c9f038ab6e9ed964e22f1/nbformat-5.10.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/95/a9/12e2dc726ba1ba775a2c6922d5d5b4488ad60bdab0888c337c194c8e6de8/plotly-6.3.0-py3-none-any.whl
@@ -773,7 +773,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/94/54/e7d793b573f298e1c9013b8c4dade17d481164aa517d1d7148619c2cedbf/markdown_it_py-4.0.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/89/5f/39cbadc320cd78f4834b0a9f7a2fa3c980dca942bf193f315837eacb8870/meshio-5.3.5-py3-none-any.whl
-      - pypi: git+https://github.com/DataAnalyticsEngineering/MSUtils.git#a8061e3854e46b6d6593fe6e922f5a36fbaf2d75
+      - pypi: git+https://github.com/DataAnalyticsEngineering/MSUtils.git#eb09abcabe6233dadd5c5a2da50028ba674e305d
       - pypi: https://files.pythonhosted.org/packages/f8/5a/22741c5c0e5f6e8050242bfc2052ba68bc94b1735ed5bca35404d136d6ec/narwhals-2.5.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a9/82/0340caa499416c78e5d8f5f05947ae4bc3cba53c9f038ab6e9ed964e22f1/nbformat-5.10.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/95/a9/12e2dc726ba1ba775a2c6922d5d5b4488ad60bdab0888c337c194c8e6de8/plotly-6.3.0-py3-none-any.whl
@@ -1213,13 +1213,13 @@ packages:
   build: h04f5b5a_0
   subdir: linux-64
   depends:
+  - libstdcxx >=15
+  - libgcc >=15
+  - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
-  - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
-  - libgcc >=15
-  - libstdcxx >=15
   input:
-    hash: b5146e88efb4e65c219926cd3dc035e61354772edb89bd105a14c92449091f5e
+    hash: bf8c264c3d6ffb03ad6636e7cb256215c7e668f4d21f702db6e6604f4addf1c0
     globs: []
 - conda: .
   name: fans
@@ -1227,12 +1227,12 @@ packages:
   build: hbf21a9e_0
   subdir: osx-64
   depends:
+  - libcxx >=21
+  - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
-  - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
-  - libcxx >=21
   input:
-    hash: b5146e88efb4e65c219926cd3dc035e61354772edb89bd105a14c92449091f5e
+    hash: bf8c264c3d6ffb03ad6636e7cb256215c7e668f4d21f702db6e6604f4addf1c0
     globs: []
 - conda: .
   name: fans
@@ -1240,12 +1240,12 @@ packages:
   build: hbf21a9e_0
   subdir: osx-arm64
   depends:
+  - libcxx >=21
+  - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
-  - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
-  - libcxx >=21
   input:
-    hash: b5146e88efb4e65c219926cd3dc035e61354772edb89bd105a14c92449091f5e
+    hash: bf8c264c3d6ffb03ad6636e7cb256215c7e668f4d21f702db6e6604f4addf1c0
     globs: []
 - pypi: ./FANS_Dashboard
   name: fans-dashboard
@@ -3215,9 +3215,6 @@ packages:
   - pkg:pypi/mpmath?source=hash-mapping
   size: 439705
   timestamp: 1733302781386
-- pypi: git+https://github.com/DataAnalyticsEngineering/MSUtils.git#a8061e3854e46b6d6593fe6e922f5a36fbaf2d75
-  name: msutils
-  version: 0.1.0
 - pypi: git+https://github.com/DataAnalyticsEngineering/MSUtils.git#eb09abcabe6233dadd5c5a2da50028ba674e305d
   name: msutils
   version: 0.1.0
