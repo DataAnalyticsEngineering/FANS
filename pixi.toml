@@ -19,13 +19,16 @@ time = ">=1.9,<2"
 
 [feature.dashboard.pypi-dependencies]
 fans-dashboard = { path = "FANS_Dashboard", editable = true }
-msutils = {git = "https://github.com/DataAnalyticsEngineering/MSUtils.git"}
+MSUtils = {git = "https://github.com/DataAnalyticsEngineering/MSUtils.git"}
 pyrecest = {git = "https://github.com/FlorianPfaff/pyRecEst.git"}
 
 [feature.dashboard.tasks]
 pytest = "pytest -v -s"
 precommit = "pre-commit run --all-files"
-h52xdmf = { args = ["file"], cmd = "cd \"$INIT_CWD\" && python -m fans_dashboard.plotting.h52xdmf -t -v {{file}}" }
+
+[feature.dashboard.tasks.h52xdmf]
+args = ["file", { arg = "extra", default = "" }]
+cmd  = "cd \"$INIT_CWD\" && python -m MSUtils.general.h52xdmf {{ extra }} {{ file }}"
 
 [tasks]
 test = { cmd = "pytest -v -s --from-pixi", cwd = "test/pytest", depends-on = ["test-fans"] }
