@@ -114,7 +114,7 @@ add_library(FANS::FANS ALIAS FANS_FANS)
 if (CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
 
 elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
-    target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
+    target_compile_options(FANS_FANS PRIVATE -mavx2 -mfma)
 endif ()
 
 add_executable(FANS_main)
@@ -135,8 +135,11 @@ endif ()
 # HEADERS
 # ##############################################################################
 
-target_include_directories(FANS_FANS PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
-
+target_include_directories(FANS_FANS
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/FANS>
+)
 # TODO: when creating a shared library in the future, maybe create one single
 # FANS.h header that consuming projects can use
 set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
@@ -185,23 +188,41 @@ target_link_libraries(FANS_FANS PRIVATE m)
 # TODO: when switching to a newer CMake version this can all be done by one
 # call to target_link_libraries(FANS_FANS PUBLIC HDF5::HDF5). But CMake 3.16
 # does not yet support this.
-target_include_directories(FANS_FANS PUBLIC ${HDF5_INCLUDE_DIRS})
-target_link_libraries(FANS_FANS PUBLIC ${HDF5_CXX_LIBRARIES})
-target_compile_definitions(FANS_FANS PUBLIC ${HDF5_DEFINITIONS})
+target_include_directories(FANS_FANS PRIVATE ${HDF5_INCLUDE_DIRS})
+target_link_libraries(FANS_FANS PRIVATE ${HDF5_CXX_LIBRARIES})
+target_compile_definitions(FANS_FANS PRIVATE ${HDF5_DEFINITIONS})
 if (HDF5_IS_PARALLEL)
-    target_compile_definitions(FANS_FANS PUBLIC H5_HAVE_PARALLEL)
+    target_compile_definitions(FANS_FANS PRIVATE H5_HAVE_PARALLEL)
 endif ()
 
-target_link_libraries(FANS_FANS PUBLIC MPI::MPI_CXX)
+target_link_libraries(FANS_FANS PRIVATE MPI::MPI_CXX)
 
-target_include_directories(FANS_FANS PUBLIC ${FFTW3_INCLUDE_DIRS})
-target_link_libraries(FANS_FANS PUBLIC ${FFTW3_LIBRARIES})
-target_compile_definitions(FANS_FANS PUBLIC ${FFTW3_DEFINITIONS})
+target_include_directories(FANS_FANS PRIVATE ${FFTW3_INCLUDE_DIRS})
+target_link_libraries(FANS_FANS PRIVATE ${FFTW3_LIBRARIES})
+target_compile_definitions(FANS_FANS PRIVATE ${FFTW3_DEFINITIONS})
 
-target_link_libraries(FANS_FANS PUBLIC Eigen3::Eigen)
-target_link_libraries(FANS_FANS PUBLIC nlohmann_json::nlohmann_json)
+target_link_libraries(FANS_FANS PRIVATE Eigen3::Eigen)
+target_link_libraries(FANS_FANS PRIVATE nlohmann_json::nlohmann_json)
 
 target_link_libraries(FANS_main PRIVATE FANS::FANS)
+target_link_libraries(FANS_main PRIVATE Eigen3::Eigen nlohmann_json::nlohmann_json MPI::MPI_CXX)
+if (TARGET HDF5::HDF5)
+  target_link_libraries(FANS_main PRIVATE HDF5::HDF5)
+else()
+  target_include_directories(FANS_main PRIVATE ${HDF5_INCLUDE_DIRS})
+  target_link_libraries(FANS_main PRIVATE ${HDF5_CXX_LIBRARIES})
+  target_compile_definitions(FANS_main PRIVATE ${HDF5_DEFINITIONS})
+  if (HDF5_IS_PARALLEL)
+    target_compile_definitions(FANS_main PRIVATE H5_HAVE_PARALLEL)
+  endif()
+endif()
+if (TARGET FFTW3::FFTW3 AND TARGET FFTW3::MPI)
+  target_link_libraries(FANS_main PRIVATE FFTW3::FFTW3 FFTW3::MPI)
+else()
+  target_include_directories(FANS_main PRIVATE ${FFTW3_INCLUDE_DIRS})
+  target_link_libraries(FANS_main PRIVATE ${FFTW3_LIBRARIES})
+  target_compile_definitions(FANS_main PRIVATE ${FFTW3_DEFINITIONS})
+endif()
 
 # ##############################################################################
 # NAMING
