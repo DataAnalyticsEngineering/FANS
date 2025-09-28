@@ -2,6 +2,7 @@
 
 ## latest
 
+- Introduce a Pixi dev environment [#89](https://github.com/DataAnalyticsEngineering/FANS/pull/89)
 - Include nlohmann-json via cmake [#87](https://github.com/DataAnalyticsEngineering/FANS/pull/87)
 - Relaxed versions in Pixi build workflow [#86](https://github.com/DataAnalyticsEngineering/FANS/pull/86)
 - Bump version in MacOS CI [#85](https://github.com/DataAnalyticsEngineering/FANS/pull/85)
