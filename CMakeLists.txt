@@ -201,6 +201,7 @@ target_compile_definitions(FANS_FANS PUBLIC ${FFTW3_DEFINITIONS})
 target_link_libraries(FANS_FANS PUBLIC Eigen3::Eigen)
 target_link_libraries(FANS_FANS PUBLIC nlohmann_json::nlohmann_json)
 
+target_include_directories(FANS_main PRIVATE ${HDF5_INCLUDE_DIRS})
 target_link_libraries(FANS_main PRIVATE FANS::FANS)
 
 # ##############################################################################
