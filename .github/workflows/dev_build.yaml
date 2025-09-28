@@ -44,8 +44,15 @@ jobs:
       - name: Run C++ tests
         working-directory: test
         run: |
+          # Debug information
           ls -la FANS 
-          pixi run -e dev ./run_tests.sh -n 2
+          file FANS
+          echo "Testing FANS executable:"
+          pixi run -e dev ./FANS --version || echo "FANS --version failed with code $?"
+          echo "Testing mpiexec:"
+          pixi run -e dev mpiexec --version || echo "mpiexec failed with code $?"
+          echo "Running tests with more debugging:"
+          pixi run -e dev bash -x ./run_tests.sh -n 2
 
       - name: Run pytest checks on HDF5 output
         working-directory: test/pytest
