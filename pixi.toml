@@ -1,7 +1,7 @@
 [workspace]
 channels = ["conda-forge"]
 name = "FANS"
-platforms = ["linux-64", "osx-64", "osx-arm64"]
+platforms = ["linux-64", "linux-ppc64le", "linux-aarch64", "osx-arm64", "osx-64"]
 preview = ["pixi-build"]
 
 [dependencies]
@@ -30,6 +30,14 @@ precommit = "pre-commit run --all-files"
 args = ["file", { arg = "extra", default = "" }]
 cmd  = "cd \"$INIT_CWD\" && python -m MSUtils.general.h52xdmf {{ extra }} {{ file }}"
 
+[feature.dev.dependencies]
+cmake = "*"
+openmpi-mpicxx = "*"
+hdf5 = { version = "*", build = "mpi_openmpi_*" }
+fftw = { version = "*", build = "mpi_openmpi_*" }
+eigen = "*"
+nlohmann_json = "*"
+
 [tasks]
 test = { cmd = "pytest -v -s --from-pixi", cwd = "test/pytest", depends-on = ["test-fans"] }
 test-fans = { cmd = "./run_tests.sh -n {{n}}", args = [
@@ -37,8 +45,9 @@ test-fans = { cmd = "./run_tests.sh -n {{n}}", args = [
 ], cwd = "test" }
 
 [environments]
-default = {features = ["dashboard"]}
+default   = { features = ["dashboard"]}
 dashboard = { features = ["dashboard"], no-default-feature = true }
+dev       = { features = ["dev"],       no-default-feature = true }
 
 ################## Pixi build part ##################
 
