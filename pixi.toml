@@ -37,6 +37,7 @@ hdf5 = { version = "*", build = "mpi_openmpi_*" }
 fftw = { version = "*", build = "mpi_openmpi_*" }
 eigen = "*"
 nlohmann_json = "*"
+time = "*"
 
 [tasks]
 test = { cmd = "pytest -v -s --from-pixi", cwd = "test/pytest", depends-on = ["test-fans"] }
