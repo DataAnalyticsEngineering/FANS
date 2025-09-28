@@ -43,6 +43,7 @@ jobs:
 
       - name: Run pytest checks on HDF5 output
         run: |
+          cd ../test
           ./run_tests.sh -n 2
           pixi run -e dev pytest -v -s
 
