@@ -42,7 +42,9 @@ jobs:
           pixi run -e dev cmake --build . -j $(nproc) || pixi run -e dev cmake --build . -j1
 
       - name: Run pytest checks on HDF5 output
-        run: pixi run test
+        run: |
+          ./run_tests.sh -n 2
+          pixi run -e dev pytest -v -s
 
       - name: Upload test logs
         uses: actions/upload-artifact@v4
