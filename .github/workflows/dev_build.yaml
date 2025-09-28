@@ -1,5 +1,5 @@
-name: Build and test pixi-build
-# Builds FANS for macOS and Ubuntu and runs the tests.
+name: Build and test in dev environment
+# Builds FANS using dev environment with cmake and make, then runs tests.
 on:
   push:
     branches:
@@ -25,10 +25,30 @@ jobs:
       - name: Set up pixi
         uses: prefix-dev/setup-pixi@v0.9.0
         with:
-          environments: default
+          environments: dev
+
+      - name: Generate build directory
+        run: mkdir -p build
+
+      - name: Configure
+        working-directory: build
+        run: |
+          pixi run -e dev cmake --version
+          pixi run -e dev cmake ..
+
+      - name: Compile
+        working-directory: build
+        run: |
+          pixi run -e dev cmake --build . -j $(nproc) || pixi run -e dev cmake --build . -j1
+
+      - name: Run C++ tests
+        working-directory: test
+        run: |
+          pixi run -e dev ./run_tests.sh -n 2
 
       - name: Run pytest checks on HDF5 output
-        run: pixi run test
+        working-directory: test/pytest
+        run: pixi run -e dev pytest -v -s
 
       - name: Upload test logs
         uses: actions/upload-artifact@v4
