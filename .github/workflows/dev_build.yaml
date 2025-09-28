@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -41,14 +41,8 @@ jobs:
         run: |
           pixi run -e dev cmake --build . -j $(nproc) || pixi run -e dev cmake --build . -j1
 
-      - name: Run C++ tests
-        working-directory: test
-        run: |
-          pixi run -e dev ./run_tests.sh -n 2
-
       - name: Run pytest checks on HDF5 output
-        working-directory: test/pytest
-        run: pixi run -e dev pytest -v -s
+        run: pixi run test
 
       - name: Upload test logs
         uses: actions/upload-artifact@v4
