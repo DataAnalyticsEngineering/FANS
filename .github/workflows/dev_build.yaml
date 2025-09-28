@@ -44,7 +44,7 @@ jobs:
       - name: Run C++ tests
         working-directory: test
         run: |
-          cp ../build/FANS ./FANS || ln -sf ../build/FANS ./FANS
+          ls -la FANS 
           pixi run -e dev ./run_tests.sh -n 2
 
       - name: Run pytest checks on HDF5 output
