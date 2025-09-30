@@ -1,5 +1,22 @@
 # FANS Changelog
 
+## v0.4.3
+
+- Introduce a Pixi dev environment [#89](https://github.com/DataAnalyticsEngineering/FANS/pull/89)
+- Include nlohmann-json via cmake [#87](https://github.com/DataAnalyticsEngineering/FANS/pull/87)
+- Relaxed versions in Pixi build workflow [#86](https://github.com/DataAnalyticsEngineering/FANS/pull/86)
+- Bump version in MacOS CI [#85](https://github.com/DataAnalyticsEngineering/FANS/pull/85)
+- Pixi build workflow for MacOS and Linux [#82](https://github.com/DataAnalyticsEngineering/FANS/pull/82) [#84](https://github.com/DataAnalyticsEngineering/FANS/pull/84)
+- Introduce conftest.py for pytest-fixture [#82](https://github.com/DataAnalyticsEngineering/FANS/pull/82)
+- Use dashboard environment for regular pytest [#81](https://github.com/DataAnalyticsEngineering/FANS/pull/81)
+- Fix bug in J2 plasticity routine [#80](https://github.com/DataAnalyticsEngineering/FANS/pull/80)
+
+## v0.4.2
+
+- Reduce dependencies of dashboard for cf-package https://github.com/DataAnalyticsEngineering/FANS/pull/71
+- Add pixi task `h52xdmf` to generate XDMF from H5 files directly as `pixi run h52xdmf {h5filepath}`
+- Add logo of FANS to the README https://github.com/DataAnalyticsEngineering/FANS/pull/70
+
 ## v0.4.1
 
 - remove std::sqrt from constexpr - failed on Clang https://github.com/DataAnalyticsEngineering/FANS/pull/64

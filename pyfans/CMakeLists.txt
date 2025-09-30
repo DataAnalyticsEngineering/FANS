@@ -1,4 +1,5 @@
 pybind11_add_module(PyFANS micro.hpp micro.cpp)
+target_include_directories(PyFANS PRIVATE ${HDF5_INCLUDE_DIRS})
 target_link_libraries(PyFANS PRIVATE FANS::FANS)
 
 add_custom_command(

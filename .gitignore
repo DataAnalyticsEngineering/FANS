@@ -210,3 +210,4 @@ test/input_files/**/*.json
 # pixi environments
 .pixi
 *.egg-info
+*.conda
