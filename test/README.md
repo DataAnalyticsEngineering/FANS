@@ -31,7 +31,7 @@ This will run all test cases and generate result files in `build/test/`.
 After running the tests, the results are verified using pytest. We recommend running pytest via a pre-configured Pixi task,
 
 ```bash
-pixi run test
+pixi run -e dashboard pytest
 ```
 
 Note: The validation tests expect result files to be in `build/test/` directory, so make sure to run the tests first.

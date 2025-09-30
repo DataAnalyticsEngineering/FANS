@@ -24,6 +24,7 @@ FANS has the following dependencies:
 - HDF5 with MPI support
 - Eigen3
 - FFTW3 with MPI support
+- nlohmann-json (for JSON input parsing)
 
 ### Installing dependencies
 
@@ -35,18 +36,19 @@ FANS has the following dependencies:
       libopenmpi-dev \
       libeigen3-dev \
       libfftw3-dev \
-      libfftw3-mpi-dev
+      libfftw3-mpi-dev \
+      nlohmann-json3-dev
   ```
 
 - On macOS, you can obtain the dependencies using `brew` and set the environment variables:
 
   ```zsh
-  brew install gnu-time cmake gcc@14
-  brew install open-mpi --build-from-source --cc=gcc-14
-  brew install hdf5-mpi --build-from-source --cc=gcc-14
-  brew install fftw eigen
+  brew install gnu-time cmake gcc@15
+  brew install open-mpi --build-from-source --cc=gcc-15
+  brew install hdf5-mpi --build-from-source --cc=gcc-15
+  brew install fftw eigen nlohmann-json
 
-  export CC=gcc-14 CXX=g++-14 MPICC=mpicc MPICXX=mpicxx
+  export CC=gcc-15 CXX=g++-15 MPICC=mpicc MPICXX=mpicxx
   ```
 
 ### Setting up a Python environment
@@ -58,7 +60,7 @@ Also, we recommend setting up a Python virtual environment for the [`FANS_Dashbo
 curl -fsSL https://pixi.sh/install.sh | sh
 
 # Create and activate the environment
-pixi shell
+pixi shell -e dashboard
 ```
 
 We also provide a set of Docker images. For further information, please refer to the [Docker README](docker/README.md).
@@ -77,6 +79,7 @@ Spack is a package manager designed for high-performance computing environments.
     spack install hdf5 +cxx +mpi
     spack install eigen
     spack install fftw +mpi
+    spack install nlohmann-json
     ```
 
     Additionally, optimized FFTW implementations can be used depending on your system's architecture, for example `amdfftw` (For AMD systems) or `cray-fftw` (For Cray systems), or `fujitsu-fftw` (For Fujitsu systems).
@@ -84,7 +87,7 @@ Spack is a package manager designed for high-performance computing environments.
 3. **Load Dependencies** Once dependencies are installed, load them before building:
 
     ```bash
-    spack load cmake mpi hdf5 eigen fftw
+    spack load cmake mpi hdf5 eigen fftw nlohmann-json
     ```
 
 ## Building

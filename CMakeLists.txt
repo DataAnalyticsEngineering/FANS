@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.21)
 # ##############################################################################
 
 project(FANS
-        VERSION 0.4.2
+        VERSION 0.4.3
         LANGUAGES C CXX
 )
 
@@ -98,7 +98,7 @@ if (FANS_LIBRARY_FOR_MICRO_MANAGER)
     )
     FetchContent_MakeAvailable(pybind11)
 endif()
-
+find_package(nlohmann_json REQUIRED)
 # ##############################################################################
 # TARGETS
 # ##############################################################################
@@ -141,7 +141,6 @@ target_include_directories(FANS_FANS PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SO
 # FANS.h header that consuming projects can use
 set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/general.h
-        include/json.hpp
         include/matmodel.h
         include/reader.h
         include/solverCG.h
@@ -186,7 +185,7 @@ target_link_libraries(FANS_FANS PRIVATE m)
 # TODO: when switching to a newer CMake version this can all be done by one
 # call to target_link_libraries(FANS_FANS PUBLIC HDF5::HDF5). But CMake 3.16
 # does not yet support this.
-target_include_directories(FANS_FANS PUBLIC ${HDF5_INCLUDE_DIRS})
+target_include_directories(FANS_FANS PRIVATE ${HDF5_INCLUDE_DIRS})
 target_link_libraries(FANS_FANS PUBLIC ${HDF5_CXX_LIBRARIES})
 target_compile_definitions(FANS_FANS PUBLIC ${HDF5_DEFINITIONS})
 if (HDF5_IS_PARALLEL)
@@ -195,12 +194,14 @@ endif ()
 
 target_link_libraries(FANS_FANS PUBLIC MPI::MPI_CXX)
 
-target_include_directories(FANS_FANS PUBLIC ${FFTW3_INCLUDE_DIRS})
+target_include_directories(FANS_FANS PRIVATE ${FFTW3_INCLUDE_DIRS})
 target_link_libraries(FANS_FANS PUBLIC ${FFTW3_LIBRARIES})
 target_compile_definitions(FANS_FANS PUBLIC ${FFTW3_DEFINITIONS})
 
 target_link_libraries(FANS_FANS PUBLIC Eigen3::Eigen)
+target_link_libraries(FANS_FANS PUBLIC nlohmann_json::nlohmann_json)
 
+target_include_directories(FANS_main PRIVATE ${HDF5_INCLUDE_DIRS})
 target_link_libraries(FANS_main PRIVATE FANS::FANS)
 
 # ##############################################################################

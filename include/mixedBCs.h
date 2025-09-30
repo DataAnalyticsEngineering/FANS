@@ -10,8 +10,6 @@
 
 #include <Eigen/Dense>
 using namespace Eigen;
-#include <json.hpp>
-using nlohmann::json;
 
 // ---------------------------------------------------------------------------
 struct MixedBC {

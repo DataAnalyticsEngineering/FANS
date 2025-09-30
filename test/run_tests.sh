@@ -8,16 +8,22 @@ fi
 
 num_processes=$2
 
-TIME_CMD="command time -v"
-[[ "$OSTYPE" == "darwin"* ]] && TIME_CMD="command gtime -v"
+# Select executable depending on whether we're inside a conda/pixi env
+if [ -n "$CONDA_PREFIX" ]; then
+    FANS_EXEC="$CONDA_PREFIX/bin/FANS"
+else
+    FANS_EXEC="./FANS"
+fi
+
+mkdir -p output
 
 # Run the jobs serially
-$TIME_CMD mpiexec -n $num_processes ./FANS input_files/test_LinearThermal.json test_LinearThermal.h5 > test_LinearThermal.log 2>&1
+command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_LinearThermal.json output/test_LinearThermal.h5 > output/test_LinearThermal.log 2>&1
 
-$TIME_CMD mpiexec -n $num_processes ./FANS input_files/test_LinearElastic.json test_LinearElastic.h5 > test_LinearElastic.log 2>&1
+command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_LinearElastic.json output/test_LinearElastic.h5 > output/test_LinearElastic.log 2>&1
 
-$TIME_CMD mpiexec -n $num_processes ./FANS input_files/test_PseudoPlastic.json test_PseudoPlastic.h5 > test_PseudoPlastic.log 2>&1
+command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_PseudoPlastic.json output/test_PseudoPlastic.h5 > output/test_PseudoPlastic.log 2>&1
 
-$TIME_CMD mpiexec -n $num_processes ./FANS input_files/test_J2Plasticity.json test_J2Plasticity.h5 > test_J2Plasticity.log 2>&1
+command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_J2Plasticity.json output/test_J2Plasticity.h5 > output/test_J2Plasticity.log 2>&1
 
-$TIME_CMD mpiexec -n $num_processes ./FANS input_files/test_MixedBCs.json test_MixedBCs.h5 > test_MixedBCs.log 2>&1
+command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_MixedBCs.json output/test_MixedBCs.h5 > output/test_MixedBCs.log 2>&1

@@ -30,10 +30,12 @@ jobs:
         UBUNTU_VERSION: [noble, jammy]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up pixi
-        uses: prefix-dev/setup-pixi@v0.8.10
+        uses: prefix-dev/setup-pixi@v0.9.1
+        with:
+          environments: dashboard
 
       - name: Generate build directory
         run: mkdir -p ${{ env.FANS_BUILD_DIR }}
@@ -82,13 +84,8 @@ jobs:
       # ────────────────────────────────────────────────────────────────
       # Pytest checks
       # ────────────────────────────────────────────────────────────────
-      - name: Install Pixi Python deps
-        run: |
-          pixi --version
-          pixi install
-
       - name: Run pytest checks on HDF5 output
-        run: pixi run test
+        run: pixi run -e dashboard pytest
 
       - uses: actions/upload-artifact@v4
         if: failure()

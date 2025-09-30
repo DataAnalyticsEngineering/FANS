@@ -17,6 +17,7 @@ set(FANS_TEST_CASES
     LinearElastic
     LinearThermal
     PseudoPlastic
+    MixedBCs
 )
 
 list(LENGTH FANS_TEST_CASES N_TESTS)
