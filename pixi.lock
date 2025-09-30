@@ -2678,7 +2678,7 @@ packages:
   timestamp: 1756729456476
 - conda: .
   name: fans
-  version: 0.4.2
+  version: 0.4.3
   build: h04f5b5a_0
   subdir: linux-64
   depends:
@@ -2688,11 +2688,11 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: bf8c264c3d6ffb03ad6636e7cb256215c7e668f4d21f702db6e6604f4addf1c0
+    hash: 3ac6f333bef244fff96bad8e8debf781984aec56eec25d983aa8a245eed92fc8
     globs: []
 - conda: .
   name: fans
-  version: 0.4.2
+  version: 0.4.3
   build: hbf21a9e_0
   subdir: linux-aarch64
   depends:
@@ -2702,11 +2702,11 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: bf8c264c3d6ffb03ad6636e7cb256215c7e668f4d21f702db6e6604f4addf1c0
+    hash: 3ac6f333bef244fff96bad8e8debf781984aec56eec25d983aa8a245eed92fc8
     globs: []
 - conda: .
   name: fans
-  version: 0.4.2
+  version: 0.4.3
   build: hbf21a9e_0
   subdir: linux-ppc64le
   depends:
@@ -2716,11 +2716,11 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: bf8c264c3d6ffb03ad6636e7cb256215c7e668f4d21f702db6e6604f4addf1c0
+    hash: 3ac6f333bef244fff96bad8e8debf781984aec56eec25d983aa8a245eed92fc8
     globs: []
 - conda: .
   name: fans
-  version: 0.4.2
+  version: 0.4.3
   build: hbf21a9e_0
   subdir: osx-64
   depends:
@@ -2729,11 +2729,11 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: bf8c264c3d6ffb03ad6636e7cb256215c7e668f4d21f702db6e6604f4addf1c0
+    hash: 3ac6f333bef244fff96bad8e8debf781984aec56eec25d983aa8a245eed92fc8
     globs: []
 - conda: .
   name: fans
-  version: 0.4.2
+  version: 0.4.3
   build: hbf21a9e_0
   subdir: osx-arm64
   depends:
@@ -2742,12 +2742,12 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: bf8c264c3d6ffb03ad6636e7cb256215c7e668f4d21f702db6e6604f4addf1c0
+    hash: 3ac6f333bef244fff96bad8e8debf781984aec56eec25d983aa8a245eed92fc8
     globs: []
 - pypi: ./FANS_Dashboard
   name: fans-dashboard
-  version: 0.4.2
-  sha256: ad0378e406fc542f24213be9d43cbb0423a34caf0c72e5a96915d4b875cce53a
+  version: 0.4.3
+  sha256: 5ba60ff9a16ff00e7dc0b5ba5b80453c51649b8acd398e1de605a1a120846093
   requires_dist:
   - numpy
   - h5py
