@@ -1,6 +1,6 @@
 # FANS Changelog
 
-## latest
+## v0.4.3
 
 - Introduce a Pixi dev environment [#89](https://github.com/DataAnalyticsEngineering/FANS/pull/89)
 - Include nlohmann-json via cmake [#87](https://github.com/DataAnalyticsEngineering/FANS/pull/87)
