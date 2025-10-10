@@ -15,7 +15,7 @@ class SolverCG : public Solver<howmany> {
     using Solver<howmany>::v_r_real;
 
     SolverCG(Reader &reader, Matmodel<howmany> *matmodel);
-    virtual ~SolverCG(); 
+    virtual ~SolverCG();
 
     double   *s;
     double   *d;
