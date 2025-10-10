@@ -14,7 +14,8 @@ class SolverCG : public Solver<howmany> {
     using Solver<howmany>::v_u_real;
     using Solver<howmany>::v_r_real;
 
-    SolverCG(Reader reader, Matmodel<howmany> *matmodel);
+    SolverCG(Reader &reader, Matmodel<howmany> *matmodel);
+    virtual ~SolverCG(); 
 
     double   *s;
     double   *d;
@@ -32,7 +33,7 @@ class SolverCG : public Solver<howmany> {
 };
 
 template <int howmany>
-SolverCG<howmany>::SolverCG(Reader reader, Matmodel<howmany> *mat)
+SolverCG<howmany>::SolverCG(Reader &reader, Matmodel<howmany> *mat)
     : Solver<howmany>(reader, mat),
 
       s(fftw_alloc_real(reader.alloc_local * 2)),
@@ -143,5 +144,22 @@ void SolverCG<howmany>::LineSearchSecant()
     v_r_real = rnew_real;
     if (this->world_rank == 0)
         printf("line search iter %i, alpha %f - error %e - ", _iter, alpha_new, err);
+}
+
+template <int howmany>
+SolverCG<howmany>::~SolverCG()
+{
+    if (s) {
+        fftw_free(s);
+        s = nullptr;
+    }
+    if (rnew) {
+        fftw_free(rnew);
+        rnew = nullptr;
+    }
+    if (d) {
+        fftw_free(d);
+        d = nullptr;
+    }
 }
 #endif

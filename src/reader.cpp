@@ -505,3 +505,125 @@ void Reader ::ReadMS(int hm)
 
 //     return 0;
 // }
+
+// Default constructor
+Reader::Reader()
+    : ms(nullptr),
+      world_rank(0),
+      world_size(1),
+      n_mat(0),
+      TOL(1e-6),
+      n_it(1000),
+      is_zyx(true),
+      alloc_local(0),
+      local_n0(0),
+      local_n1(0),
+      local_0_start(0),
+      local_1_start(0)
+{
+    // Initialize string members
+    ms_filename[0]    = '\0';
+    ms_datasetname[0] = '\0';
+    results_prefix[0] = '\0';
+}
+
+Reader::~Reader()
+{
+    // Free ms memory if allocated (deep copy approach)
+    if (ms) {
+        FANS_free(ms);
+        ms = nullptr;
+    }
+}
+
+// Copy constructor - makes deep copy of ms memory
+Reader::Reader(const Reader &other)
+    : dims(other.dims),
+      l_e(other.l_e),
+      L(other.L),
+      ms(nullptr), // Will allocate and copy below
+      is_zyx(other.is_zyx),
+      world_rank(other.world_rank),
+      world_size(other.world_size),
+      n_mat(other.n_mat),
+      materialProperties(other.materialProperties),
+      TOL(other.TOL),
+      errorParameters(other.errorParameters),
+      microstructure(other.microstructure),
+      n_it(other.n_it),
+      load_cases(other.load_cases),
+      problemType(other.problemType),
+      matmodel(other.matmodel),
+      method(other.method),
+      resultsToWrite(other.resultsToWrite),
+      alloc_local(other.alloc_local),
+      local_n0(other.local_n0),
+      local_n1(other.local_n1),
+      local_0_start(other.local_0_start),
+      local_1_start(other.local_1_start)
+{
+    // Copy string members
+    strcpy(ms_filename, other.ms_filename);
+    strcpy(ms_datasetname, other.ms_datasetname);
+    strcpy(results_prefix, other.results_prefix);
+
+    // Deep copy ms data if it exists
+    if (other.ms != nullptr) {
+        size_t total_size = dims[0] * dims[1] * dims[2];
+        if (total_size > 0) {
+            ms = FANS_malloc<unsigned short>(total_size);
+            std::memcpy(ms, other.ms, total_size * sizeof(unsigned short));
+        } else {
+            ms = nullptr;
+        }
+    }
+}
+
+// Assignment operator - makes deep copy of ms memory
+Reader &Reader::operator=(const Reader &other)
+{
+    if (this != &other) {
+        // Free existing ms memory
+        if (ms) {
+            FANS_free(ms);
+            ms = nullptr;
+        }
+
+        // Copy all members
+        dims               = other.dims;
+        l_e                = other.l_e;
+        L                  = other.L;
+        is_zyx             = other.is_zyx;
+        world_rank         = other.world_rank;
+        world_size         = other.world_size;
+        n_mat              = other.n_mat;
+        materialProperties = other.materialProperties;
+        TOL                = other.TOL;
+        errorParameters    = other.errorParameters;
+        microstructure     = other.microstructure;
+        n_it               = other.n_it;
+        load_cases         = other.load_cases;
+        problemType        = other.problemType;
+        matmodel           = other.matmodel;
+        method             = other.method;
+        resultsToWrite     = other.resultsToWrite;
+        alloc_local        = other.alloc_local;
+        local_n0           = other.local_n0;
+        local_n1           = other.local_n1;
+        local_0_start      = other.local_0_start;
+        local_1_start      = other.local_1_start;
+
+        // Copy string members
+        strcpy(ms_filename, other.ms_filename);
+        strcpy(ms_datasetname, other.ms_datasetname);
+        strcpy(results_prefix, other.results_prefix);
+
+        // Deep copy ms data if it exists
+        if (other.ms != nullptr) {
+            size_t total_size = dims[0] * dims[1] * dims[2];
+            ms                = FANS_malloc<unsigned short>(total_size);
+            std::memcpy(ms, other.ms, total_size * sizeof(unsigned short));
+        }
+    }
+    return *this;
+}

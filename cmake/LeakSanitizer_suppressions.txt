@@ -1,0 +1,11 @@
+# Minimal LSAN suppression file to expose FANS code memory leaks
+
+# OpenMPI initialization - essential for MPI programs
+leak:libopen-rte.so*
+leak:libmpi.so*
+
+# hwloc topology detection - essential for parallel programs
+leak:libhwloc.so*
+
+# AddressSanitizer itself - not application bugs
+leak:libasan.so*

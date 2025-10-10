@@ -8,10 +8,10 @@ typedef Map<Array<double, Dynamic, Dynamic>, Unaligned, OuterStride<>> RealArray
 template <int howmany>
 class Solver : private MixedBCController<howmany> {
   public:
-    Solver(Reader reader, Matmodel<howmany> *matmodel);
-    virtual ~Solver() = default;
+    Solver(Reader &reader, Matmodel<howmany> *matmodel);
+    virtual ~Solver(); 
 
-    Reader reader;
+    Reader &reader;
 
     const int world_rank;
     const int world_size;
@@ -51,7 +51,7 @@ class Solver : private MixedBCController<howmany> {
     template <int padding>
     void compute_residual(RealArray &r_matrix, RealArray &u_matrix);
 
-    void postprocess(Reader reader, const char resultsFileName[], int load_idx, int time_idx); //!< Computes Strain and stress
+    void postprocess(Reader &reader, const char resultsFileName[], int load_idx, int time_idx); //!< Computes Strain and stress
 
     void   convolution();
     double compute_error(RealArray &r);
@@ -87,7 +87,7 @@ class Solver : private MixedBCController<howmany> {
 };
 
 template <int howmany>
-Solver<howmany>::Solver(Reader reader, Matmodel<howmany> *mat)
+Solver<howmany>::Solver(Reader &reader, Matmodel<howmany> *mat)
     : reader(reader),
       matmodel(mat),
       world_rank(reader.world_rank),
@@ -102,7 +102,7 @@ Solver<howmany>::Solver(Reader reader, Matmodel<howmany> *mat)
 
       n_it(reader.n_it),
       TOL(reader.TOL),
-      ms(reader.ms),
+      ms(nullptr), // Will allocate and copy below
 
       v_r(fftw_alloc_real(std::max(reader.alloc_local * 2, (local_n0 + 1) * n_y * (n_z + 2) * howmany))),
       v_r_real(v_r, n_z * howmany, local_n0 * n_y, OuterStride<>((n_z + 2) * howmany)),
@@ -177,6 +177,9 @@ Solver<howmany>::Solver(Reader reader, Matmodel<howmany> *mat)
     if (world_rank == 0) {
         printf("# Complete; Time for construction of Fundamental Solution(s): %f seconds\n", double(tot_time) / CLOCKS_PER_SEC);
     }
+
+    // Use reader's ms data directly (no copying needed since reader is a reference)
+    ms = reader.ms;
 }
 
 template <int howmany>
@@ -416,7 +419,7 @@ double Solver<howmany>::compute_error(RealArray &r)
 }
 
 template <int howmany>
-void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], int load_idx, int time_idx)
+void Solver<howmany>::postprocess(Reader &reader, const char resultsFileName[], int load_idx, int time_idx)
 {
     int      n_str          = matmodel->n_str;
     VectorXd strain         = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
@@ -524,15 +527,15 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
         }
     }
 
-    // Concatenate reader.ms_datasetname and reader.results_prefix into reader.ms_datasetname
-    strcat(reader.ms_datasetname, "_results/");
-    strcat(reader.ms_datasetname, reader.results_prefix);
+    // Create local dataset name without modifying reader's original ms_datasetname
+    char dataset_name[5096];
+    sprintf(dataset_name, "%s_results/%s", reader.ms_datasetname, reader.results_prefix);
 
     // Write results to results h5 file
     auto writeData = [&](const char *resultName, const char *resultPrefix, auto *data, hsize_t *dims, int ndims) {
         if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), resultName) != reader.resultsToWrite.end()) {
             char name[5096];
-            sprintf(name, "%s/load%i/time_step%i/%s", reader.ms_datasetname, load_idx, time_idx, resultPrefix);
+            sprintf(name, "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, resultPrefix);
             reader.WriteData(data, resultsFileName, name, dims, ndims);
         }
     };
@@ -540,7 +543,7 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
     auto writeSlab = [&](const char *resultName, const char *resultPrefix, auto *data, int size) {
         if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), resultName) != reader.resultsToWrite.end()) {
             char name[5096];
-            sprintf(name, "%s/load%i/time_step%i/%s", reader.ms_datasetname, load_idx, time_idx, resultPrefix);
+            sprintf(name, "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, resultPrefix);
             reader.WriteSlab(data, size, resultsFileName, name);
         }
     };
@@ -572,7 +575,16 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }
+
+    // Temporarily modify reader.ms_datasetname for material model postprocess
+    char original_datasetname[5096];
+    strcpy(original_datasetname, reader.ms_datasetname);
+    strcpy(reader.ms_datasetname, dataset_name);
+
     matmodel->postprocess(*this, reader, resultsFileName, load_idx, time_idx);
+
+    // Restore original dataset name
+    strcpy(reader.ms_datasetname, original_datasetname);
 
     // Compute homogenized tangent
     if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "homogenized_tangent") != reader.resultsToWrite.end()) {
@@ -654,6 +666,29 @@ MatrixXd Solver<howmany>::get_homogenized_tangent(double pert_param)
 
     homogenized_tangent = 0.5 * (homogenized_tangent + homogenized_tangent.transpose()).eval();
     return homogenized_tangent;
+}
+
+template <int howmany>
+Solver<howmany>::~Solver()
+{
+    if (v_r) {
+        fftw_free(v_r);
+        v_r = nullptr;
+    }
+    if (v_u) {
+        fftw_free(v_u);
+        v_u = nullptr;
+    }
+    if (buffer_padding) {
+        fftw_free(buffer_padding);
+        buffer_padding = nullptr;
+    }
+    if (planfft) {
+        fftw_destroy_plan(planfft);
+    }
+    if (planifft) {
+        fftw_destroy_plan(planifft);
+    }
 }
 
 #endif
