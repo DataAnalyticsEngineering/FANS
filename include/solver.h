@@ -182,6 +182,9 @@ Solver<howmany>::Solver(Reader &reader, Matmodel<howmany> *mat)
 
     // Use reader's ms data directly (no copying needed since reader is a reference)
     ms = reader.ms;
+
+    // Set dataset name as member variable of the Solver class
+    sprintf(dataset_name, "%s_results/%s", reader.ms_datasetname, reader.results_prefix);
 }
 
 template <int howmany>
@@ -528,9 +531,6 @@ void Solver<howmany>::postprocess(Reader &reader, const char resultsFileName[], 
             }
         }
     }
-
-    // Set dataset name as member variable of the Solver class
-    sprintf(dataset_name, "%s_results/%s", reader.ms_datasetname, reader.results_prefix);
 
     // Write results to results h5 file
     auto writeData = [&](const char *resultName, const char *resultPrefix, auto *data, hsize_t *dims, int ndims) {
