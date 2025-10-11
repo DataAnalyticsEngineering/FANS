@@ -388,18 +388,7 @@ void Reader ::ReadMS(int hm)
 
 // Default constructor
 Reader::Reader()
-    : ms(nullptr),
-      world_rank(0),
-      world_size(1),
-      n_mat(0),
-      TOL(1e-6),
-      n_it(1000),
-      is_zyx(true),
-      alloc_local(0),
-      local_n0(0),
-      local_n1(0),
-      local_0_start(0),
-      local_1_start(0)
+    : ms(nullptr)
 {
     // Initialize string members
     ms_filename[0]    = '\0';

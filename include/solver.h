@@ -104,7 +104,7 @@ Solver<howmany>::Solver(Reader &reader, Matmodel<howmany> *mat)
 
       n_it(reader.n_it),
       TOL(reader.TOL),
-      ms(nullptr), // Will allocate and copy below
+      ms(reader.ms),
 
       v_r(fftw_alloc_real(std::max(reader.alloc_local * 2, (local_n0 + 1) * n_y * (n_z + 2) * howmany))),
       v_r_real(v_r, n_z * howmany, local_n0 * n_y, OuterStride<>((n_z + 2) * howmany)),
@@ -179,9 +179,6 @@ Solver<howmany>::Solver(Reader &reader, Matmodel<howmany> *mat)
     if (world_rank == 0) {
         printf("# Complete; Time for construction of Fundamental Solution(s): %f seconds\n", double(tot_time) / CLOCKS_PER_SEC);
     }
-
-    // Use reader's ms data directly (no copying needed since reader is a reference)
-    ms = reader.ms;
 
     // Set dataset name as member variable of the Solver class
     sprintf(dataset_name, "%s_results/%s", reader.ms_datasetname, reader.results_prefix);
