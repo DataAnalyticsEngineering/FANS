@@ -20,6 +20,15 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 set(CMAKE_PREFIX_PATH $ENV{CMAKE_PREFIX_PATH})
 
+# Memory leak detection with AddressSanitizer and LeakSanitizer
+option(FANS_ENABLE_SANITIZERS "Enable AddressSanitizer and LeakSanitizer for memory leak detection" OFF)
+if (FANS_ENABLE_SANITIZERS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,leak -fno-omit-frame-pointer -g")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,leak")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address,leak")
+    message(STATUS "Memory sanitizers enabled: AddressSanitizer and LeakSanitizer")
+endif()
+
 # IPO
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.9")
     cmake_policy(SET CMP0069 NEW)

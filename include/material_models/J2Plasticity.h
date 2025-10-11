@@ -255,7 +255,7 @@ inline void J2Plasticity::postprocess(Solver<3> &solver, Reader &reader, const c
         for (int i = 0; i < solver.world_size; ++i) {
             if (i == solver.world_rank) {
                 char name[5096];
-                sprintf(name, "%s/load%i/time_step%i/plastic_strain", reader.ms_datasetname, load_idx, time_idx);
+                sprintf(name, "%s/load%i/time_step%i/plastic_strain", solver.dataset_name, load_idx, time_idx);
                 reader.WriteSlab<double>(mean_plastic_strain.data(), n_str, resultsFileName, name);
             }
             MPI_Barrier(MPI_COMM_WORLD);
@@ -266,7 +266,7 @@ inline void J2Plasticity::postprocess(Solver<3> &solver, Reader &reader, const c
         for (int i = 0; i < solver.world_size; ++i) {
             if (i == solver.world_rank) {
                 char name[5096];
-                sprintf(name, "%s/load%i/time_step%i/isotropic_hardening_variable", reader.ms_datasetname, load_idx, time_idx);
+                sprintf(name, "%s/load%i/time_step%i/isotropic_hardening_variable", solver.dataset_name, load_idx, time_idx);
                 reader.WriteSlab<double>(mean_isotropic_hardening_variable.data(), 1, resultsFileName, name);
             }
             MPI_Barrier(MPI_COMM_WORLD);
@@ -277,7 +277,7 @@ inline void J2Plasticity::postprocess(Solver<3> &solver, Reader &reader, const c
         for (int i = 0; i < solver.world_size; ++i) {
             if (i == solver.world_rank) {
                 char name[5096];
-                sprintf(name, "%s/load%i/time_step%i/kinematic_hardening_variable", reader.ms_datasetname, load_idx, time_idx);
+                sprintf(name, "%s/load%i/time_step%i/kinematic_hardening_variable", solver.dataset_name, load_idx, time_idx);
                 reader.WriteSlab<double>(mean_kinematic_hardening_variable.data(), n_str, resultsFileName, name);
             }
             MPI_Barrier(MPI_COMM_WORLD);

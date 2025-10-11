@@ -177,7 +177,7 @@ class GBDiffusion : public ThermalModel, public LinearModel<1> {
             for (int i = 0; i < solver.world_size; ++i) {
                 if (i == solver.world_rank) {
                     char name[5096];
-                    sprintf(name, "%s/load%i/time_step%i/GBnormals", reader.ms_datasetname, load_idx, time_idx);
+                    sprintf(name, "%s/load%i/time_step%i/GBnormals", solver.dataset_name, load_idx, time_idx);
                     reader.WriteSlab<double>(GBnormals_field, 3, resultsFileName, name);
                 }
                 MPI_Barrier(MPI_COMM_WORLD);

@@ -11,6 +11,12 @@ using namespace std;
 
 class Reader {
   public:
+    // Default constructor
+    Reader();
+
+    // Destructor to free allocated memory
+    ~Reader();
+
     // contents of input file:
     char             ms_filename[4096];    // Name of Micro-structure hdf5 file
     char             ms_datasetname[4096]; // Absolute path of Micro-structure in hdf5 file

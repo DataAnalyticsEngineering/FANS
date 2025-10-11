@@ -54,7 +54,7 @@ Matmodel<3> *createMatmodel(const Reader &reader)
 }
 
 template <int howmany>
-Solver<howmany> *createSolver(const Reader &reader, Matmodel<howmany> *matmodel)
+Solver<howmany> *createSolver(Reader &reader, Matmodel<howmany> *matmodel)
 {
     if (reader.method == "fp") {
         return new SolverFP<howmany>(reader, matmodel);
