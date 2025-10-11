@@ -63,6 +63,8 @@ class Solver : private MixedBCController<howmany> {
     MatrixXd homogenized_tangent;
     MatrixXd get_homogenized_tangent(double pert_param);
 
+    char dataset_name[5096];  // Dataset name for postprocessing results
+
     void enableMixedBC(const MixedBC &mbc, size_t step)
     {
         this->activate(*this, mbc, step);
@@ -527,8 +529,7 @@ void Solver<howmany>::postprocess(Reader &reader, const char resultsFileName[], 
         }
     }
 
-    // Create local dataset name without modifying reader's original ms_datasetname
-    char dataset_name[5096];
+    // Set dataset name as member variable of the Solver class
     sprintf(dataset_name, "%s_results/%s", reader.ms_datasetname, reader.results_prefix);
 
     // Write results to results h5 file
@@ -576,15 +577,7 @@ void Solver<howmany>::postprocess(Reader &reader, const char resultsFileName[], 
         MPI_Barrier(MPI_COMM_WORLD);
     }
 
-    // Temporarily modify reader.ms_datasetname for material model postprocess
-    char original_datasetname[5096];
-    strcpy(original_datasetname, reader.ms_datasetname);
-    strcpy(reader.ms_datasetname, dataset_name);
-
     matmodel->postprocess(*this, reader, resultsFileName, load_idx, time_idx);
-
-    // Restore original dataset name
-    strcpy(reader.ms_datasetname, original_datasetname);
 
     // Compute homogenized tangent
     if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "homogenized_tangent") != reader.resultsToWrite.end()) {
