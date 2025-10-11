@@ -63,7 +63,7 @@ class Solver : private MixedBCController<howmany> {
     MatrixXd homogenized_tangent;
     MatrixXd get_homogenized_tangent(double pert_param);
 
-    char dataset_name[5096];  // Dataset name for postprocessing results
+    char dataset_name[5096]; // Dataset name for postprocessing results
 
     void enableMixedBC(const MixedBC &mbc, size_t step)
     {
