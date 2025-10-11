@@ -1,5 +1,9 @@
 # FANS Changelog
 
+## latest
+
+- Fix some memory leaks [#93](https://github.com/DataAnalyticsEngineering/FANS/pull/93)
+
 ## v0.4.3
 
 - Introduce a Pixi dev environment [#89](https://github.com/DataAnalyticsEngineering/FANS/pull/89)
