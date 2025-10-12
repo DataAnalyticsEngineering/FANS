@@ -184,7 +184,7 @@ struct MixedBCController {
         step_idx     = t;
         mbc_local.finalize(solver.matmodel->kapparef_mat);
 
-        int n_str = solver.matmodel->n_str;
+        int n_str = solver.matmodel->num_str;
         g0_vec    = VectorXd::Zero(n_str);
         if (mbc_local.idx_E.size())
             g0_vec += mbc_local.Q_E * mbc_local.F_E_path.row(t).transpose();

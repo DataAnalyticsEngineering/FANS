@@ -4,10 +4,10 @@
 #include "matmodel.h"
 #include <Eigen/StdVector> // For Eigen's aligned_allocator
 
-class LinearElasticIsotropic : public MechModel, public LinearModel<3> {
+class LinearElasticIsotropic : public SmallStrainMechModel, public LinearModel<3, 6> {
   public:
     LinearElasticIsotropic(vector<double> l_e, json materialProperties)
-        : MechModel(l_e)
+        : SmallStrainMechModel(l_e)
     {
         try {
             bulk_modulus = materialProperties["bulk_modulus"].get<vector<double>>();
@@ -69,12 +69,12 @@ class LinearElasticIsotropic : public MechModel, public LinearModel<3> {
     vector<double> mu;
 };
 
-class LinearElasticTriclinic : public MechModel, public LinearModel<3> {
+class LinearElasticTriclinic : public SmallStrainMechModel, public LinearModel<3, 6> {
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW // Ensure proper alignment for Eigen structures
 
     LinearElasticTriclinic(vector<double> l_e, json materialProperties)
-        : MechModel(l_e)
+        : SmallStrainMechModel(l_e)
     {
         vector<string> C_keys = {
             "C_11", "C_12", "C_13", "C_14", "C_15", "C_16",

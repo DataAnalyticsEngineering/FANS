@@ -17,6 +17,8 @@ def pytest_addoption(parser):
         "test_LinearElastic",
         "test_LinearThermal",
         "test_PseudoPlastic",
+        "test_MixedBCs",
+        "test_CompressibleNeoHookean",
     ]
 )
 def test_files(request):

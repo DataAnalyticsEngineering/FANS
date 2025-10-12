@@ -164,6 +164,9 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/material_models/LinearElastic.h
         include/material_models/PseudoPlastic.h
         include/material_models/J2Plasticity.h
+
+        include/material_models/SaintVenantKirchhoff.h
+        include/material_models/CompressibleNeoHookean.h
 )
 
 # version.h is generated and added to the build include directory

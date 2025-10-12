@@ -5,16 +5,20 @@
 #include "material_models/LinearThermal.h"
 #include "material_models/GBDiffusion.h"
 
-// Mechanical models
+// Small strain mechanical models
 #include "material_models/LinearElastic.h"
 #include "material_models/PseudoPlastic.h"
 #include "material_models/J2Plasticity.h"
 
-template <int howmany>
-Matmodel<howmany> *createMatmodel(const Reader &reader);
+// Large strain mechanical models
+#include "material_models/SaintVenantKirchhoff.h"
+#include "material_models/CompressibleNeoHookean.h"
+
+template <int howmany, int n_str>
+Matmodel<howmany, n_str> *createMatmodel(const Reader &reader);
 
 template <>
-Matmodel<1> *createMatmodel(const Reader &reader)
+Matmodel<1, 3> *createMatmodel<1, 3>(const Reader &reader)
 {
     if (reader.matmodel == "LinearThermalIsotropic") {
         return new LinearThermalIsotropic(reader.l_e, reader.materialProperties);
@@ -28,7 +32,7 @@ Matmodel<1> *createMatmodel(const Reader &reader)
 }
 
 template <>
-Matmodel<3> *createMatmodel(const Reader &reader)
+Matmodel<3, 6> *createMatmodel<3, 6>(const Reader &reader)
 {
     // Linear Elastic models
     if (reader.matmodel == "LinearElasticIsotropic") {
@@ -49,17 +53,29 @@ Matmodel<3> *createMatmodel(const Reader &reader)
         return new J2ViscoPlastic_NonLinearIsotropicHardening(reader.l_e, reader.materialProperties);
 
     } else {
-        throw std::invalid_argument(reader.matmodel + " is not a valid matmodel for mechanical problem");
+        throw std::invalid_argument(reader.matmodel + " is not a valid small strain material model");
     }
 }
 
-template <int howmany>
-Solver<howmany> *createSolver(Reader &reader, Matmodel<howmany> *matmodel)
+template <>
+Matmodel<3, 9> *createMatmodel<3, 9>(const Reader &reader)
+{
+    if (reader.matmodel == "SaintVenantKirchhoff") {
+        return new SaintVenantKirchhoff(reader.l_e, reader.materialProperties);
+    } else if (reader.matmodel == "CompressibleNeoHookean") {
+        return new CompressibleNeoHookean(reader.l_e, reader.materialProperties);
+    } else {
+        throw std::invalid_argument(reader.matmodel + " is not a valid large strain material model");
+    }
+}
+
+template <int howmany, int n_str>
+Solver<howmany, n_str> *createSolver(Reader &reader, Matmodel<howmany, n_str> *matmodel)
 {
     if (reader.method == "fp") {
-        return new SolverFP<howmany>(reader, matmodel);
+        return new SolverFP<howmany, n_str>(reader, matmodel);
     } else if (reader.method == "cg") {
-        return new SolverCG<howmany>(reader, matmodel);
+        return new SolverCG<howmany, n_str>(reader, matmodel);
     } else {
         throw std::invalid_argument(reader.method + " is not a valid method");
     }

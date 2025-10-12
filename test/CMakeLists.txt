@@ -18,6 +18,7 @@ set(FANS_TEST_CASES
     LinearThermal
     PseudoPlastic
     MixedBCs
+    CompressibleNeoHookean
 )
 
 list(LENGTH FANS_TEST_CASES N_TESTS)

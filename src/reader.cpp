@@ -90,6 +90,16 @@ void Reader ::ReadInputFile(char fn[])
         matmodel    = j["matmodel"].get<string>();
         method      = j["method"].get<string>();
 
+        // Parse strain_type (optional, defaults to "small")
+        if (j.contains("strain_type")) {
+            strain_type = j["strain_type"].get<string>();
+            if (strain_type != "small" && strain_type != "large") {
+                throw std::invalid_argument("strain_type must be either 'small' or 'large'");
+            }
+        } else {
+            strain_type = "small"; // Default to small strain
+        }
+
         json j_mat     = j["material_properties"];
         resultsToWrite = j["results"].get<vector<string>>(); // Read the results_to_write field
 
@@ -98,7 +108,15 @@ void Reader ::ReadInputFile(char fn[])
         if (!ml.is_array())
             throw std::runtime_error("macroscale_loading must be an array");
 
-        const int n_str = (problemType == "thermal" ? 3 : 6);
+        // Determine the size of loading vector based on problem type and strain formulation
+        int n_str;
+        if (problemType == "thermal") {
+            n_str = 3; // Temperature gradient components
+        } else if (strain_type == "large") {
+            n_str = 9; // Deformation gradient components (F11, F12, F13, F21, F22, F23, F31, F32, F33)
+        } else {
+            n_str = 6; // Small strain components (eps11, eps22, eps33, eps12, eps13, eps23)
+        }
 
         for (const auto &entry : ml) {
             LoadCase lc;
@@ -107,7 +125,9 @@ void Reader ::ReadInputFile(char fn[])
                 lc.g0_path = entry.get<vector<vector<double>>>();
                 lc.n_steps = lc.g0_path.size();
                 if (lc.g0_path[0].size() != static_cast<size_t>(n_str))
-                    throw std::invalid_argument("Invalid length of loading vector");
+                    throw std::invalid_argument("Invalid length of loading vector: expected " +
+                                                std::to_string(n_str) + " components but got " +
+                                                std::to_string(lc.g0_path[0].size()));
             } else { // ---------- mixed BC object ------------
                 lc.mixed   = true;
                 lc.mbc     = MixedBC::from_json(entry, n_str);
@@ -119,6 +139,7 @@ void Reader ::ReadInputFile(char fn[])
         if (world_rank == 0) {
             printf("# microstructure file name: \t '%s'\n", ms_filename);
             printf("# microstructure dataset name: \t '%s'\n", ms_datasetname);
+            printf("# strain type: \t %s\n", strain_type.c_str());
             printf(
                 "# FANS error measure: \t %s %s error  \n",
                 errorParameters["type"].get<string>().c_str(),
@@ -388,7 +409,7 @@ void Reader ::ReadMS(int hm)
 
 // Default constructor
 Reader::Reader()
-    : ms(nullptr)
+    : ms(nullptr), strain_type("small")
 {
     // Initialize string members
     ms_filename[0]    = '\0';
