@@ -40,7 +40,7 @@ struct MixedBC {
             Q_F(idx_F(c), c) = 1.0;
 
         if (idx_F.size() > 0)
-            M = (Q_F.transpose() * C0 * Q_F).inverse();
+            M = (Q_F.transpose() * C0 * Q_F).completeOrthogonalDecomposition().pseudoInverse();
         else
             M.resize(0, 0); // pure‑strain case
     }
@@ -185,14 +185,34 @@ struct MixedBCController {
         mbc_local.finalize(solver.matmodel->kapparef_mat);
 
         int n_str = solver.matmodel->num_str;
-        g0_vec    = VectorXd::Zero(n_str);
-        if (mbc_local.idx_E.size())
-            g0_vec += mbc_local.Q_E * mbc_local.F_E_path.row(t).transpose();
+
+        // Only initialize on the FIRST step (t=0)
+        if (t == 0) {
+            if (n_str == 9) {
+                // Large strain: F = I initialization
+                g0_vec    = VectorXd::Zero(n_str);
+                g0_vec(0) = 1.0; // F11 = 1
+                g0_vec(4) = 1.0; // F22 = 1
+                g0_vec(8) = 1.0; // F33 = 1
+            } else {
+                // Small strain: zero initialization
+                g0_vec = VectorXd::Zero(n_str);
+            }
+        }
+
+        // Update ONLY the strain-controlled components from the current time step
+        // Stress-controlled components remain from previous converged state
+        if (mbc_local.idx_E.size()) {
+            VectorXd prescribed = mbc_local.F_E_path.row(t).transpose();
+            for (int i = 0; i < mbc_local.idx_E.size(); ++i) {
+                g0_vec(mbc_local.idx_E(i)) = prescribed(i);
+            }
+        }
 
         vector<double> gvec(g0_vec.data(), g0_vec.data() + n_str);
         solver.matmodel->setGradient(gvec);
 
-        // Do one update to set the initial strain
+        // Do one update to adjust stress-controlled components
         solver.updateMixedBC();
     }
 };

@@ -207,6 +207,7 @@ test/input_files/**/*.json
 !test_J2Plasticity.json
 !test_MixedBCs.json
 !test_CompressibleNeoHookean.json
+!test_MixedBCs_LargeStrain.json
 
 # pixi environments
 .pixi
