@@ -19,6 +19,7 @@ set(FANS_TEST_CASES
     PseudoPlastic
     MixedBCs
     CompressibleNeoHookean
+    MixedBCs_LargeStrain
 )
 
 list(LENGTH FANS_TEST_CASES N_TESTS)
