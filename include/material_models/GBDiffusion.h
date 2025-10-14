@@ -13,7 +13,7 @@
  * The grain boundaries are characterized by their normal vectors and can have different
  * diffusion properties parallel and perpendicular to the boundary plane.
  *
- * The model extends both ThermalModel and LinearModel<1> to provide a linear diffusion
+ * The model extends both ThermalModel and LinearModel<1, 3> to provide a linear diffusion
  * formulation that can be used in a thermal-like solver in FANS.
  *
  * @details The model:
@@ -42,7 +42,7 @@
  *     "D_perp": [...]   // Array of length (num_crystals + num_GB elements), but D_perp is only used for GBs (num_crystals to num_crystals + num_GB)
  *   }
  */
-class GBDiffusion : public ThermalModel, public LinearModel<1> {
+class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
   public:
     GBDiffusion(Reader &reader)
         : ThermalModel(reader.l_e)
@@ -161,7 +161,7 @@ class GBDiffusion : public ThermalModel, public LinearModel<1> {
         }
     }
 
-    void postprocess(Solver<1> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override
+    void postprocess(Solver<1, 3> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override
     {
         // Write GBnormals to HDF5 file if requested
         if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "GBnormals") != reader.resultsToWrite.end()) {

@@ -18,10 +18,10 @@
 #include "matmodel.h"
 #include "solver.h"
 
-class PseudoPlastic : public MechModel {
+class PseudoPlastic : public SmallStrainMechModel {
   public:
     PseudoPlastic(vector<double> l_e, json materialProperties)
-        : MechModel(l_e)
+        : SmallStrainMechModel(l_e)
     {
         try {
             bulk_modulus  = materialProperties["bulk_modulus"].get<vector<double>>();
@@ -47,7 +47,7 @@ class PseudoPlastic : public MechModel {
 
     virtual void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override = 0; // Pure virtual method
 
-    void postprocess(Solver<3> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override
+    void postprocess(Solver<3, 6> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override
     {
         VectorXf element_plastic_flag = VectorXf::Zero(solver.local_n0 * solver.n_y * solver.n_z);
         for (ptrdiff_t elem_idx = 0; elem_idx < solver.local_n0 * solver.n_y * solver.n_z; ++elem_idx) {
@@ -106,13 +106,13 @@ class PseudoPlasticLinearHardening : public PseudoPlastic {
         buf1         = bulk_modulus[mat_index] * treps;
 
         if (norm_dev_eps <= eps_crit[mat_index]) {
-            buf2                                 = 2.0 * shear_modulus[mat_index];
-            plastic_flag[element_idx](i / n_str) = mat_index;
+            buf2                             = 2.0 * shear_modulus[mat_index];
+            plastic_flag[element_idx](i / 6) = mat_index;
         } else {
             buf2 = (b * yield_stress[mat_index] + a * E_s[mat_index] * hardening_parameter[mat_index] *
                                                       (norm_dev_eps - eps_crit[mat_index])) /
                    norm_dev_eps;
-            plastic_flag[element_idx](i / n_str) = this->n_mat + mat_index;
+            plastic_flag[element_idx](i / 6) = this->n_mat + mat_index;
         }
         sigma.block<3, 1>(i, 0).setConstant(buf1);
         sigma.block<3, 1>(i, 0) += buf2 * dev_eps.head<3>();
@@ -160,14 +160,14 @@ class PseudoPlasticNonLinearHardening : public PseudoPlastic {
             sigma.block<3, 1>(i, 0) += buf2 * dev_eps.head<3>();
             sigma.block<3, 1>(i + 3, 0) = buf2 * dev_eps.tail<3>();
 
-            plastic_flag[element_idx](i / n_str) = mat_index;
+            plastic_flag[element_idx](i / 6) = mat_index;
         } else {
             buf2 = sqrt(2.0 / 3.0) * yield_stress[mat_index] *
                    pow(norm_dev_eps / eps_0[mat_index], hardening_exponent[mat_index]);
             sigma.block<3, 1>(i, 0).setConstant(buf1);
             sigma.block<6, 1>(i, 0) += buf2 * dev_eps / dev_eps.norm();
 
-            plastic_flag[element_idx](i / n_str) = this->n_mat + mat_index;
+            plastic_flag[element_idx](i / 6) = this->n_mat + mat_index;
         }
     }
 

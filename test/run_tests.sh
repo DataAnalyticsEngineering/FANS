@@ -27,3 +27,7 @@ command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_PseudoPl
 command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_J2Plasticity.json output/test_J2Plasticity.h5 > output/test_J2Plasticity.log 2>&1
 
 command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_MixedBCs.json output/test_MixedBCs.h5 > output/test_MixedBCs.log 2>&1
+
+command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_CompressibleNeoHookean.json output/test_CompressibleNeoHookean.h5 > output/test_CompressibleNeoHookean.log 2>&1
+
+command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_MixedBCs_LargeStrain.json output/test_MixedBCs_LargeStrain.h5 > output/test_MixedBCs_LargeStrain.log 2>&1

@@ -31,8 +31,8 @@ class Reader {
     string           problemType;
     string           matmodel;
     string           method;
-
-    vector<string> resultsToWrite;
+    string           strain_type; // "small" (default) or "large"
+    vector<string>   resultsToWrite;
 
     // contents of microstructure file:
     vector<int>     dims;

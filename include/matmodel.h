@@ -4,24 +4,15 @@
 
 #include "general.h"
 
-constexpr int get_n_str(int h)
-{
-    switch (h) {
-    case 1:
-        return 3;
-    case 3:
-        return 6;
-    }
-}
-template <int howmany>
+template <int howmany, int n_str>
 class Solver;
 
-template <int howmany>
+template <int howmany, int n_str>
 class Matmodel {
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW // see http://eigen.tuxfamily.org/dox-devel/group__TopicStructHavingEigenMembers.html
 
-        const static int n_str = get_n_str(howmany); // length of strain and stress
+        static constexpr int num_str = n_str; // length of strain and stress
 
     int verbosity; //!< output verbosity
     int n_mat;     // Number of Materials
@@ -36,13 +27,13 @@ class Matmodel {
     void                                     getStrainStress(double *strain, double *stress, Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
     void                                     setGradient(vector<double> _g0);
 
-    virtual void postprocess(Solver<howmany> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) {}
+    virtual void postprocess(Solver<howmany, n_str> &solver, Reader &reader, const char resultsFileName[], int load_idx, int time_idx) {};
 
     virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) {}
     virtual void updateInternalVariables() {}
 
     vector<double>               macroscale_loading;
-    Matrix<double, n_str, n_str> kapparef_mat; // Reference conductivity matrix
+    Matrix<double, n_str, n_str> kapparef_mat; // Reference stiffness/conductivity matrix for the fundamental solution
 
     virtual ~Matmodel() = default;
 
@@ -57,7 +48,7 @@ class Matmodel {
     Matrix<double, 8 * n_str, howmany * 8> B;
 
     Matrix<double, n_str * 8, 1>   eps;
-    Matrix<double, n_str * 8, 1>   g0; //!< Macro-scale Gradient
+    Matrix<double, n_str * 8, 1>   g0; //!< Macro-scale loading
     Matrix<double, n_str * 8, 1>   sigma;
     Matrix<double, howmany * 8, 1> res_e;
 
@@ -68,8 +59,8 @@ class Matmodel {
     virtual void get_sigma(int i, int mat_index, ptrdiff_t element_idx) = 0;
 };
 
-template <int howmany>
-Matmodel<howmany>::Matmodel(vector<double> l_e)
+template <int howmany, int n_str>
+Matmodel<howmany, n_str>::Matmodel(vector<double> l_e)
 {
     l_e_x = l_e[0];
     l_e_y = l_e[1];
@@ -78,8 +69,8 @@ Matmodel<howmany>::Matmodel(vector<double> l_e)
     v_e = l_e_x * l_e_y * l_e_z;
 }
 
-template <int howmany>
-void Matmodel<howmany>::Construct_B()
+template <int howmany, int n_str>
+void Matmodel<howmany, n_str>::Construct_B()
 {
     const double xi_p     = 0.5 + sqrt(3.) / 6.;
     const double xi_m     = 0.5 - sqrt(3.) / 6.;
@@ -94,8 +85,8 @@ void Matmodel<howmany>::Construct_B()
     }
 }
 
-template <int howmany>
-Matrix<double, 3, 8> Matmodel<howmany>::Compute_basic_B(const double x, const double y, const double z) const
+template <int howmany, int n_str>
+Matrix<double, 3, 8> Matmodel<howmany, n_str>::Compute_basic_B(const double x, const double y, const double z) const
 {
     Matrix<double, 3, 8> out;
     out(0, 0) = -(1. - y) * (1. - z) / l_e_x;
@@ -127,8 +118,8 @@ Matrix<double, 3, 8> Matmodel<howmany>::Compute_basic_B(const double x, const do
     return out;
 }
 
-template <int howmany>
-Matrix<double, howmany * 8, 1> &Matmodel<howmany>::element_residual(Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx)
+template <int howmany, int n_str>
+Matrix<double, howmany * 8, 1> &Matmodel<howmany, n_str>::element_residual(Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx)
 {
 
     eps.noalias() = B * ue + g0;
@@ -139,8 +130,8 @@ Matrix<double, howmany * 8, 1> &Matmodel<howmany>::element_residual(Matrix<doubl
     res_e.noalias() = B.transpose() * sigma * v_e * 0.125;
     return res_e;
 }
-template <int howmany>
-void Matmodel<howmany>::getStrainStress(double *strain, double *stress, Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx)
+template <int howmany, int n_str>
+void Matmodel<howmany, n_str>::getStrainStress(double *strain, double *stress, Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx)
 {
     eps.noalias() = B * ue + g0;
     sigma.setZero();
@@ -164,8 +155,8 @@ void Matmodel<howmany>::getStrainStress(double *strain, double *stress, Matrix<d
     }
 }
 
-template <int howmany>
-void Matmodel<howmany>::setGradient(vector<double> _g0)
+template <int howmany, int n_str>
+void Matmodel<howmany, n_str>::setGradient(vector<double> _g0)
 {
     macroscale_loading = _g0;
     for (int i = 0; i < n_str; i++) {
@@ -174,8 +165,8 @@ void Matmodel<howmany>::setGradient(vector<double> _g0)
         }
     }
 }
-template <int howmany>
-Matrix<double, howmany * 8, howmany * 8> Matmodel<howmany>::Compute_Reference_ElementStiffness()
+template <int howmany, int n_str>
+Matrix<double, howmany * 8, howmany * 8> Matmodel<howmany, n_str>::Compute_Reference_ElementStiffness()
 {
     Matrix<double, howmany * 8, howmany * 8> Reference_ElementStiffness = Matrix<double, howmany * 8, howmany * 8>::Zero();
     Matrix<double, howmany * 8, howmany * 8> tmp                        = Matrix<double, howmany * 8, howmany * 8>::Zero();
@@ -192,7 +183,7 @@ Matrix<double, howmany * 8, howmany * 8> Matmodel<howmany>::Compute_Reference_El
     return Reference_ElementStiffness;
 }
 
-class ThermalModel : public Matmodel<1> {
+class ThermalModel : public Matmodel<1, 3> {
   public:
     ThermalModel(vector<double> l_e)
         : Matmodel(l_e)
@@ -206,12 +197,12 @@ class ThermalModel : public Matmodel<1> {
 
 inline Matrix<double, 3, 8> ThermalModel::Compute_B(const double x, const double y, const double z)
 {
-    return Matmodel<1>::Compute_basic_B(x, y, z);
+    return Matmodel<1, 3>::Compute_basic_B(x, y, z);
 }
 
-class MechModel : public Matmodel<3> {
+class SmallStrainMechModel : public Matmodel<3, 6> {
   public:
-    MechModel(vector<double> l_e)
+    SmallStrainMechModel(vector<double> l_e)
         : Matmodel(l_e)
     {
         Construct_B();
@@ -221,10 +212,10 @@ class MechModel : public Matmodel<3> {
     Matrix<double, 6, 24> Compute_B(const double x, const double y, const double z);
 };
 
-inline Matrix<double, 6, 24> MechModel::Compute_B(const double x, const double y, const double z)
+inline Matrix<double, 6, 24> SmallStrainMechModel::Compute_B(const double x, const double y, const double z)
 {
     Matrix<double, 6, 24> out       = Matrix<double, 6, 24>::Zero();
-    Matrix<double, 3, 8>  B_tmp     = Matmodel<3>::Compute_basic_B(x, y, z);
+    Matrix<double, 3, 8>  B_tmp     = Matmodel<3, 6>::Compute_basic_B(x, y, z);
     const double          sqrt_half = 7.071067811865476e-01;
 
     for (int q = 0; q < 8; q++) {
@@ -243,7 +234,7 @@ inline Matrix<double, 6, 24> MechModel::Compute_B(const double x, const double y
     return out;
 }
 
-template <int howmany>
+template <int howmany, int n_str>
 class LinearModel {
   public:
     Matrix<double, howmany * 8, howmany * 8> *phase_stiffness;

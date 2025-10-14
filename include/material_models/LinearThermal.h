@@ -4,7 +4,7 @@
 #include "matmodel.h"
 #include <Eigen/StdVector> // For Eigen's aligned_allocator
 
-class LinearThermalIsotropic : public ThermalModel, public LinearModel<1> {
+class LinearThermalIsotropic : public ThermalModel, public LinearModel<1, 3> {
   public:
     LinearThermalIsotropic(vector<double> l_e, json materialProperties)
         : ThermalModel(l_e)
@@ -45,7 +45,7 @@ class LinearThermalIsotropic : public ThermalModel, public LinearModel<1> {
     vector<double> conductivity;
 };
 
-class LinearThermalTriclinic : public ThermalModel, public LinearModel<1> {
+class LinearThermalTriclinic : public ThermalModel, public LinearModel<1, 3> {
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW // Ensure proper alignment for Eigen structures
 

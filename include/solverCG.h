@@ -3,18 +3,18 @@
 
 #include "solver.h"
 
-template <int howmany>
-class SolverCG : public Solver<howmany> {
+template <int howmany, int n_str>
+class SolverCG : public Solver<howmany, n_str> {
   public:
-    using Solver<howmany>::n_x;
-    using Solver<howmany>::n_y;
-    using Solver<howmany>::n_z;
-    using Solver<howmany>::local_n0;
-    using Solver<howmany>::local_n1;
-    using Solver<howmany>::v_u_real;
-    using Solver<howmany>::v_r_real;
+    using Solver<howmany, n_str>::n_x;
+    using Solver<howmany, n_str>::n_y;
+    using Solver<howmany, n_str>::n_z;
+    using Solver<howmany, n_str>::local_n0;
+    using Solver<howmany, n_str>::local_n1;
+    using Solver<howmany, n_str>::v_u_real;
+    using Solver<howmany, n_str>::v_r_real;
 
-    SolverCG(Reader &reader, Matmodel<howmany> *matmodel);
+    SolverCG(Reader &reader, Matmodel<howmany, n_str> *matmodel);
     virtual ~SolverCG();
 
     double   *s;
@@ -29,12 +29,12 @@ class SolverCG : public Solver<howmany> {
     double dotProduct(RealArray &a, RealArray &b);
 
   protected:
-    using Solver<howmany>::iter;
+    using Solver<howmany, n_str>::iter;
 };
 
-template <int howmany>
-SolverCG<howmany>::SolverCG(Reader &reader, Matmodel<howmany> *mat)
-    : Solver<howmany>(reader, mat),
+template <int howmany, int n_str>
+SolverCG<howmany, n_str>::SolverCG(Reader &reader, Matmodel<howmany, n_str> *mat)
+    : Solver<howmany, n_str>(reader, mat),
 
       s(fftw_alloc_real(reader.alloc_local * 2)),
       s_real(s, n_z * howmany, local_n0 * n_y, OuterStride<>((n_z + 2) * howmany)),
@@ -48,8 +48,8 @@ SolverCG<howmany>::SolverCG(Reader &reader, Matmodel<howmany> *mat)
     this->CreateFFTWPlans(this->v_r, (fftw_complex *) s, s);
 }
 
-template <int howmany>
-double SolverCG<howmany>::dotProduct(RealArray &a, RealArray &b)
+template <int howmany, int n_str>
+double SolverCG<howmany, n_str>::dotProduct(RealArray &a, RealArray &b)
 {
     double local_value = (a * b).sum();
     double result;
@@ -57,14 +57,14 @@ double SolverCG<howmany>::dotProduct(RealArray &a, RealArray &b)
     return result;
 }
 
-template <int howmany>
-void SolverCG<howmany>::internalSolve()
+template <int howmany, int n_str>
+void SolverCG<howmany, n_str>::internalSolve()
 {
     if (this->world_rank == 0)
         printf("\n# Start FANS - Conjugate Gradient Solver \n");
 
-    LinearModel<howmany> *linearModel = dynamic_cast<LinearModel<howmany> *>(this->matmodel);
-    bool                  islinear    = (linearModel == NULL) ? false : true;
+    LinearModel<howmany, n_str> *linearModel = dynamic_cast<LinearModel<howmany, n_str> *>(this->matmodel);
+    bool                         islinear    = (linearModel == NULL) ? false : true;
 
     s_real.setZero();
     d_real.setZero();
@@ -114,8 +114,8 @@ void SolverCG<howmany>::internalSolve()
         printf("# Complete FANS - Conjugate Gradient Solver \n");
 }
 
-template <int howmany>
-void SolverCG<howmany>::LineSearchSecant()
+template <int howmany, int n_str>
+void SolverCG<howmany, n_str>::LineSearchSecant()
 {
     double err       = 10.0;
     int    MaxIter   = 5;
@@ -146,8 +146,8 @@ void SolverCG<howmany>::LineSearchSecant()
         printf("line search iter %i, alpha %f - error %e - ", _iter, alpha_new, err);
 }
 
-template <int howmany>
-SolverCG<howmany>::~SolverCG()
+template <int howmany, int n_str>
+SolverCG<howmany, n_str>::~SolverCG()
 {
     if (s) {
         fftw_free(s);

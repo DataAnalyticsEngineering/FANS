@@ -4,10 +4,10 @@
 #include "matmodel.h"
 #include "solver.h"
 
-class J2Plasticity : public MechModel {
+class J2Plasticity : public SmallStrainMechModel {
   public:
     J2Plasticity(vector<double> l_e, json materialProperties)
-        : MechModel(l_e)
+        : SmallStrainMechModel(l_e)
     {
         try {
             bulk_modulus  = materialProperties["bulk_modulus"].get<vector<double>>();
@@ -72,7 +72,7 @@ class J2Plasticity : public MechModel {
     void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override
     {
         // Elastic Predictor
-        eps_elastic = eps.block<6, 1>(i, 0) - plasticStrain_t[element_idx].col(i / n_str);
+        eps_elastic = eps.block<6, 1>(i, 0) - plasticStrain_t[element_idx].col(i / 6);
         treps       = eps_elastic.head<3>().sum();
 
         // Compute trial stress
@@ -85,8 +85,8 @@ class J2Plasticity : public MechModel {
         dev.head<3>().array() -= sigma_trial_n1.head<3>().mean();
 
         // Compute trial q and q_bar
-        q_trial_n1    = compute_q_trial(psi_t[element_idx](i / n_str), mat_index);
-        qbar_trial_n1 = -(2.0 / 3.0) * H[mat_index] * psi_bar_t[element_idx].col(i / n_str);
+        q_trial_n1    = compute_q_trial(psi_t[element_idx](i / 6), mat_index);
+        qbar_trial_n1 = -(2.0 / 3.0) * H[mat_index] * psi_bar_t[element_idx].col(i / 6);
 
         // Calculate the trial yield function
         dev_minus_qbar      = dev - qbar_trial_n1;
@@ -106,9 +106,9 @@ class J2Plasticity : public MechModel {
 
         // Update stress and internal variables
         sigma_trial_n1 -= gamma_n1 * 2 * shear_modulus[mat_index] * n;
-        plasticStrain[element_idx].col(i / n_str) = plasticStrain_t[element_idx].col(i / n_str) + gamma_n1 * n;
-        psi[element_idx](i / n_str) += gamma_n1 * sqrt_two_over_three;
-        psi_bar[element_idx].col(i / n_str) -= gamma_n1 * n;
+        plasticStrain[element_idx].col(i / 6) = plasticStrain_t[element_idx].col(i / 6) + gamma_n1 * n;
+        psi[element_idx](i / 6) += gamma_n1 * sqrt_two_over_three;
+        psi_bar[element_idx].col(i / 6) -= gamma_n1 * n;
 
         // Assign final stress
         sigma.block<6, 1>(i, 0) = sigma_trial_n1;
@@ -118,7 +118,7 @@ class J2Plasticity : public MechModel {
     virtual double compute_q_trial(double psi_val, int mat_index)                             = 0;
     virtual double compute_gamma(double f_trial, int mat_index, int i, ptrdiff_t element_idx) = 0;
 
-    void postprocess(Solver<3> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override;
+    void postprocess(Solver<3, 6> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override;
 
   protected:
     // Material properties
@@ -207,9 +207,9 @@ class J2ViscoPlastic_NonLinearIsotropicHardening : public J2Plasticity {
         while (gamma_inc > NR_tol && NR_iter < NR_max_iter) {
             g = f_trial - gamma_n1 * denominator[mat_index] -
                 sigma_diff[mat_index] *
-                    (-exp(-delta[mat_index] * (psi_t[element_idx](i / n_str) + sqrt_two_over_three * gamma_n1)) + exp(-delta[mat_index] * psi_t[element_idx](i / n_str)));
+                    (-exp(-delta[mat_index] * (psi_t[element_idx](i / 6) + sqrt_two_over_three * gamma_n1)) + exp(-delta[mat_index] * psi_t[element_idx](i / 6)));
             dg = -denominator[mat_index] -
-                 (2 / 3) * (sigma_inf[mat_index] - yield_stress[mat_index]) * delta[mat_index] * exp(-delta[mat_index] * (psi_t[element_idx](i / n_str) + sqrt_two_over_three * gamma_n1));
+                 (2 / 3) * (sigma_inf[mat_index] - yield_stress[mat_index]) * delta[mat_index] * exp(-delta[mat_index] * (psi_t[element_idx](i / 6) + sqrt_two_over_three * gamma_n1));
             gamma_inc = -g / dg;
             gamma_n1 += gamma_inc;
             NR_iter++;
@@ -237,7 +237,7 @@ class J2ViscoPlastic_NonLinearIsotropicHardening : public J2Plasticity {
     vector<double> sigma_diff;  // sqrt(2/3) * (sigma_inf - yield_stress)
 };
 
-inline void J2Plasticity::postprocess(Solver<3> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx)
+inline void J2Plasticity::postprocess(Solver<3, 6> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx)
 {
     int      n_str                             = 6; // The plastic strain and stress vectors have 6 components each
     VectorXd mean_plastic_strain               = VectorXd::Zero(solver.local_n0 * solver.n_y * solver.n_z * n_str);
