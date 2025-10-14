@@ -2,6 +2,7 @@
 
 ## latest
 
+- Introduce finite strain support along with Saint-Venant Kirchhoff, compressible Neohookean hyperelastic models [#95](https://github.com/DataAnalyticsEngineering/FANS/pull/95)
 - Fix some memory leaks [#93](https://github.com/DataAnalyticsEngineering/FANS/pull/93)
 
 ## v0.4.3
