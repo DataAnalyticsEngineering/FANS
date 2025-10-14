@@ -9,8 +9,8 @@
     "matmodel": "CompressibleNeoHookean",
     "strain_type": "large",
     "material_properties":{
-        "bulk_modulus": [0.3333333333333333, 8.333333333333334],
-        "shear_modulus": [0.5, 3.8461538461538463]
+        "bulk_modulus": [62.5000, 222.222],
+        "shear_modulus": [28.8462, 166.6667]
     },
 
     "method": "cg",
