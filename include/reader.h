@@ -31,7 +31,7 @@ class Reader {
     string           problemType;
     string           matmodel;
     string           method;
-    string           strain_type; // Large strain mechanics flag: "small" (default) or "large"
+    string           strain_type; // "small" (default) or "large"
     vector<string>   resultsToWrite;
 
     // contents of microstructure file:
