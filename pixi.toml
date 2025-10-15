@@ -8,13 +8,13 @@ preview = ["pixi-build"]
 fans = { path = "." }
 
 [feature.dashboard.dependencies]
-python = ">=3.13.5,<3.14"
-pytest = ">=8.4.1,<9"
-pre-commit = ">=4.2.0,<5"
+python = ">=3.14.0,<3.15"
+pytest = ">=8.4.2,<9"
+pre-commit = ">=4.3.0,<5"
 sympy = ">=1.14.0,<2"
-quaternion = ">=2024.0.8,<2025"
-beartype = ">=0.21.0,<0.22"
-ipykernel = ">=6.29.5,<7"
+quaternion = ">=2024.0.12,<2025"
+beartype = ">=0.22.2,<0.23"
+ipykernel = ">=7.0.1,<8"
 time = ">=1.9,<2"
 
 [feature.dashboard.pypi-dependencies]
@@ -31,13 +31,13 @@ args = ["file", { arg = "extra", default = "" }]
 cmd  = "cd \"$INIT_CWD\" && python -m MSUtils.general.h52xdmf {{ extra }} {{ file }}"
 
 [feature.dev.dependencies]
-cmake = "*"
-openmpi-mpicxx = "*"
-hdf5 = { version = "*", build = "mpi_openmpi_*" }
-fftw = { version = "*", build = "mpi_openmpi_*" }
-eigen = "*"
-nlohmann_json = "*"
-time = "*"
+cmake = ">=4.1.2,<5"
+openmpi-mpicxx = ">=5.0.8,<6"
+hdf5 = { version = ">=1.14.6,<2", build = "mpi_openmpi_*" }
+fftw = { version = ">=3.3.10,<4", build = "mpi_openmpi_*" }
+eigen = ">=3.4.0,<4"
+nlohmann_json = ">=3.12.0,<4"
+time = ">=1.9,<2"
 
 [tasks]
 test = { cmd = "pytest -v -s --from-pixi", cwd = "test/pytest", depends-on = ["test-fans"] }
