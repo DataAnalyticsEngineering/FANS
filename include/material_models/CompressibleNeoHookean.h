@@ -13,12 +13,12 @@
  */
 class CompressibleNeoHookean : public LargeStrainMechModel {
   public:
-    CompressibleNeoHookean(vector<double> l_e, json materialProperties)
-        : LargeStrainMechModel(l_e)
+    CompressibleNeoHookean(const Reader &reader)
+        : LargeStrainMechModel(reader)
     {
         try {
-            bulk_modulus  = materialProperties["bulk_modulus"].get<vector<double>>();
-            shear_modulus = materialProperties["shear_modulus"].get<vector<double>>();
+            bulk_modulus  = reader.materialProperties["bulk_modulus"].get<vector<double>>();
+            shear_modulus = reader.materialProperties["shear_modulus"].get<vector<double>>();
         } catch (json::exception &e) {
             throw std::runtime_error("Error reading CompressibleNeoHookean material properties: " + string(e.what()));
         }

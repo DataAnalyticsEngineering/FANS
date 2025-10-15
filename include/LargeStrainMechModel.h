@@ -10,8 +10,8 @@
  */
 class LargeStrainMechModel : public Matmodel<3, 9> {
   public:
-    LargeStrainMechModel(vector<double> l_e)
-        : Matmodel(l_e)
+    LargeStrainMechModel(const Reader &reader)
+        : Matmodel(reader)
     {
         Construct_B();
     }

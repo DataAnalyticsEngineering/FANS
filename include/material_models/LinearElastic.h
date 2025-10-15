@@ -6,12 +6,12 @@
 
 class LinearElasticIsotropic : public SmallStrainMechModel, public LinearModel<3, 6> {
   public:
-    LinearElasticIsotropic(vector<double> l_e, json materialProperties)
-        : SmallStrainMechModel(l_e)
+    LinearElasticIsotropic(const Reader &reader)
+        : SmallStrainMechModel(reader)
     {
         try {
-            bulk_modulus = materialProperties["bulk_modulus"].get<vector<double>>();
-            mu           = materialProperties["shear_modulus"].get<vector<double>>();
+            bulk_modulus = reader.materialProperties["bulk_modulus"].get<vector<double>>();
+            mu           = reader.materialProperties["shear_modulus"].get<vector<double>>();
         } catch (const std::exception &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
@@ -45,8 +45,8 @@ class LinearElasticIsotropic : public SmallStrainMechModel, public LinearModel<3
             phase_kappa.topLeftCorner(3, 3).setConstant(lambda[i]);
             phase_kappa += 2 * mu[i] * Matrix<double, 6, 6>::Identity();
 
-            for (int p = 0; p < 8; ++p) {
-                phase_stiffness[i] += B_int[p].transpose() * phase_kappa * B_int[p] * v_e * 0.1250;
+            for (int p = 0; p < n_gp; ++p) {
+                phase_stiffness[i] += B_int[p].transpose() * phase_kappa * B_int[p] * v_e / n_gp;
             }
         }
     }
@@ -73,8 +73,8 @@ class LinearElasticTriclinic : public SmallStrainMechModel, public LinearModel<3
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW // Ensure proper alignment for Eigen structures
 
-    LinearElasticTriclinic(vector<double> l_e, json materialProperties)
-        : SmallStrainMechModel(l_e)
+    LinearElasticTriclinic(const Reader &reader)
+        : SmallStrainMechModel(reader)
     {
         vector<string> C_keys = {
             "C_11", "C_12", "C_13", "C_14", "C_15", "C_16",
@@ -85,7 +85,7 @@ class LinearElasticTriclinic : public SmallStrainMechModel, public LinearModel<3
             "C_66"};
 
         try {
-            n_mat                = materialProperties.at("C_11").get<vector<double>>().size();
+            n_mat                = reader.materialProperties.at("C_11").get<vector<double>>().size();
             size_t num_constants = C_keys.size();
 
             // Initialize matrix to hold all constants
@@ -93,7 +93,7 @@ class LinearElasticTriclinic : public SmallStrainMechModel, public LinearModel<3
 
             // Load material constants into matrix
             for (size_t k = 0; k < num_constants; ++k) {
-                const auto &values = materialProperties.at(C_keys[k]).get<vector<double>>();
+                const auto &values = reader.materialProperties.at(C_keys[k]).get<vector<double>>();
                 if (values.size() != n_mat) {
                     throw std::runtime_error("Inconsistent size for material property: " + C_keys[k]);
                 }
@@ -131,8 +131,8 @@ class LinearElasticTriclinic : public SmallStrainMechModel, public LinearModel<3
         phase_stiffness = new Matrix<double, 24, 24>[n_mat];
         for (size_t i = 0; i < n_mat; ++i) {
             phase_stiffness[i] = Matrix<double, 24, 24>::Zero();
-            for (int p = 0; p < 8; ++p) {
-                phase_stiffness[i] += B_int[p].transpose() * C_mats[i] * B_int[p] * v_e * 0.1250;
+            for (int p = 0; p < n_gp; ++p) {
+                phase_stiffness[i] += B_int[p].transpose() * C_mats[i] * B_int[p] * v_e / n_gp;
             }
         }
     }

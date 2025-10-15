@@ -12,6 +12,7 @@
         "shear_modulus": [28.8462, 166.6667]
     },
 
+    "FE_type": "HEX8R",
     "method": "cg",
     "error_parameters":{
         "measure": "Linfinity",

@@ -14,13 +14,15 @@ class Matmodel {
 
         static constexpr int num_str = n_str; // length of strain and stress
 
-    int verbosity; //!< output verbosity
-    int n_mat;     // Number of Materials
+    int    verbosity; //!< output verbosity
+    int    n_mat;     //!< Number of Materials
+    int    n_gp;      //!< Number of Gauss points (computed from FE_type)
+    string FE_type;   //!< Finite element type: "HEX8", "HEX8R", "BBAR"
 
     double *strain; //!< Gradient
     double *stress; //!< Flux
 
-    Matmodel(vector<double> l_e);
+    Matmodel(const Reader &reader);
 
     Matrix<double, howmany * 8, howmany * 8> Compute_Reference_ElementStiffness();
     Matrix<double, howmany * 8, 1>          &element_residual(Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
@@ -43,13 +45,12 @@ class Matmodel {
     double l_e_z;
     double v_e;
 
-    Matrix<double, n_str, howmany * 8>     B_el_mean; //!< precomputed mean B matrix over the element
-    Matrix<double, n_str, howmany * 8>     B_int[8];  //!< precomputed B matrix at all integration points
-    Matrix<double, 8 * n_str, howmany * 8> B;
+    vector<Matrix<double, n_str, howmany * 8>> B_int; //!< precomputed B matrix at all integration points (size = n_gp)
+    MatrixXd                                   B;     //!< Dynamic B matrix (n_str * n_gp x howmany * 8)
 
-    Matrix<double, n_str * 8, 1>   eps;
-    Matrix<double, n_str * 8, 1>   g0; //!< Macro-scale loading
-    Matrix<double, n_str * 8, 1>   sigma;
+    VectorXd                       eps;   //!< Dynamic strain vector (size = n_str * n_gp)
+    VectorXd                       g0;    //!< Macro-scale loading (size = n_str * n_gp)
+    VectorXd                       sigma; //!< Dynamic stress vector (size = n_str * n_gp)
     Matrix<double, howmany * 8, 1> res_e;
 
     Matrix<double, 3, 8>                       Compute_basic_B(const double x, const double y, const double z) const;
@@ -60,28 +61,82 @@ class Matmodel {
 };
 
 template <int howmany, int n_str>
-Matmodel<howmany, n_str>::Matmodel(vector<double> l_e)
+Matmodel<howmany, n_str>::Matmodel(const Reader &reader)
+    : FE_type(reader.FE_type)
 {
-    l_e_x = l_e[0];
-    l_e_y = l_e[1];
-    l_e_z = l_e[2];
+    // Set number of Gauss points based on FE type
+    if (FE_type == "HEX8" || FE_type == "BBAR") {
+        n_gp = 8; // Full integration
+    } else if (FE_type == "HEX8R") {
+        n_gp = 1; // Reduced integration
+    } else {
+        throw std::runtime_error("Unknown FE_type: '" + FE_type + "'. Supported types: HEX8, HEX8R, BBAR");
+    }
+
+    l_e_x = reader.l_e[0];
+    l_e_y = reader.l_e[1];
+    l_e_z = reader.l_e[2];
 
     v_e = l_e_x * l_e_y * l_e_z;
+
+    // Resize dynamic matrices based on number of Gauss points
+    B_int.resize(n_gp);
+    B.resize(n_str * n_gp, howmany * 8);
+    eps.resize(n_str * n_gp);
+    g0.resize(n_str * n_gp);
+    sigma.resize(n_str * n_gp);
 }
 
 template <int howmany, int n_str>
 void Matmodel<howmany, n_str>::Construct_B()
 {
-    const double xi_p     = 0.5 + sqrt(3.) / 6.;
-    const double xi_m     = 0.5 - sqrt(3.) / 6.;
-    const double xi[8][3] = {{xi_m, xi_m, xi_m}, {xi_p, xi_m, xi_m}, {xi_m, xi_p, xi_m}, {xi_p, xi_p, xi_m}, {xi_m, xi_m, xi_p}, {xi_p, xi_m, xi_p}, {xi_m, xi_p, xi_p}, {xi_p, xi_p, xi_p}};
+    if (FE_type == "HEX8" || FE_type == "BBAR") {
+        // Full integration with 8 Gauss points
+        const double xi_p     = 0.5 + sqrt(3.) / 6.;
+        const double xi_m     = 0.5 - sqrt(3.) / 6.;
+        const double xi[8][3] = {{xi_m, xi_m, xi_m}, {xi_p, xi_m, xi_m}, {xi_m, xi_p, xi_m}, {xi_p, xi_p, xi_m}, {xi_m, xi_m, xi_p}, {xi_p, xi_m, xi_p}, {xi_m, xi_p, xi_p}, {xi_p, xi_p, xi_p}};
 
-    B_el_mean = Compute_B(0.5, 0.5, 0.5);
+        if (FE_type == "BBAR") {
+            // BBAR: Selective reduced integration to prevent volumetric locking
+            auto B_vol = Compute_B(0.5, 0.5, 0.5);
 
-    // fetch B at the integration sites
-    for (int p = 0; p < 8; p++) {
-        B_int[p]                                  = Compute_B(xi[p][0], xi[p][1], xi[p][2]);
-        B.block(n_str * p, 0, n_str, howmany * 8) = B_int[p];
+            for (int p = 0; p < 8; p++) {
+                auto B_full = Compute_B(xi[p][0], xi[p][1], xi[p][2]);
+
+                if constexpr (n_str > 3) {
+                    for (int col = 0; col < howmany * 8; ++col) {
+                        double vol_full = (B_full(0, col) + B_full(1, col) + B_full(2, col)) / 3.0;
+                        double vol_bar  = (B_vol(0, col) + B_vol(1, col) + B_vol(2, col)) / 3.0;
+
+                        // B-bar = B_dev + B_vol_bar
+                        B_int[p](0, col) = B_full(0, col) - vol_full + vol_bar;
+                        B_int[p](1, col) = B_full(1, col) - vol_full + vol_bar;
+                        B_int[p](2, col) = B_full(2, col) - vol_full + vol_bar;
+
+                        // Shear strains (deviatoric only)
+                        for (int row = 3; row < n_str; ++row) {
+                            B_int[p](row, col) = B_full(row, col);
+                        }
+                    }
+                } else {
+                    B_int[p] = B_full;
+                }
+
+                B.block(n_str * p, 0, n_str, howmany * 8) = B_int[p];
+            }
+        } else {
+            // HEX8: Standard full integration (8 Gauss points)
+            for (int p = 0; p < 8; p++) {
+                B_int[p]                                  = Compute_B(xi[p][0], xi[p][1], xi[p][2]);
+                B.block(n_str * p, 0, n_str, howmany * 8) = B_int[p];
+            }
+        }
+    } else if (FE_type == "HEX8R") {
+        // HEX8R: Reduced integration (1 Gauss point)
+        B_int[0]                          = Compute_B(0.5, 0.5, 0.5);
+        B.block(0, 0, n_str, howmany * 8) = B_int[0];
+    } else {
+        throw std::runtime_error("Unsupported FE_type in Construct_B: " + FE_type);
     }
 }
 
@@ -124,10 +179,10 @@ Matrix<double, howmany * 8, 1> &Matmodel<howmany, n_str>::element_residual(Matri
 
     eps.noalias() = B * ue + g0;
 
-    for (int i = 0; i < 8; ++i) {
+    for (int i = 0; i < n_gp; ++i) {
         get_sigma(n_str * i, mat_index, element_idx);
     }
-    res_e.noalias() = B.transpose() * sigma * v_e * 0.125;
+    res_e.noalias() = B.transpose() * sigma * v_e / n_gp;
     return res_e;
 }
 template <int howmany, int n_str>
@@ -135,17 +190,17 @@ void Matmodel<howmany, n_str>::getStrainStress(double *strain, double *stress, M
 {
     eps.noalias() = B * ue + g0;
     sigma.setZero();
-    for (int i = 0; i < 8; ++i) {
+    for (int i = 0; i < n_gp; ++i) {
         get_sigma(n_str * i, mat_index, element_idx);
     }
 
     Matrix<double, n_str, 1> avg_strain = Matrix<double, n_str, 1>::Zero();
     Matrix<double, n_str, 1> avg_stress = Matrix<double, n_str, 1>::Zero();
 
-    for (int i = 0; i < 8; ++i) {
+    for (int i = 0; i < n_gp; ++i) {
         for (int j = 0; j < n_str; ++j) {
-            avg_strain(j) += eps(i * n_str + j) * 0.125;
-            avg_stress(j) += sigma(i * n_str + j) * 0.125;
+            avg_strain(j) += eps(i * n_str + j) / n_gp;
+            avg_stress(j) += sigma(i * n_str + j) / n_gp;
         }
     }
 
@@ -160,7 +215,7 @@ void Matmodel<howmany, n_str>::setGradient(vector<double> _g0)
 {
     macroscale_loading = _g0;
     for (int i = 0; i < n_str; i++) {
-        for (int j = 0; j < 8; ++j) {
+        for (int j = 0; j < n_gp; ++j) {
             g0(n_str * j + i, 0) = _g0[i];
         }
     }
@@ -171,8 +226,8 @@ Matrix<double, howmany * 8, howmany * 8> Matmodel<howmany, n_str>::Compute_Refer
     Matrix<double, howmany * 8, howmany * 8> Reference_ElementStiffness = Matrix<double, howmany * 8, howmany * 8>::Zero();
     Matrix<double, howmany * 8, howmany * 8> tmp                        = Matrix<double, howmany * 8, howmany * 8>::Zero();
 
-    for (int p = 0; p < 8; ++p) {
-        tmp += B_int[p].transpose() * kapparef_mat * B_int[p] * v_e * 0.1250;
+    for (int p = 0; p < n_gp; ++p) {
+        tmp += B_int[p].transpose() * kapparef_mat * B_int[p] * v_e / n_gp;
     }
     // before: 8 groups of howmany      after: howmany groups of 8
     for (int i = 0; i < howmany * 8; ++i) {
@@ -185,8 +240,8 @@ Matrix<double, howmany * 8, howmany * 8> Matmodel<howmany, n_str>::Compute_Refer
 
 class ThermalModel : public Matmodel<1, 3> {
   public:
-    ThermalModel(vector<double> l_e)
-        : Matmodel(l_e)
+    ThermalModel(const Reader &reader)
+        : Matmodel(reader)
     {
         Construct_B();
     };
@@ -202,8 +257,8 @@ inline Matrix<double, 3, 8> ThermalModel::Compute_B(const double x, const double
 
 class SmallStrainMechModel : public Matmodel<3, 6> {
   public:
-    SmallStrainMechModel(vector<double> l_e)
-        : Matmodel(l_e)
+    SmallStrainMechModel(const Reader &reader)
+        : Matmodel(reader)
     {
         Construct_B();
     };

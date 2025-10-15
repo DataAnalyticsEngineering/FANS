@@ -82,6 +82,17 @@ class Solver : private MixedBCController<howmany> {
         this->update(*this);
     }
 
+  private:
+    template <typename _Matrix_Type_>
+    inline _Matrix_Type_ pseudoInverse(const _Matrix_Type_ &a, double tolerance) const
+    {
+        Eigen::JacobiSVD<_Matrix_Type_> svd(a, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        return svd.matrixV() *
+               (svd.singularValues().array() > tolerance).select(svd.singularValues().array().inverse(), 0).matrix().asDiagonal() *
+               svd.matrixU().adjoint();
+    }
+    void computeFundamentalSolution();
+
   protected:
     fftw_plan planfft, planifft;
     clock_t   fft_time, buftime;
@@ -120,8 +131,17 @@ Solver<howmany, n_str>::Solver(Reader &reader, Matmodel<howmany, n_str> *mat)
         this->v_u[i] = 0;
     }
 
-    matmodel->initializeInternalVariables(local_n0 * n_y * n_z, 8);
+    matmodel->initializeInternalVariables(local_n0 * n_y * n_z, matmodel->n_gp);
 
+    computeFundamentalSolution();
+
+    // Set dataset name as member variable of the Solver class
+    sprintf(dataset_name, "%s_results/%s", reader.ms_datasetname, reader.results_prefix);
+}
+
+template <int howmany, int n_str>
+void Solver<howmany, n_str>::computeFundamentalSolution()
+{
     if (world_rank == 0) {
         printf("\n# Start creating Fundamental Solution(s) \n");
     }
@@ -164,9 +184,9 @@ Solver<howmany, n_str>::Solver(Reader &reader, Matmodel<howmany, n_str> *mat)
                     }
                     ptrdiff_t ind = i_y * n_x * (n_z / 2 + 1) + i_x * (n_z / 2 + 1) + i_z;
                     if (ind % 2 == 0) {
-                        fundamentalSolution.template middleCols<howmany>((ind / 2) * (howmany + 1)).template triangularView<Lower>() = block.inverse().template triangularView<Lower>();
+                        fundamentalSolution.template middleCols<howmany>((ind / 2) * (howmany + 1)).template triangularView<Lower>() = pseudoInverse(block, 1e-14).template triangularView<Lower>();
                     } else {
-                        fundamentalSolution.template middleCols<howmany>((ind / 2) * (howmany + 1) + 1).template triangularView<Upper>() = block.inverse().template triangularView<Upper>();
+                        fundamentalSolution.template middleCols<howmany>((ind / 2) * (howmany + 1) + 1).template triangularView<Upper>() = pseudoInverse(block, 1e-14).template triangularView<Upper>();
                     }
                 }
             }
@@ -179,9 +199,6 @@ Solver<howmany, n_str>::Solver(Reader &reader, Matmodel<howmany, n_str> *mat)
     if (world_rank == 0) {
         printf("# Complete; Time for construction of Fundamental Solution(s): %f seconds\n", double(tot_time) / CLOCKS_PER_SEC);
     }
-
-    // Set dataset name as member variable of the Solver class
-    sprintf(dataset_name, "%s_results/%s", reader.ms_datasetname, reader.results_prefix);
 }
 
 template <int howmany, int n_str>

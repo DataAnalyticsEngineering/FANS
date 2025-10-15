@@ -32,6 +32,7 @@ class Reader {
     string           matmodel;
     string           method;
     string           strain_type; // "small" (default) or "large"
+    string           FE_type;     // "HEX8" (default), "HEX8R", or "BBAR"
     vector<string>   resultsToWrite;
 
     // contents of microstructure file:

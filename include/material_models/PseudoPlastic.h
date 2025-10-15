@@ -20,13 +20,13 @@
 
 class PseudoPlastic : public SmallStrainMechModel {
   public:
-    PseudoPlastic(vector<double> l_e, json materialProperties)
-        : SmallStrainMechModel(l_e)
+    PseudoPlastic(const Reader &reader)
+        : SmallStrainMechModel(reader)
     {
         try {
-            bulk_modulus  = materialProperties["bulk_modulus"].get<vector<double>>();
-            shear_modulus = materialProperties["shear_modulus"].get<vector<double>>();
-            yield_stress  = materialProperties["yield_stress"].get<vector<double>>();
+            bulk_modulus  = reader.materialProperties["bulk_modulus"].get<vector<double>>();
+            shear_modulus = reader.materialProperties["shear_modulus"].get<vector<double>>();
+            yield_stress  = reader.materialProperties["yield_stress"].get<vector<double>>();
         } catch (const std::exception &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
@@ -78,11 +78,11 @@ class PseudoPlastic : public SmallStrainMechModel {
 
 class PseudoPlasticLinearHardening : public PseudoPlastic {
   public:
-    PseudoPlasticLinearHardening(vector<double> l_e, json materialProperties)
-        : PseudoPlastic(l_e, materialProperties)
+    PseudoPlasticLinearHardening(const Reader &reader)
+        : PseudoPlastic(reader)
     {
         try {
-            hardening_parameter = materialProperties["hardening_parameter"].get<vector<double>>();
+            hardening_parameter = reader.materialProperties["hardening_parameter"].get<vector<double>>();
         } catch (const std::exception &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
@@ -128,12 +128,12 @@ class PseudoPlasticLinearHardening : public PseudoPlastic {
 
 class PseudoPlasticNonLinearHardening : public PseudoPlastic {
   public:
-    PseudoPlasticNonLinearHardening(vector<double> l_e, json materialProperties)
-        : PseudoPlastic(l_e, materialProperties)
+    PseudoPlasticNonLinearHardening(const Reader &reader)
+        : PseudoPlastic(reader)
     {
         try {
-            hardening_exponent = materialProperties["hardening_exponent"].get<vector<double>>();
-            eps_0              = materialProperties["eps_0"].get<vector<double>>(); // ε0 parameter
+            hardening_exponent = reader.materialProperties["hardening_exponent"].get<vector<double>>();
+            eps_0              = reader.materialProperties["eps_0"].get<vector<double>>(); // ε0 parameter
         } catch (const std::exception &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }

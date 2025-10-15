@@ -11,12 +11,12 @@
  */
 class SaintVenantKirchhoff : public LargeStrainMechModel {
   public:
-    SaintVenantKirchhoff(vector<double> l_e, json materialProperties)
-        : LargeStrainMechModel(l_e)
+    SaintVenantKirchhoff(const Reader &reader)
+        : LargeStrainMechModel(reader)
     {
         try {
-            bulk_modulus  = materialProperties["bulk_modulus"].get<vector<double>>();
-            shear_modulus = materialProperties["shear_modulus"].get<vector<double>>();
+            bulk_modulus  = reader.materialProperties["bulk_modulus"].get<vector<double>>();
+            shear_modulus = reader.materialProperties["shear_modulus"].get<vector<double>>();
         } catch (json::exception &e) {
             throw std::runtime_error("Error reading SaintVenantKirchhoff material properties: " + string(e.what()));
         }

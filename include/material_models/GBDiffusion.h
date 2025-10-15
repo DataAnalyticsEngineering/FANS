@@ -44,8 +44,8 @@
  */
 class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
   public:
-    GBDiffusion(Reader &reader)
-        : ThermalModel(reader.l_e)
+    GBDiffusion(const Reader &reader)
+        : ThermalModel(reader)
     {
         try {
             // Read num_crystals, num_GB and GBVoxelInfo from the microstructure dataset attributes
@@ -113,8 +113,8 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
                 throw std::runtime_error("GBDiffusion: Unknown material index");
             }
             kapparef_mat += phase_kappa;
-            for (int p = 0; p < 8; ++p) {
-                phase_stiffness[i] += B_int[p].transpose() * phase_kappa * B_int[p] * v_e * 0.1250;
+            for (int p = 0; p < n_gp; ++p) {
+                phase_stiffness[i] += B_int[p].transpose() * phase_kappa * B_int[p] * v_e / n_gp;
             }
         }
         kapparef_mat /= n_mat;

@@ -11,6 +11,7 @@
         "conductivity": [1, 10]
     },
 
+    "FE_type": "HEX8R",
     "method": "cg",
     "error_parameters":{
         "measure": "Linfinity",

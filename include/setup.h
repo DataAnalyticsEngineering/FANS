@@ -21,11 +21,11 @@ template <>
 Matmodel<1, 3> *createMatmodel<1, 3>(const Reader &reader)
 {
     if (reader.matmodel == "LinearThermalIsotropic") {
-        return new LinearThermalIsotropic(reader.l_e, reader.materialProperties);
+        return new LinearThermalIsotropic(reader);
     } else if (reader.matmodel == "LinearThermalTriclinic") {
-        return new LinearThermalTriclinic(reader.l_e, reader.materialProperties);
+        return new LinearThermalTriclinic(reader);
     } else if (reader.matmodel == "GBDiffusion") {
-        return new GBDiffusion(const_cast<Reader &>(reader));
+        return new GBDiffusion(reader);
     } else {
         throw std::invalid_argument(reader.matmodel + " is not a valid matmodel for thermal problem");
     }
@@ -36,21 +36,21 @@ Matmodel<3, 6> *createMatmodel<3, 6>(const Reader &reader)
 {
     // Linear Elastic models
     if (reader.matmodel == "LinearElasticIsotropic") {
-        return new LinearElasticIsotropic(reader.l_e, reader.materialProperties);
+        return new LinearElasticIsotropic(reader);
     } else if (reader.matmodel == "LinearElasticTriclinic") {
-        return new LinearElasticTriclinic(reader.l_e, reader.materialProperties);
+        return new LinearElasticTriclinic(reader);
 
         // Pseudo Plastic models
     } else if (reader.matmodel == "PseudoPlasticLinearHardening") {
-        return new PseudoPlasticLinearHardening(reader.l_e, reader.materialProperties);
+        return new PseudoPlasticLinearHardening(reader);
     } else if (reader.matmodel == "PseudoPlasticNonLinearHardening") {
-        return new PseudoPlasticNonLinearHardening(reader.l_e, reader.materialProperties);
+        return new PseudoPlasticNonLinearHardening(reader);
 
         // J2 Plastic models
     } else if (reader.matmodel == "J2ViscoPlastic_LinearIsotropicHardening") {
-        return new J2ViscoPlastic_LinearIsotropicHardening(reader.l_e, reader.materialProperties);
+        return new J2ViscoPlastic_LinearIsotropicHardening(reader);
     } else if (reader.matmodel == "J2ViscoPlastic_NonLinearIsotropicHardening") {
-        return new J2ViscoPlastic_NonLinearIsotropicHardening(reader.l_e, reader.materialProperties);
+        return new J2ViscoPlastic_NonLinearIsotropicHardening(reader);
 
     } else {
         throw std::invalid_argument(reader.matmodel + " is not a valid small strain material model");
@@ -61,9 +61,9 @@ template <>
 Matmodel<3, 9> *createMatmodel<3, 9>(const Reader &reader)
 {
     if (reader.matmodel == "SaintVenantKirchhoff") {
-        return new SaintVenantKirchhoff(reader.l_e, reader.materialProperties);
+        return new SaintVenantKirchhoff(reader);
     } else if (reader.matmodel == "CompressibleNeoHookean") {
-        return new CompressibleNeoHookean(reader.l_e, reader.materialProperties);
+        return new CompressibleNeoHookean(reader);
     } else {
         throw std::invalid_argument(reader.matmodel + " is not a valid large strain material model");
     }
