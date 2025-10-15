@@ -16,6 +16,7 @@
         "eps_0": [0.01, 0.01]
     },
 
+    "FE_type": "BBAR",
     "method": "cg",
     "error_parameters":{
         "measure": "Linfinity",

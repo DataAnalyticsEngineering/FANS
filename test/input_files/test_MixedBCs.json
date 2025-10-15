@@ -14,6 +14,7 @@
         "hardening_parameter": [0.0, 0.0]
     },
 
+    "FE_type": "HEX8",
     "method": "cg",
     "error_parameters":{
         "measure": "Linfinity",

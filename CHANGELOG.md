@@ -2,6 +2,7 @@
 
 ## latest
 
+- Add explicit FE types (HEX8, HEX8R, BBAR) to JSON input [#96](https://github.com/DataAnalyticsEngineering/FANS/pull/96)
 - Introduce finite strain support along with Saint-Venant Kirchhoff, compressible Neohookean hyperelastic models [#95](https://github.com/DataAnalyticsEngineering/FANS/pull/95)
 - Fix some memory leaks [#93](https://github.com/DataAnalyticsEngineering/FANS/pull/93)
 

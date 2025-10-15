@@ -6,17 +6,17 @@
 
 class J2Plasticity : public SmallStrainMechModel {
   public:
-    J2Plasticity(vector<double> l_e, json materialProperties)
-        : SmallStrainMechModel(l_e)
+    J2Plasticity(const Reader &reader)
+        : SmallStrainMechModel(reader)
     {
         try {
-            bulk_modulus  = materialProperties["bulk_modulus"].get<vector<double>>();
-            shear_modulus = materialProperties["shear_modulus"].get<vector<double>>();
-            yield_stress  = materialProperties["yield_stress"].get<vector<double>>();                  // Initial yield stress
-            K             = materialProperties["isotropic_hardening_parameter"].get<vector<double>>(); // Isotropic hardening parameter
-            H             = materialProperties["kinematic_hardening_parameter"].get<vector<double>>(); // Kinematic hardening parameter
-            eta           = materialProperties["viscosity"].get<vector<double>>();                     // Viscosity parameter
-            dt            = materialProperties["time_step"].get<double>();                             // Time step
+            bulk_modulus  = reader.materialProperties["bulk_modulus"].get<vector<double>>();
+            shear_modulus = reader.materialProperties["shear_modulus"].get<vector<double>>();
+            yield_stress  = reader.materialProperties["yield_stress"].get<vector<double>>();                  // Initial yield stress
+            K             = reader.materialProperties["isotropic_hardening_parameter"].get<vector<double>>(); // Isotropic hardening parameter
+            H             = reader.materialProperties["kinematic_hardening_parameter"].get<vector<double>>(); // Kinematic hardening parameter
+            eta           = reader.materialProperties["viscosity"].get<vector<double>>();                     // Viscosity parameter
+            dt            = reader.materialProperties["time_step"].get<double>();                             // Time step
         } catch (const std::out_of_range &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
@@ -156,8 +156,8 @@ class J2Plasticity : public SmallStrainMechModel {
 // Derived Class Linear Isotropic Hardening
 class J2ViscoPlastic_LinearIsotropicHardening : public J2Plasticity {
   public:
-    J2ViscoPlastic_LinearIsotropicHardening(vector<double> l_e, json materialProperties)
-        : J2Plasticity(l_e, materialProperties)
+    J2ViscoPlastic_LinearIsotropicHardening(const Reader &reader)
+        : J2Plasticity(reader)
     {
     }
 
@@ -175,12 +175,12 @@ class J2ViscoPlastic_LinearIsotropicHardening : public J2Plasticity {
 // Derived Class Non-Linear (Exponential law) Isotropic Hardening
 class J2ViscoPlastic_NonLinearIsotropicHardening : public J2Plasticity {
   public:
-    J2ViscoPlastic_NonLinearIsotropicHardening(vector<double> l_e, json materialProperties)
-        : J2Plasticity(l_e, materialProperties)
+    J2ViscoPlastic_NonLinearIsotropicHardening(const Reader &reader)
+        : J2Plasticity(reader)
     {
         try {
-            sigma_inf = materialProperties["saturation_stress"].get<vector<double>>();   // Saturation stress
-            delta     = materialProperties["saturation_exponent"].get<vector<double>>(); // Saturation exponent
+            sigma_inf = reader.materialProperties["saturation_stress"].get<vector<double>>();   // Saturation stress
+            delta     = reader.materialProperties["saturation_exponent"].get<vector<double>>(); // Saturation exponent
         } catch (const std::out_of_range &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }

@@ -100,6 +100,16 @@ void Reader ::ReadInputFile(char fn[])
             strain_type = "small"; // Default to small strain
         }
 
+        // Parse FE_type (optional, defaults to "HEX8")
+        if (j.contains("FE_type")) {
+            FE_type = j["FE_type"].get<string>();
+            if (FE_type != "HEX8" && FE_type != "HEX8R" && FE_type != "BBAR") {
+                throw std::invalid_argument("FE_type must be one of: 'HEX8', 'HEX8R', or 'BBAR'");
+            }
+        } else {
+            FE_type = "HEX8"; // Default to full integration
+        }
+
         json j_mat     = j["material_properties"];
         resultsToWrite = j["results"].get<vector<string>>(); // Read the results_to_write field
 
@@ -140,6 +150,8 @@ void Reader ::ReadInputFile(char fn[])
             printf("# microstructure file name: \t '%s'\n", ms_filename);
             printf("# microstructure dataset name: \t '%s'\n", ms_datasetname);
             printf("# strain type: \t %s\n", strain_type.c_str());
+            printf("# problem type: \t %s\n", problemType.c_str());
+            printf("# FE type: \t %s\n", FE_type.c_str());
             printf(
                 "# FANS error measure: \t %s %s error  \n",
                 errorParameters["type"].get<string>().c_str(),

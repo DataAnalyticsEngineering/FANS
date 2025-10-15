@@ -204,6 +204,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 ### Solver Settings
 
 ```json
+"FE_type": "HEX8",
 "method": "cg",
 "error_parameters":{
                      "measure": "Linfinity",
@@ -213,6 +214,10 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 "n_it": 100,
 ```
 
+- `FE_type`: This specifies the type of finite element to be used. Common options include:
+  - `HEX8`: Standard trilinear hexahedral elements with full integration (8 Gauss points). Suitable for most problems but may exhibit volumetric locking for nearly incompressible materials (Poisson's ratio ~ 0.5).
+  - `BBAR`: B-bar elements with selective reduced integration to mitigate volumetric locking. Recommended for materials with high Poisson's ratios (0.4 to 0.5).
+  - `HEX8R`: Reduced integration elements with a single Gauss point at the element center. Use with caution as they may lead to hourglassing and less accurate results.
 - `method`: This indicates the numerical method to be used for solving the system of equations. `cg` stands for the Conjugate Gradient method, and `fp` stands for the Fixed Point method.
 - `error_parameters`: This section defines the error parameters for the solver. Error control is applied to the finite element nodal residual of the problem.
   - `measure`: Specifies the norm used to measure the error. Options include `Linfinity`, `L1`, or `L2`.
