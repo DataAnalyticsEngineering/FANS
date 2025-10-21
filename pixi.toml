@@ -4,9 +4,6 @@ name = "FANS"
 platforms = ["linux-64", "linux-ppc64le", "linux-aarch64", "osx-arm64", "osx-64"]
 preview = ["pixi-build"]
 
-[dependencies]
-fans = { path = "." }
-
 [feature.dashboard.dependencies]
 python = ">=3.14.0,<3.15"
 pytest = ">=8.4.2,<9"
@@ -39,7 +36,10 @@ eigen = ">=3.4.0,<4"
 nlohmann_json = ">=3.12.0,<4"
 time = ">=1.9,<2"
 
-[tasks]
+[feature.build.dependencies]
+fans = { path = "." }
+
+[feature.build.tasks]
 test = { cmd = "pytest -v -s --from-pixi", cwd = "test/pytest", depends-on = ["test-fans"] }
 test-fans = { cmd = "./run_tests.sh -n {{n}}", args = [
   { arg = "n", default = "2" }, # Number of threads
@@ -47,8 +47,9 @@ test-fans = { cmd = "./run_tests.sh -n {{n}}", args = [
 
 [environments]
 default   = { features = ["dashboard"]}
-dashboard = { features = ["dashboard"], no-default-feature = true }
-dev       = { features = ["dev"],       no-default-feature = true }
+dashboard = { features = ["dashboard"],           no-default-feature = true }
+dev       = { features = ["dev"],                 no-default-feature = true }
+build     = { features = ["build", "dashboard"],  no-default-feature = true }
 
 ################## Pixi build part ##################
 
@@ -63,8 +64,6 @@ backend = { name = "pixi-build-cmake", version = "*" }
 extra-args = [
     "-DFANS_LIBRARY_FOR_MICRO_MANAGER=ON",
     ]
-
-[workspace.target.osx-arm64.build-variants]
 
 [workspace.target.linux-64.build-variants]
 cxx_compiler = ["clangxx"]
