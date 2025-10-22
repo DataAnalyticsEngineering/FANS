@@ -1,8 +1,8 @@
 [workspace]
-channels = ["conda-forge"]
-name = "FANS"
+channels  = ["conda-forge"]
+name      = "FANS"
 platforms = ["linux-64", "linux-ppc64le", "linux-aarch64", "osx-arm64", "osx-64"]
-preview = ["pixi-build"]
+preview   = ["pixi-build"]
 
 [feature.dashboard.dependencies]
 python = ">=3.14.0,<3.15"
@@ -16,11 +16,11 @@ time = ">=1.9,<2"
 
 [feature.dashboard.pypi-dependencies]
 fans-dashboard = { path = "FANS_Dashboard", editable = true }
-MSUtils = {git = "https://github.com/DataAnalyticsEngineering/MSUtils.git"}
+MSUtils  = {git = "https://github.com/DataAnalyticsEngineering/MSUtils.git"}
 pyrecest = {git = "https://github.com/FlorianPfaff/pyRecEst.git"}
 
 [feature.dashboard.tasks]
-pytest = "pytest -v -s"
+pytest    = "pytest -v -s"
 precommit = "pre-commit run --all-files"
 
 [feature.dashboard.tasks.h52xdmf]
@@ -40,10 +40,8 @@ time = ">=1.9,<2"
 fans = { path = "." }
 
 [feature.build.tasks]
-test = { cmd = "pytest -v -s --from-pixi", cwd = "test/pytest", depends-on = ["test-fans"] }
-test-fans = { cmd = "./run_tests.sh -n {{n}}", args = [
-  { arg = "n", default = "2" }, # Number of threads
-], cwd = "test" }
+test      = { cmd = "pytest -v -s --from-pixi", cwd = "test/pytest", depends-on = ["test-fans"] }
+test-fans = { cmd = "./run_tests.sh -n {{n}}", args = [{ arg = "n", default = "2" }], cwd = "test" }
 
 [environments]
 default   = { features = ["dashboard"]}
@@ -54,29 +52,27 @@ build     = { features = ["build", "dashboard"],  no-default-feature = true }
 ################## Pixi build part ##################
 
 [package]
-name = "fans"
+name    = "fans"
 version = "0.4.3"
 
 [package.build]
 backend = { name = "pixi-build-cmake", version = "*" }
 
 [package.build.config]
-extra-args = [
-    "-DFANS_LIBRARY_FOR_MICRO_MANAGER=ON",
-    ]
+extra-args = ["-DFANS_LIBRARY_FOR_MICRO_MANAGER=ON"]
 
 [workspace.target.linux-64.build-variants]
 cxx_compiler = ["clangxx"]
 
 [package.build-dependencies]
-cmake = "*"
-pybind11 = "*"
+cmake      = "*"
+pybind11   = "*"
 pkg-config = "*"
-ninja = "*"
+ninja      = "*"
 
 [package.host-dependencies]
-hdf5 = { version = "*", build = "* mpi_openmpi*" }
-fftw = { version = "*", build = "* mpi_openmpi*" }
+hdf5           = { version = "*", build = "* mpi_openmpi*" }
+fftw           = { version = "*", build = "* mpi_openmpi*" }
 openmpi-mpicxx = "*"
-eigen = "*"
-nlohmann_json = "*"
+eigen          = "*"
+nlohmann_json  = "*"
