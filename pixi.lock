@@ -153,7 +153,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/13/34/00c7ae8194074ed82b64e0bb7c24220eac5f77ac90c16e23cf0d2cfd2a03/narwhals-2.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a9/82/0340caa499416c78e5d8f5f05947ae4bc3cba53c9f038ab6e9ed964e22f1/nbformat-5.10.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3f/93/023955c26b0ce614342d11cc0652f1e45e32393b6ab9d11a664a60e9b7b7/plotly-6.3.1-py3-none-any.whl
-      - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#653f949b94a67488b91635f1802f6d0e9fd23f54
+      - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#406f7ea8a559db7a340f66e1546fed6780bed0c3
       - pypi: https://files.pythonhosted.org/packages/2c/58/ca301544e1fa93ed4f80d724bf5b194f6e4b945841c5bfd555878eea9fcb/referencing-0.37.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/25/7a/b0178788f8dc6cafce37a212c99565fa1fe7872c70c6c9c1e1a372d9d88f/rich-14.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/90/1a/cdb5083f043597c4d4276eae4e4c70c55ab5accec078da8611f24575a367/rpds_py-0.27.1-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
@@ -306,7 +306,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/13/34/00c7ae8194074ed82b64e0bb7c24220eac5f77ac90c16e23cf0d2cfd2a03/narwhals-2.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a9/82/0340caa499416c78e5d8f5f05947ae4bc3cba53c9f038ab6e9ed964e22f1/nbformat-5.10.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3f/93/023955c26b0ce614342d11cc0652f1e45e32393b6ab9d11a664a60e9b7b7/plotly-6.3.1-py3-none-any.whl
-      - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#653f949b94a67488b91635f1802f6d0e9fd23f54
+      - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#406f7ea8a559db7a340f66e1546fed6780bed0c3
       - pypi: https://files.pythonhosted.org/packages/2c/58/ca301544e1fa93ed4f80d724bf5b194f6e4b945841c5bfd555878eea9fcb/referencing-0.37.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/25/7a/b0178788f8dc6cafce37a212c99565fa1fe7872c70c6c9c1e1a372d9d88f/rich-14.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/b0/16/2f1003ee5d0af4bcb13c0cf894957984c32a6751ed7206db2aee7379a55e/rpds_py-0.27.1-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
@@ -458,7 +458,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/13/34/00c7ae8194074ed82b64e0bb7c24220eac5f77ac90c16e23cf0d2cfd2a03/narwhals-2.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a9/82/0340caa499416c78e5d8f5f05947ae4bc3cba53c9f038ab6e9ed964e22f1/nbformat-5.10.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3f/93/023955c26b0ce614342d11cc0652f1e45e32393b6ab9d11a664a60e9b7b7/plotly-6.3.1-py3-none-any.whl
-      - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#653f949b94a67488b91635f1802f6d0e9fd23f54
+      - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#406f7ea8a559db7a340f66e1546fed6780bed0c3
       - pypi: https://files.pythonhosted.org/packages/2c/58/ca301544e1fa93ed4f80d724bf5b194f6e4b945841c5bfd555878eea9fcb/referencing-0.37.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/25/7a/b0178788f8dc6cafce37a212c99565fa1fe7872c70c6c9c1e1a372d9d88f/rich-14.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/20/51/5829afd5000ec1cb60f304711f02572d619040aa3ec033d8226817d1e571/rpds_py-0.27.1-cp314-cp314-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl
@@ -592,7 +592,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/13/34/00c7ae8194074ed82b64e0bb7c24220eac5f77ac90c16e23cf0d2cfd2a03/narwhals-2.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a9/82/0340caa499416c78e5d8f5f05947ae4bc3cba53c9f038ab6e9ed964e22f1/nbformat-5.10.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3f/93/023955c26b0ce614342d11cc0652f1e45e32393b6ab9d11a664a60e9b7b7/plotly-6.3.1-py3-none-any.whl
-      - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#653f949b94a67488b91635f1802f6d0e9fd23f54
+      - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#406f7ea8a559db7a340f66e1546fed6780bed0c3
       - pypi: https://files.pythonhosted.org/packages/2c/58/ca301544e1fa93ed4f80d724bf5b194f6e4b945841c5bfd555878eea9fcb/referencing-0.37.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/25/7a/b0178788f8dc6cafce37a212c99565fa1fe7872c70c6c9c1e1a372d9d88f/rich-14.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/70/36/b6e6066520a07cf029d385de869729a895917b411e777ab1cde878100a1d/rpds_py-0.27.1-cp314-cp314-macosx_10_12_x86_64.whl
@@ -727,7 +727,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/13/34/00c7ae8194074ed82b64e0bb7c24220eac5f77ac90c16e23cf0d2cfd2a03/narwhals-2.9.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/a9/82/0340caa499416c78e5d8f5f05947ae4bc3cba53c9f038ab6e9ed964e22f1/nbformat-5.10.4-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3f/93/023955c26b0ce614342d11cc0652f1e45e32393b6ab9d11a664a60e9b7b7/plotly-6.3.1-py3-none-any.whl
-      - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#653f949b94a67488b91635f1802f6d0e9fd23f54
+      - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#406f7ea8a559db7a340f66e1546fed6780bed0c3
       - pypi: https://files.pythonhosted.org/packages/2c/58/ca301544e1fa93ed4f80d724bf5b194f6e4b945841c5bfd555878eea9fcb/referencing-0.37.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/25/7a/b0178788f8dc6cafce37a212c99565fa1fe7872c70c6c9c1e1a372d9d88f/rich-14.2.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/af/07/b4646032e0dcec0df9c73a3bd52f63bc6c5f9cda992f06bd0e73fe3fbebd/rpds_py-0.27.1-cp314-cp314-macosx_11_0_arm64.whl
@@ -3296,7 +3296,7 @@ packages:
 - conda: .
   name: fans
   version: 0.4.3
-  build: h04f5b5a_0
+  build: hbf21a9e_0
   subdir: linux-64
   depends:
   - libstdcxx >=15
@@ -3305,12 +3305,12 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: 76630d2b6d39f249d44d9fdae68d226bae9381dd55d2afc009a65c71dc813e43
+    hash: 3ac6f333bef244fff96bad8e8debf781984aec56eec25d983aa8a245eed92fc8
     globs: []
 - conda: .
   name: fans
   version: 0.4.3
-  build: h04f5b5a_0
+  build: hbf21a9e_0
   subdir: linux-aarch64
   depends:
   - libstdcxx >=15
@@ -3319,12 +3319,12 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: 76630d2b6d39f249d44d9fdae68d226bae9381dd55d2afc009a65c71dc813e43
+    hash: 3ac6f333bef244fff96bad8e8debf781984aec56eec25d983aa8a245eed92fc8
     globs: []
 - conda: .
   name: fans
   version: 0.4.3
-  build: h04f5b5a_0
+  build: hbf21a9e_0
   subdir: linux-ppc64le
   depends:
   - libstdcxx >=15
@@ -3333,12 +3333,12 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: 76630d2b6d39f249d44d9fdae68d226bae9381dd55d2afc009a65c71dc813e43
+    hash: 3ac6f333bef244fff96bad8e8debf781984aec56eec25d983aa8a245eed92fc8
     globs: []
 - conda: .
   name: fans
   version: 0.4.3
-  build: h04f5b5a_0
+  build: hbf21a9e_0
   subdir: osx-64
   depends:
   - libcxx >=21
@@ -3346,12 +3346,12 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: 76630d2b6d39f249d44d9fdae68d226bae9381dd55d2afc009a65c71dc813e43
+    hash: 3ac6f333bef244fff96bad8e8debf781984aec56eec25d983aa8a245eed92fc8
     globs: []
 - conda: .
   name: fans
   version: 0.4.3
-  build: h04f5b5a_0
+  build: hbf21a9e_0
   subdir: osx-arm64
   depends:
   - libcxx >=21
@@ -3359,7 +3359,7 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: 76630d2b6d39f249d44d9fdae68d226bae9381dd55d2afc009a65c71dc813e43
+    hash: 3ac6f333bef244fff96bad8e8debf781984aec56eec25d983aa8a245eed92fc8
     globs: []
 - pypi: ./FANS_Dashboard
   name: fans-dashboard
@@ -7823,6 +7823,9 @@ packages:
   - pkg:pypi/pygments?source=hash-mapping
   size: 889287
   timestamp: 1750615908735
+- pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#406f7ea8a559db7a340f66e1546fed6780bed0c3
+  name: pyrecest
+  version: 0.0.0
 - pypi: git+https://github.com/FlorianPfaff/pyRecEst.git#653f949b94a67488b91635f1802f6d0e9fd23f54
   name: pyrecest
   version: 0.0.0
