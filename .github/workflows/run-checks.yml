@@ -17,7 +17,6 @@ jobs:
       - name: Lint markdown files (markdownlint)
         uses: articulate/actions-markdownlint@v1
         with:
-          config: .markdownlint.json
           files: '.'
 
   check_links:
@@ -31,7 +30,6 @@ jobs:
         with:
           use-quiet-mode: 'yes'
           use-verbose-mode: 'no'
-          config-file: '.markdown-link-check-config.json'
 
   precommit:
     name: pre-commit checks
