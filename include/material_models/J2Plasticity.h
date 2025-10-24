@@ -4,19 +4,19 @@
 #include "matmodel.h"
 #include "solver.h"
 
-class J2Plasticity : public MechModel {
+class J2Plasticity : public SmallStrainMechModel {
   public:
-    J2Plasticity(vector<double> l_e, json materialProperties)
-        : MechModel(l_e)
+    J2Plasticity(const Reader &reader)
+        : SmallStrainMechModel(reader)
     {
         try {
-            bulk_modulus  = materialProperties["bulk_modulus"].get<vector<double>>();
-            shear_modulus = materialProperties["shear_modulus"].get<vector<double>>();
-            yield_stress  = materialProperties["yield_stress"].get<vector<double>>();                  // Initial yield stress
-            K             = materialProperties["isotropic_hardening_parameter"].get<vector<double>>(); // Isotropic hardening parameter
-            H             = materialProperties["kinematic_hardening_parameter"].get<vector<double>>(); // Kinematic hardening parameter
-            eta           = materialProperties["viscosity"].get<vector<double>>();                     // Viscosity parameter
-            dt            = materialProperties["time_step"].get<double>();                             // Time step
+            bulk_modulus  = reader.materialProperties["bulk_modulus"].get<vector<double>>();
+            shear_modulus = reader.materialProperties["shear_modulus"].get<vector<double>>();
+            yield_stress  = reader.materialProperties["yield_stress"].get<vector<double>>();                  // Initial yield stress
+            K             = reader.materialProperties["isotropic_hardening_parameter"].get<vector<double>>(); // Isotropic hardening parameter
+            H             = reader.materialProperties["kinematic_hardening_parameter"].get<vector<double>>(); // Kinematic hardening parameter
+            eta           = reader.materialProperties["viscosity"].get<vector<double>>();                     // Viscosity parameter
+            dt            = reader.materialProperties["time_step"].get<double>();                             // Time step
         } catch (const std::out_of_range &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
@@ -72,7 +72,7 @@ class J2Plasticity : public MechModel {
     void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override
     {
         // Elastic Predictor
-        eps_elastic = eps.block<6, 1>(i, 0) - plasticStrain_t[element_idx].col(i / n_str);
+        eps_elastic = eps.block<6, 1>(i, 0) - plasticStrain_t[element_idx].col(i / 6);
         treps       = eps_elastic.head<3>().sum();
 
         // Compute trial stress
@@ -85,8 +85,8 @@ class J2Plasticity : public MechModel {
         dev.head<3>().array() -= sigma_trial_n1.head<3>().mean();
 
         // Compute trial q and q_bar
-        q_trial_n1    = compute_q_trial(psi_t[element_idx](i / n_str), mat_index);
-        qbar_trial_n1 = -(2.0 / 3.0) * H[mat_index] * psi_bar_t[element_idx].col(i / n_str);
+        q_trial_n1    = compute_q_trial(psi_t[element_idx](i / 6), mat_index);
+        qbar_trial_n1 = -(2.0 / 3.0) * H[mat_index] * psi_bar_t[element_idx].col(i / 6);
 
         // Calculate the trial yield function
         dev_minus_qbar      = dev - qbar_trial_n1;
@@ -106,9 +106,9 @@ class J2Plasticity : public MechModel {
 
         // Update stress and internal variables
         sigma_trial_n1 -= gamma_n1 * 2 * shear_modulus[mat_index] * n;
-        plasticStrain[element_idx].col(i / n_str) = plasticStrain_t[element_idx].col(i / n_str) + gamma_n1 * n;
-        psi[element_idx](i / n_str) += gamma_n1 * sqrt_two_over_three;
-        psi_bar[element_idx].col(i / n_str) -= gamma_n1 * n;
+        plasticStrain[element_idx].col(i / 6) = plasticStrain_t[element_idx].col(i / 6) + gamma_n1 * n;
+        psi[element_idx](i / 6) += gamma_n1 * sqrt_two_over_three;
+        psi_bar[element_idx].col(i / 6) -= gamma_n1 * n;
 
         // Assign final stress
         sigma.block<6, 1>(i, 0) = sigma_trial_n1;
@@ -118,7 +118,7 @@ class J2Plasticity : public MechModel {
     virtual double compute_q_trial(double psi_val, int mat_index)                             = 0;
     virtual double compute_gamma(double f_trial, int mat_index, int i, ptrdiff_t element_idx) = 0;
 
-    void postprocess(Solver<3> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override;
+    void postprocess(Solver<3, 6> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override;
 
   protected:
     // Material properties
@@ -156,8 +156,8 @@ class J2Plasticity : public MechModel {
 // Derived Class Linear Isotropic Hardening
 class J2ViscoPlastic_LinearIsotropicHardening : public J2Plasticity {
   public:
-    J2ViscoPlastic_LinearIsotropicHardening(vector<double> l_e, json materialProperties)
-        : J2Plasticity(l_e, materialProperties)
+    J2ViscoPlastic_LinearIsotropicHardening(const Reader &reader)
+        : J2Plasticity(reader)
     {
     }
 
@@ -175,12 +175,12 @@ class J2ViscoPlastic_LinearIsotropicHardening : public J2Plasticity {
 // Derived Class Non-Linear (Exponential law) Isotropic Hardening
 class J2ViscoPlastic_NonLinearIsotropicHardening : public J2Plasticity {
   public:
-    J2ViscoPlastic_NonLinearIsotropicHardening(vector<double> l_e, json materialProperties)
-        : J2Plasticity(l_e, materialProperties)
+    J2ViscoPlastic_NonLinearIsotropicHardening(const Reader &reader)
+        : J2Plasticity(reader)
     {
         try {
-            sigma_inf = materialProperties["saturation_stress"].get<vector<double>>();   // Saturation stress
-            delta     = materialProperties["saturation_exponent"].get<vector<double>>(); // Saturation exponent
+            sigma_inf = reader.materialProperties["saturation_stress"].get<vector<double>>();   // Saturation stress
+            delta     = reader.materialProperties["saturation_exponent"].get<vector<double>>(); // Saturation exponent
         } catch (const std::out_of_range &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
@@ -207,9 +207,9 @@ class J2ViscoPlastic_NonLinearIsotropicHardening : public J2Plasticity {
         while (gamma_inc > NR_tol && NR_iter < NR_max_iter) {
             g = f_trial - gamma_n1 * denominator[mat_index] -
                 sigma_diff[mat_index] *
-                    (-exp(-delta[mat_index] * (psi_t[element_idx](i / n_str) + sqrt_two_over_three * gamma_n1)) + exp(-delta[mat_index] * psi_t[element_idx](i / n_str)));
+                    (-exp(-delta[mat_index] * (psi_t[element_idx](i / 6) + sqrt_two_over_three * gamma_n1)) + exp(-delta[mat_index] * psi_t[element_idx](i / 6)));
             dg = -denominator[mat_index] -
-                 (2 / 3) * (sigma_inf[mat_index] - yield_stress[mat_index]) * delta[mat_index] * exp(-delta[mat_index] * (psi_t[element_idx](i / n_str) + sqrt_two_over_three * gamma_n1));
+                 (2 / 3) * (sigma_inf[mat_index] - yield_stress[mat_index]) * delta[mat_index] * exp(-delta[mat_index] * (psi_t[element_idx](i / 6) + sqrt_two_over_three * gamma_n1));
             gamma_inc = -g / dg;
             gamma_n1 += gamma_inc;
             NR_iter++;
@@ -237,7 +237,7 @@ class J2ViscoPlastic_NonLinearIsotropicHardening : public J2Plasticity {
     vector<double> sigma_diff;  // sqrt(2/3) * (sigma_inf - yield_stress)
 };
 
-inline void J2Plasticity::postprocess(Solver<3> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx)
+inline void J2Plasticity::postprocess(Solver<3, 6> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx)
 {
     int      n_str                             = 6; // The plastic strain and stress vectors have 6 components each
     VectorXd mean_plastic_strain               = VectorXd::Zero(solver.local_n0 * solver.n_y * solver.n_z * n_str);
@@ -255,7 +255,7 @@ inline void J2Plasticity::postprocess(Solver<3> &solver, Reader &reader, const c
         for (int i = 0; i < solver.world_size; ++i) {
             if (i == solver.world_rank) {
                 char name[5096];
-                sprintf(name, "%s/load%i/time_step%i/plastic_strain", reader.ms_datasetname, load_idx, time_idx);
+                sprintf(name, "%s/load%i/time_step%i/plastic_strain", solver.dataset_name, load_idx, time_idx);
                 reader.WriteSlab<double>(mean_plastic_strain.data(), n_str, resultsFileName, name);
             }
             MPI_Barrier(MPI_COMM_WORLD);
@@ -266,7 +266,7 @@ inline void J2Plasticity::postprocess(Solver<3> &solver, Reader &reader, const c
         for (int i = 0; i < solver.world_size; ++i) {
             if (i == solver.world_rank) {
                 char name[5096];
-                sprintf(name, "%s/load%i/time_step%i/isotropic_hardening_variable", reader.ms_datasetname, load_idx, time_idx);
+                sprintf(name, "%s/load%i/time_step%i/isotropic_hardening_variable", solver.dataset_name, load_idx, time_idx);
                 reader.WriteSlab<double>(mean_isotropic_hardening_variable.data(), 1, resultsFileName, name);
             }
             MPI_Barrier(MPI_COMM_WORLD);
@@ -277,7 +277,7 @@ inline void J2Plasticity::postprocess(Solver<3> &solver, Reader &reader, const c
         for (int i = 0; i < solver.world_size; ++i) {
             if (i == solver.world_rank) {
                 char name[5096];
-                sprintf(name, "%s/load%i/time_step%i/kinematic_hardening_variable", reader.ms_datasetname, load_idx, time_idx);
+                sprintf(name, "%s/load%i/time_step%i/kinematic_hardening_variable", solver.dataset_name, load_idx, time_idx);
                 reader.WriteSlab<double>(mean_kinematic_hardening_variable.data(), n_str, resultsFileName, name);
             }
             MPI_Barrier(MPI_COMM_WORLD);

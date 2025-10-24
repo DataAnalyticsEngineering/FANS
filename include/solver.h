@@ -5,13 +5,13 @@
 
 typedef Map<Array<double, Dynamic, Dynamic>, Unaligned, OuterStride<>> RealArray;
 
-template <int howmany>
+template <int howmany, int n_str>
 class Solver : private MixedBCController<howmany> {
   public:
-    Solver(Reader reader, Matmodel<howmany> *matmodel);
-    virtual ~Solver() = default;
+    Solver(Reader &reader, Matmodel<howmany, n_str> *matmodel);
+    virtual ~Solver();
 
-    Reader reader;
+    Reader &reader;
 
     const int world_rank;
     const int world_size;
@@ -24,9 +24,9 @@ class Solver : private MixedBCController<howmany> {
     const ptrdiff_t local_n1;
     const ptrdiff_t local_1_start;
 
-    const int          n_it;     //!< Max number of FANS iterations
-    double             TOL;      //!< Tolerance on relative error norm
-    Matmodel<howmany> *matmodel; //!< Material Model
+    const int                 n_it;     //!< Max number of FANS iterations
+    double                    TOL;      //!< Tolerance on relative error norm
+    Matmodel<howmany, n_str> *matmodel; //!< Material Model
 
     unsigned short *ms;  // Micro-structure
     double         *v_r; //!< Residual vector
@@ -51,7 +51,7 @@ class Solver : private MixedBCController<howmany> {
     template <int padding>
     void compute_residual(RealArray &r_matrix, RealArray &u_matrix);
 
-    void postprocess(Reader reader, const char resultsFileName[], int load_idx, int time_idx); //!< Computes Strain and stress
+    void postprocess(Reader &reader, const char resultsFileName[], int load_idx, int time_idx); //!< Computes Strain and stress
 
     void   convolution();
     double compute_error(RealArray &r);
@@ -62,6 +62,8 @@ class Solver : private MixedBCController<howmany> {
 
     MatrixXd homogenized_tangent;
     MatrixXd get_homogenized_tangent(double pert_param);
+
+    char dataset_name[5096]; // Dataset name for postprocessing results
 
     void enableMixedBC(const MixedBC &mbc, size_t step)
     {
@@ -80,14 +82,25 @@ class Solver : private MixedBCController<howmany> {
         this->update(*this);
     }
 
+  private:
+    template <typename _Matrix_Type_>
+    inline _Matrix_Type_ pseudoInverse(const _Matrix_Type_ &a, double tolerance) const
+    {
+        Eigen::JacobiSVD<_Matrix_Type_> svd(a, Eigen::ComputeFullU | Eigen::ComputeFullV);
+        return svd.matrixV() *
+               (svd.singularValues().array() > tolerance).select(svd.singularValues().array().inverse(), 0).matrix().asDiagonal() *
+               svd.matrixU().adjoint();
+    }
+    void computeFundamentalSolution();
+
   protected:
     fftw_plan planfft, planifft;
     clock_t   fft_time, buftime;
     size_t    iter;
 };
 
-template <int howmany>
-Solver<howmany>::Solver(Reader reader, Matmodel<howmany> *mat)
+template <int howmany, int n_str>
+Solver<howmany, n_str>::Solver(Reader &reader, Matmodel<howmany, n_str> *mat)
     : reader(reader),
       matmodel(mat),
       world_rank(reader.world_rank),
@@ -118,8 +131,17 @@ Solver<howmany>::Solver(Reader reader, Matmodel<howmany> *mat)
         this->v_u[i] = 0;
     }
 
-    matmodel->initializeInternalVariables(local_n0 * n_y * n_z, 8);
+    matmodel->initializeInternalVariables(local_n0 * n_y * n_z, matmodel->n_gp);
 
+    computeFundamentalSolution();
+
+    // Set dataset name as member variable of the Solver class
+    sprintf(dataset_name, "%s_results/%s", reader.ms_datasetname, reader.results_prefix);
+}
+
+template <int howmany, int n_str>
+void Solver<howmany, n_str>::computeFundamentalSolution()
+{
     if (world_rank == 0) {
         printf("\n# Start creating Fundamental Solution(s) \n");
     }
@@ -162,9 +184,9 @@ Solver<howmany>::Solver(Reader reader, Matmodel<howmany> *mat)
                     }
                     ptrdiff_t ind = i_y * n_x * (n_z / 2 + 1) + i_x * (n_z / 2 + 1) + i_z;
                     if (ind % 2 == 0) {
-                        fundamentalSolution.template middleCols<howmany>((ind / 2) * (howmany + 1)).template triangularView<Lower>() = block.inverse().template triangularView<Lower>();
+                        fundamentalSolution.template middleCols<howmany>((ind / 2) * (howmany + 1)).template triangularView<Lower>() = pseudoInverse(block, 1e-14).template triangularView<Lower>();
                     } else {
-                        fundamentalSolution.template middleCols<howmany>((ind / 2) * (howmany + 1) + 1).template triangularView<Upper>() = block.inverse().template triangularView<Upper>();
+                        fundamentalSolution.template middleCols<howmany>((ind / 2) * (howmany + 1) + 1).template triangularView<Upper>() = pseudoInverse(block, 1e-14).template triangularView<Upper>();
                     }
                 }
             }
@@ -179,8 +201,8 @@ Solver<howmany>::Solver(Reader reader, Matmodel<howmany> *mat)
     }
 }
 
-template <int howmany>
-void Solver<howmany>::CreateFFTWPlans(double *in, fftw_complex *transformed, double *out)
+template <int howmany, int n_str>
+void Solver<howmany, n_str>::CreateFFTWPlans(double *in, fftw_complex *transformed, double *out)
 {
     int       rank   = 3;
     ptrdiff_t iblock = FFTW_MPI_DEFAULT_BLOCK;
@@ -202,9 +224,9 @@ void Solver<howmany>::CreateFFTWPlans(double *in, fftw_complex *transformed, dou
 }
 
 // TODO: possibly circumvent the padding problem by accessing r as a matrix?
-template <int howmany>
+template <int howmany, int n_str>
 template <int padding, typename F>
-void Solver<howmany>::compute_residual_basic(RealArray &r_matrix, RealArray &u_matrix, F f)
+void Solver<howmany, n_str>::compute_residual_basic(RealArray &r_matrix, RealArray &u_matrix, F f)
 {
 
     double *r = r_matrix.data();
@@ -245,17 +267,17 @@ void Solver<howmany>::compute_residual_basic(RealArray &r_matrix, RealArray &u_m
     r_matrix.block(0, 0, n_z * howmany, n_y) += b; // matrix.block(i,j,p,q); is the block of size (p,q), starting at (i,j)
 }
 
-template <int howmany>
+template <int howmany, int n_str>
 template <int padding>
-void Solver<howmany>::compute_residual(RealArray &r_matrix, RealArray &u_matrix)
+void Solver<howmany, n_str>::compute_residual(RealArray &r_matrix, RealArray &u_matrix)
 {
     compute_residual_basic<padding>(r_matrix, u_matrix, [&](Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx) -> Matrix<double, howmany * 8, 1> & {
         return matmodel->element_residual(ue, mat_index, element_idx);
     });
 }
 
-template <int howmany>
-void Solver<howmany>::solve()
+template <int howmany, int n_str>
+void Solver<howmany, n_str>::solve()
 {
 
     err_all          = ArrayXd::Zero(n_it + 1);
@@ -274,9 +296,9 @@ void Solver<howmany>::solve()
     matmodel->updateInternalVariables();
 }
 
-template <int howmany>
+template <int howmany, int n_str>
 template <int padding, typename F>
-void Solver<howmany>::iterateCubes(F f)
+void Solver<howmany, n_str>::iterateCubes(F f)
 {
 
     auto Idx = [&](int i_x, int i_y) {
@@ -348,8 +370,8 @@ void Solver<howmany>::iterateCubes(F f)
     }
 }
 
-template <int howmany>
-void Solver<howmany>::convolution()
+template <int howmany, int n_str>
+void Solver<howmany, n_str>::convolution()
 {
 
     // it is important that at least one of the dimensions n_x and n_z is divisible by two (or local_n1, but that can't be guaranteed from the outside)
@@ -375,8 +397,8 @@ void Solver<howmany>::convolution()
     buftime += clock() - dtime;
 }
 
-template <int howmany>
-double Solver<howmany>::compute_error(RealArray &r)
+template <int howmany, int n_str>
+double Solver<howmany, n_str>::compute_error(RealArray &r)
 {
     double             err_local;
     const std::string &measure = reader.errorParameters["measure"].get<std::string>();
@@ -415,10 +437,9 @@ double Solver<howmany>::compute_error(RealArray &r)
     }
 }
 
-template <int howmany>
-void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], int load_idx, int time_idx)
+template <int howmany, int n_str>
+void Solver<howmany, n_str>::postprocess(Reader &reader, const char resultsFileName[], int load_idx, int time_idx)
 {
-    int      n_str          = matmodel->n_str;
     VectorXd strain         = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
     VectorXd stress         = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
     VectorXd stress_average = VectorXd::Zero(n_str);
@@ -501,19 +522,41 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
             for (ptrdiff_t iz = 0; iz < n_z; ++iz, ++n) {
                 const double z = iz * dz - Lz2;
                 if (howmany == 3) { /* ===== mechanics (vector) ===== */
-                    const double    g11 = strain_average[0];
-                    const double    g22 = strain_average[1];
-                    const double    g33 = strain_average[2];
-                    const double    g12 = strain_average[3] * rs2;
-                    const double    g13 = strain_average[4] * rs2;
-                    const double    g23 = strain_average[5] * rs2;
-                    const double    ux  = g11 * x + g12 * y + g13 * z;
-                    const double    uy  = g12 * x + g22 * y + g23 * z;
-                    const double    uz  = g13 * x + g23 * y + g33 * z;
-                    const ptrdiff_t b   = 3 * n;
-                    u_total[b]          = v_u[b] + ux;
-                    u_total[b + 1]      = v_u[b + 1] + uy;
-                    u_total[b + 2]      = v_u[b + 2] + uz;
+                    if constexpr (n_str == 6) {
+                        /* Small strain: strain_average contains 6 Voigt components */
+                        const double    g11 = strain_average[0];
+                        const double    g22 = strain_average[1];
+                        const double    g33 = strain_average[2];
+                        const double    g12 = strain_average[3] * rs2;
+                        const double    g13 = strain_average[4] * rs2;
+                        const double    g23 = strain_average[5] * rs2;
+                        const double    ux  = g11 * x + g12 * y + g13 * z;
+                        const double    uy  = g12 * x + g22 * y + g23 * z;
+                        const double    uz  = g13 * x + g23 * y + g33 * z;
+                        const ptrdiff_t b   = 3 * n;
+                        u_total[b]          = v_u[b] + ux;
+                        u_total[b + 1]      = v_u[b + 1] + uy;
+                        u_total[b + 2]      = v_u[b + 2] + uz;
+                    } else if constexpr (n_str == 9) {
+                        /* Large strain: strain_average contains 9 components of F */
+                        const double F11 = strain_average[0];
+                        const double F12 = strain_average[1];
+                        const double F13 = strain_average[2];
+                        const double F21 = strain_average[3];
+                        const double F22 = strain_average[4];
+                        const double F23 = strain_average[5];
+                        const double F31 = strain_average[6];
+                        const double F32 = strain_average[7];
+                        const double F33 = strain_average[8];
+                        // u = (F - I) * X
+                        const double    ux = (F11 - 1.0) * x + F12 * y + F13 * z;
+                        const double    uy = F21 * x + (F22 - 1.0) * y + F23 * z;
+                        const double    uz = F31 * x + F32 * y + (F33 - 1.0) * z;
+                        const ptrdiff_t b  = 3 * n;
+                        u_total[b]         = v_u[b] + ux;
+                        u_total[b + 1]     = v_u[b + 1] + uy;
+                        u_total[b + 2]     = v_u[b + 2] + uz;
+                    }
                 } else { /* ===== scalar (howmany==1) ==== */
                     const double g1 = strain_average[0];
                     const double g2 = strain_average[1];
@@ -524,15 +567,11 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
         }
     }
 
-    // Concatenate reader.ms_datasetname and reader.results_prefix into reader.ms_datasetname
-    strcat(reader.ms_datasetname, "_results/");
-    strcat(reader.ms_datasetname, reader.results_prefix);
-
     // Write results to results h5 file
     auto writeData = [&](const char *resultName, const char *resultPrefix, auto *data, hsize_t *dims, int ndims) {
         if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), resultName) != reader.resultsToWrite.end()) {
             char name[5096];
-            sprintf(name, "%s/load%i/time_step%i/%s", reader.ms_datasetname, load_idx, time_idx, resultPrefix);
+            sprintf(name, "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, resultPrefix);
             reader.WriteData(data, resultsFileName, name, dims, ndims);
         }
     };
@@ -540,7 +579,7 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
     auto writeSlab = [&](const char *resultName, const char *resultPrefix, auto *data, int size) {
         if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), resultName) != reader.resultsToWrite.end()) {
             char name[5096];
-            sprintf(name, "%s/load%i/time_step%i/%s", reader.ms_datasetname, load_idx, time_idx, resultPrefix);
+            sprintf(name, "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, resultPrefix);
             reader.WriteSlab(data, size, resultsFileName, name);
         }
     };
@@ -572,6 +611,7 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
         }
         MPI_Barrier(MPI_COMM_WORLD);
     }
+
     matmodel->postprocess(*this, reader, resultsFileName, load_idx, time_idx);
 
     // Compute homogenized tangent
@@ -587,11 +627,10 @@ void Solver<howmany>::postprocess(Reader reader, const char resultsFileName[], i
     }
 }
 
-template <int howmany>
-VectorXd Solver<howmany>::get_homogenized_stress()
+template <int howmany, int n_str>
+VectorXd Solver<howmany, n_str>::get_homogenized_stress()
 {
 
-    int      n_str     = matmodel->n_str;
     VectorXd strain    = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
     VectorXd stress    = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
     homogenized_stress = VectorXd::Zero(n_str);
@@ -619,16 +658,15 @@ VectorXd Solver<howmany>::get_homogenized_stress()
     return homogenized_stress;
 }
 
-template <int howmany>
-MatrixXd Solver<howmany>::get_homogenized_tangent(double pert_param)
+template <int howmany, int n_str>
+MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
 {
-    int n_str                         = matmodel->n_str;
     homogenized_tangent               = MatrixXd::Zero(n_str, n_str);
     VectorXd       unperturbed_stress = get_homogenized_stress();
     VectorXd       perturbed_stress;
     vector<double> pert_strain(n_str, 0.0);
     vector<double> g0       = this->matmodel->macroscale_loading;
-    bool           islinear = dynamic_cast<LinearModel<howmany> *>(this->matmodel) != nullptr;
+    bool           islinear = dynamic_cast<LinearModel<howmany, n_str> *>(this->matmodel) != nullptr;
 
     this->reader.errorParameters["type"] = "relative";
     this->TOL                            = max(1e-6, this->TOL);
@@ -654,6 +692,29 @@ MatrixXd Solver<howmany>::get_homogenized_tangent(double pert_param)
 
     homogenized_tangent = 0.5 * (homogenized_tangent + homogenized_tangent.transpose()).eval();
     return homogenized_tangent;
+}
+
+template <int howmany, int n_str>
+Solver<howmany, n_str>::~Solver()
+{
+    if (v_r) {
+        fftw_free(v_r);
+        v_r = nullptr;
+    }
+    if (v_u) {
+        fftw_free(v_u);
+        v_u = nullptr;
+    }
+    if (buffer_padding) {
+        fftw_free(buffer_padding);
+        buffer_padding = nullptr;
+    }
+    if (planfft) {
+        fftw_destroy_plan(planfft);
+    }
+    if (planifft) {
+        fftw_destroy_plan(planifft);
+    }
 }
 
 #endif

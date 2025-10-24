@@ -4,13 +4,13 @@
 #include "matmodel.h"
 #include <Eigen/StdVector> // For Eigen's aligned_allocator
 
-class LinearThermalIsotropic : public ThermalModel, public LinearModel<1> {
+class LinearThermalIsotropic : public ThermalModel, public LinearModel<1, 3> {
   public:
-    LinearThermalIsotropic(vector<double> l_e, json materialProperties)
-        : ThermalModel(l_e)
+    LinearThermalIsotropic(const Reader &reader)
+        : ThermalModel(reader)
     {
         try {
-            conductivity = materialProperties["conductivity"].get<vector<double>>();
+            conductivity = reader.materialProperties["conductivity"].get<vector<double>>();
         } catch (const std::exception &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
@@ -28,8 +28,8 @@ class LinearThermalIsotropic : public ThermalModel, public LinearModel<1> {
             phase_stiffness[i] = Matrix<double, 8, 8>::Zero();
             phase_kappa        = conductivity[i] * Matrix3d::Identity();
 
-            for (int p = 0; p < 8; ++p) {
-                phase_stiffness[i] += B_int[p].transpose() * phase_kappa * B_int[p] * v_e * 0.1250;
+            for (int p = 0; p < n_gp; ++p) {
+                phase_stiffness[i] += B_int[p].transpose() * phase_kappa * B_int[p] * v_e / n_gp;
             }
         }
     }
@@ -45,12 +45,12 @@ class LinearThermalIsotropic : public ThermalModel, public LinearModel<1> {
     vector<double> conductivity;
 };
 
-class LinearThermalTriclinic : public ThermalModel, public LinearModel<1> {
+class LinearThermalTriclinic : public ThermalModel, public LinearModel<1, 3> {
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW // Ensure proper alignment for Eigen structures
 
-    LinearThermalTriclinic(vector<double> l_e, json materialProperties)
-        : ThermalModel(l_e)
+    LinearThermalTriclinic(const Reader &reader)
+        : ThermalModel(reader)
     {
         vector<string> K_keys = {
             "K_11", "K_12", "K_13",
@@ -58,7 +58,7 @@ class LinearThermalTriclinic : public ThermalModel, public LinearModel<1> {
             "K_33"};
 
         try {
-            n_mat                = materialProperties.at("K_11").get<vector<double>>().size();
+            n_mat                = reader.materialProperties.at("K_11").get<vector<double>>().size();
             size_t num_constants = K_keys.size();
 
             // Initialize matrix to hold all constants
@@ -66,7 +66,7 @@ class LinearThermalTriclinic : public ThermalModel, public LinearModel<1> {
 
             // Load material constants into matrix
             for (size_t k = 0; k < num_constants; ++k) {
-                const auto &values = materialProperties.at(K_keys[k]).get<vector<double>>();
+                const auto &values = reader.materialProperties.at(K_keys[k]).get<vector<double>>();
                 if (values.size() != n_mat) {
                     throw std::runtime_error("Inconsistent size for material property: " + K_keys[k]);
                 }
@@ -96,8 +96,8 @@ class LinearThermalTriclinic : public ThermalModel, public LinearModel<1> {
         phase_stiffness = new Matrix<double, 8, 8>[n_mat];
         for (size_t i = 0; i < n_mat; ++i) {
             phase_stiffness[i] = Matrix<double, 8, 8>::Zero();
-            for (int p = 0; p < 8; ++p) {
-                phase_stiffness[i] += B_int[p].transpose() * K_mats[i] * B_int[p] * v_e * 0.1250;
+            for (int p = 0; p < n_gp; ++p) {
+                phase_stiffness[i] += B_int[p].transpose() * K_mats[i] * B_int[p] * v_e / n_gp;
             }
         }
     }

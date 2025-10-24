@@ -20,6 +20,7 @@
         "saturation_exponent": [1000, 1000]
     },
 
+    "FE_type": "HEX8",
     "method": "cg",
     "error_parameters":{
         "measure": "Linfinity",

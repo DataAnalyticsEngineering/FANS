@@ -90,6 +90,26 @@ void Reader ::ReadInputFile(char fn[])
         matmodel    = j["matmodel"].get<string>();
         method      = j["method"].get<string>();
 
+        // Parse strain_type (optional, defaults to "small")
+        if (j.contains("strain_type")) {
+            strain_type = j["strain_type"].get<string>();
+            if (strain_type != "small" && strain_type != "large") {
+                throw std::invalid_argument("strain_type must be either 'small' or 'large'");
+            }
+        } else {
+            strain_type = "small"; // Default to small strain
+        }
+
+        // Parse FE_type (optional, defaults to "HEX8")
+        if (j.contains("FE_type")) {
+            FE_type = j["FE_type"].get<string>();
+            if (FE_type != "HEX8" && FE_type != "HEX8R" && FE_type != "BBAR") {
+                throw std::invalid_argument("FE_type must be one of: 'HEX8', 'HEX8R', or 'BBAR'");
+            }
+        } else {
+            FE_type = "HEX8"; // Default to full integration
+        }
+
         json j_mat     = j["material_properties"];
         resultsToWrite = j["results"].get<vector<string>>(); // Read the results_to_write field
 
@@ -98,7 +118,15 @@ void Reader ::ReadInputFile(char fn[])
         if (!ml.is_array())
             throw std::runtime_error("macroscale_loading must be an array");
 
-        const int n_str = (problemType == "thermal" ? 3 : 6);
+        // Determine the size of loading vector based on problem type and strain formulation
+        int n_str;
+        if (problemType == "thermal") {
+            n_str = 3; // Temperature gradient components
+        } else if (strain_type == "large") {
+            n_str = 9; // Deformation gradient components (F11, F12, F13, F21, F22, F23, F31, F32, F33)
+        } else {
+            n_str = 6; // Small strain components (eps11, eps22, eps33, eps12, eps13, eps23)
+        }
 
         for (const auto &entry : ml) {
             LoadCase lc;
@@ -107,7 +135,9 @@ void Reader ::ReadInputFile(char fn[])
                 lc.g0_path = entry.get<vector<vector<double>>>();
                 lc.n_steps = lc.g0_path.size();
                 if (lc.g0_path[0].size() != static_cast<size_t>(n_str))
-                    throw std::invalid_argument("Invalid length of loading vector");
+                    throw std::invalid_argument("Invalid length of loading vector: expected " +
+                                                std::to_string(n_str) + " components but got " +
+                                                std::to_string(lc.g0_path[0].size()));
             } else { // ---------- mixed BC object ------------
                 lc.mixed   = true;
                 lc.mbc     = MixedBC::from_json(entry, n_str);
@@ -119,6 +149,9 @@ void Reader ::ReadInputFile(char fn[])
         if (world_rank == 0) {
             printf("# microstructure file name: \t '%s'\n", ms_filename);
             printf("# microstructure dataset name: \t '%s'\n", ms_datasetname);
+            printf("# strain type: \t %s\n", strain_type.c_str());
+            printf("# problem type: \t %s\n", problemType.c_str());
+            printf("# FE type: \t %s\n", FE_type.c_str());
             printf(
                 "# FANS error measure: \t %s %s error  \n",
                 errorParameters["type"].get<string>().c_str(),
@@ -386,122 +419,20 @@ void Reader ::ReadMS(int hm)
     this->ComputeVolumeFractions();
 }
 
-// The code above is based on this example: Hyperslab_by_row.c
+// Default constructor
+Reader::Reader()
+    : ms(nullptr), strain_type("small")
+{
+    // Initialize string members
+    ms_filename[0]    = '\0';
+    ms_datasetname[0] = '\0';
+    results_prefix[0] = '\0';
+}
 
-// /*
-//  *  This example writes data to the HDF5 file by rows.
-//  *  Number of processes is assumed to be 1 or multiples of 2 (up to 8)
-//  */
-
-// #include "hdf5.h"
-// #include "stdlib.h"
-
-// #define H5FILE_NAME     "SDS_row.h5"
-// #define DATASETNAME 	"IntArray"
-// #define NX     8                      /* dataset dimensions */
-// #define NY     5
-// #define RANK   2
-
-// int
-// main (int argc, char **argv)
-// {
-//     /*
-//      * HDF5 APIs definitions
-//      */
-//     hid_t       file_id, dset_id;         /* file and dataset identifiers */
-//     hid_t       filespace, memspace;      /* file and memory dataspace identifiers */
-//     hsize_t     dimsf[2];                 /* dataset dimensions */
-//     int         *data;                    /* pointer to data buffer to write */
-//     hsize_t	count[2];	          /* hyperslab selection parameters */
-//     hsize_t	offset[2];
-//     hid_t	plist_id;                 /* property list identifier */
-//     int         i;
-//     herr_t	status;
-
-//     /*
-//      * MPI variables
-//      */
-//     int mpi_size, mpi_rank;
-//     MPI_Comm comm  = MPI_COMM_WORLD;
-//     MPI_Info info  = MPI_INFO_NULL;
-
-//     /*
-//      * Initialize MPI
-//      */
-//     MPI_Init(&argc, &argv);
-//     MPI_Comm_size(comm, &mpi_size);
-//     MPI_Comm_rank(comm, &mpi_rank);
-
-//     /*
-//      * Set up file access property list with parallel I/O access
-//      */
-//      plist_id = H5Pcreate(H5P_FILE_ACCESS);
-//      H5Pset_fapl_mpio(plist_id, comm, info);
-
-//     /*
-//      * Create a new file collectively and release property list identifier.
-//      */
-//     file_id = H5Fcreate(H5FILE_NAME, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
-//     H5Pclose(plist_id);
-
-//     /*
-//      * Create the dataspace for the dataset.
-//      */
-//     dimsf[0] = NX;
-//     dimsf[1] = NY;
-//     filespace = H5Screate_simple(RANK, dimsf, NULL);
-
-//     /*
-//      * Create the dataset with default properties and close filespace.
-//      */
-//     dset_id = H5Dcreate(file_id, DATASETNAME, H5T_NATIVE_INT, filespace,
-// 			H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-//     H5Sclose(filespace);
-
-//     /*
-//      * Each process defines dataset in memory and writes it to the hyperslab
-//      * in the file.
-//      */
-//     count[0] = dimsf[0]/mpi_size;
-//     count[1] = dimsf[1];
-//     offset[0] = mpi_rank * count[0];
-//     offset[1] = 0;
-//     memspace = H5Screate_simple(RANK, count, NULL);
-
-//     /*
-//      * Select hyperslab in the file.
-//      */
-//     filespace = H5Dget_space(dset_id);
-//     H5Sselect_hyperslab(filespace, H5S_SELECT_SET, offset, NULL, count, NULL);
-
-//     /*
-//      * Initialize data buffer
-//      */
-//     data = (int *) malloc(sizeof(int)*count[0]*count[1]);
-//     for (i=0; i < count[0]*count[1]; i++) {
-//         data[i] = mpi_rank + 10;
-//     }
-
-//     /*
-//      * Create property list for collective dataset write.
-//      */
-//     plist_id = H5Pcreate(H5P_DATASET_XFER);
-//     H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
-
-//     status = H5Dwrite(dset_id, H5T_NATIVE_INT, memspace, filespace,
-// 		      plist_id, data);
-//     free(data);
-
-//     /*
-//      * Close/release resources.
-//      */
-//     H5Dclose(dset_id);
-//     H5Sclose(filespace);
-//     H5Sclose(memspace);
-//     H5Pclose(plist_id);
-//     H5Fclose(file_id);
-
-//     MPI_Finalize();
-
-//     return 0;
-// }
+Reader::~Reader()
+{
+    if (ms) {
+        FANS_free(ms);
+        ms = nullptr;
+    }
+}

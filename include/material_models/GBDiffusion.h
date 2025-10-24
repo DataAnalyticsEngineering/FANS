@@ -13,7 +13,7 @@
  * The grain boundaries are characterized by their normal vectors and can have different
  * diffusion properties parallel and perpendicular to the boundary plane.
  *
- * The model extends both ThermalModel and LinearModel<1> to provide a linear diffusion
+ * The model extends both ThermalModel and LinearModel<1, 3> to provide a linear diffusion
  * formulation that can be used in a thermal-like solver in FANS.
  *
  * @details The model:
@@ -42,10 +42,10 @@
  *     "D_perp": [...]   // Array of length (num_crystals + num_GB elements), but D_perp is only used for GBs (num_crystals to num_crystals + num_GB)
  *   }
  */
-class GBDiffusion : public ThermalModel, public LinearModel<1> {
+class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
   public:
-    GBDiffusion(Reader &reader)
-        : ThermalModel(reader.l_e)
+    GBDiffusion(const Reader &reader)
+        : ThermalModel(reader)
     {
         try {
             // Read num_crystals, num_GB and GBVoxelInfo from the microstructure dataset attributes
@@ -113,8 +113,8 @@ class GBDiffusion : public ThermalModel, public LinearModel<1> {
                 throw std::runtime_error("GBDiffusion: Unknown material index");
             }
             kapparef_mat += phase_kappa;
-            for (int p = 0; p < 8; ++p) {
-                phase_stiffness[i] += B_int[p].transpose() * phase_kappa * B_int[p] * v_e * 0.1250;
+            for (int p = 0; p < n_gp; ++p) {
+                phase_stiffness[i] += B_int[p].transpose() * phase_kappa * B_int[p] * v_e / n_gp;
             }
         }
         kapparef_mat /= n_mat;
@@ -161,7 +161,7 @@ class GBDiffusion : public ThermalModel, public LinearModel<1> {
         }
     }
 
-    void postprocess(Solver<1> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override
+    void postprocess(Solver<1, 3> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override
     {
         // Write GBnormals to HDF5 file if requested
         if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "GBnormals") != reader.resultsToWrite.end()) {
@@ -177,7 +177,7 @@ class GBDiffusion : public ThermalModel, public LinearModel<1> {
             for (int i = 0; i < solver.world_size; ++i) {
                 if (i == solver.world_rank) {
                     char name[5096];
-                    sprintf(name, "%s/load%i/time_step%i/GBnormals", reader.ms_datasetname, load_idx, time_idx);
+                    sprintf(name, "%s/load%i/time_step%i/GBnormals", solver.dataset_name, load_idx, time_idx);
                     reader.WriteSlab<double>(GBnormals_field, 3, resultsFileName, name);
                 }
                 MPI_Barrier(MPI_COMM_WORLD);

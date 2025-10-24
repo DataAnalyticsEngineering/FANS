@@ -11,6 +11,12 @@ using namespace std;
 
 class Reader {
   public:
+    // Default constructor
+    Reader();
+
+    // Destructor to free allocated memory
+    ~Reader();
+
     // contents of input file:
     char             ms_filename[4096];    // Name of Micro-structure hdf5 file
     char             ms_datasetname[4096]; // Absolute path of Micro-structure in hdf5 file
@@ -25,8 +31,9 @@ class Reader {
     string           problemType;
     string           matmodel;
     string           method;
-
-    vector<string> resultsToWrite;
+    string           strain_type; // "small" (default) or "large"
+    string           FE_type;     // "HEX8" (default), "HEX8R", or "BBAR"
+    vector<string>   resultsToWrite;
 
     // contents of microstructure file:
     vector<int>     dims;
