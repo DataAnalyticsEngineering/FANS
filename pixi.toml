@@ -13,7 +13,7 @@ pytest = ">=8.4.2,<9"
 pre-commit = ">=4.3.0,<5"
 sympy = ">=1.14.0,<2"
 quaternion = ">=2024.0.12,<2025"
-beartype = ">=0.22.2,<0.23"
+beartype = ">=0.22.3,<0.23"
 ipykernel = ">=7.0.1,<8"
 time = ">=1.9,<2"
 
