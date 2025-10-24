@@ -8,19 +8,14 @@ The release of the `FANS` repository is made directly from a release branch call
 
 2. Bump the version in the `CHANGELOG.md`, the base `CMakeLists.txt`, `pixi.toml`, and in the file `FANS_Dashboard/pyproject.toml` on the branch `FANS-v1.2.3`.
 
-3. Assuming you have Pixi installed, run the command `pixi lock` in the repository root to update the Pixi lock file.
+3. Assuming you have Pixi installed, run the command `pixi lock` in the repository root to update the `pixi.lock` file. Then commit and push the `FANS-v1.2.3` branch to remote.
 
-4. If it is a real release, [open a Pull Request `main` <-- `FANS-v1.2.3`](https://github.com/DataAnalyticsEngineering/FANS/compare/main...main) named after the version (i.e., `Release v1.2.3`) and briefly describe the new features of the release in the PR description.
+4. [Open a Pull Request `main` <-- `FANS-v1.2.3`](https://github.com/DataAnalyticsEngineering/FANS/compare/main...main) named after the version (i.e., `Release v1.2.3`) and briefly describe the new features of the release in the PR description.
 
-5. [Draft a new release](https://github.com/DataAnalyticsEngineering/FANS/releases/new) in the `Releases` section of the repository page in a web browser. The release tag needs to be the exact version number (i.e., `v1.2.3` or `v1.2.3rc1`, compare to [existing tags](https://github.com/DataAnalyticsEngineering/FANS/tags)). Use `@target:main`. Release title is also the version number (i.e., `v1.2.3` or `v1.2.3rc1`, compare to [existing releases](https://github.com/DataAnalyticsEngineering/FANS/tags)).
+5. Once the CI runs successfully (all green ticks) and one approving review is made, merge the release PR (from `FANS-v1.2.3`) into `main` by a merge commit (**not** *squash and merge* or *rebase and merge*).
 
-    * *Note:* If it is a pre-release, then the option *This is a pre-release* needs to be selected at the bottom of the page. Use `@target:FANS-v1.2.3` for a pre-release, since we will never merge a pre-release into `main`.
-    * Use the `Auto-generate release notes` feature.
+6. [Draft a new release](https://github.com/DataAnalyticsEngineering/FANS/releases/new) in the `Releases` section of the repository page in a web browser. The release tag needs to be the exact version number (i.e., `v1.2.3` or `v1.2.3rc1`, compare to [existing tags](https://github.com/DataAnalyticsEngineering/FANS/tags)). Use `@target:main`. Release title is also the version number (i.e., `v1.2.3` or `v1.2.3rc1`, compare to [existing releases](https://github.com/DataAnalyticsEngineering/FANS/tags)). Use the `Auto-generate release notes` feature.
 
-    a) If a pre-release is made: Directly hit the "Publish release" button in your Release Draft.
+7. Merge `main` into `develop` for synchronization of `develop`.
 
-    b) If this is a "real" release: As soon as one approving review is made, merge the release PR (from `FANS-v1.2.3`) into `main`.
-
-6. Merge `main` into `develop` for synchronization of `develop`.
-
-7. If everything is in order up to this point, then the new version can be released by hitting the "Publish release" button in your Release Draft. This will create the corresponding tag.
+8. If everything is in order up to this point, then the new version can be released by hitting the "Publish release" button in your Release Draft. This will create the corresponding tag.
