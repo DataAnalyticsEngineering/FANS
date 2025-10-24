@@ -12,7 +12,7 @@ The release of the `FANS` repository is made directly from a release branch call
 
 4. [Open a Pull Request `main` <-- `FANS-v1.2.3`](https://github.com/DataAnalyticsEngineering/FANS/compare/main...main) named after the version (i.e., `Release v1.2.3`) and briefly describe the new features of the release in the PR description.
 
-5. Once the tests pass and one approving review is made, merge the release PR (from `FANS-v1.2.3`) into `main` by a merge commit (not squash and merge or rebase and merge).
+5. Once the CI runs successfully (all green ticks) and one approving review is made, merge the release PR (from `FANS-v1.2.3`) into `main` by a merge commit (**not** *squash and merge* or *rebase and merge*).
 
 6. [Draft a new release](https://github.com/DataAnalyticsEngineering/FANS/releases/new) in the `Releases` section of the repository page in a web browser. The release tag needs to be the exact version number (i.e., `v1.2.3` or `v1.2.3rc1`, compare to [existing tags](https://github.com/DataAnalyticsEngineering/FANS/tags)). Use `@target:main`. Release title is also the version number (i.e., `v1.2.3` or `v1.2.3rc1`, compare to [existing releases](https://github.com/DataAnalyticsEngineering/FANS/tags)). Use the `Auto-generate release notes` feature.
 
