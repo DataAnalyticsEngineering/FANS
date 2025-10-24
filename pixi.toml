@@ -54,7 +54,7 @@ dev       = { features = ["dev"],       no-default-feature = true }
 
 [package]
 name = "fans"
-version = "0.4.3"
+version = "0.5.0"
 
 [package.build]
 backend = { name = "pixi-build-cmake", version = "*" }
