@@ -18,15 +18,15 @@
 #include "matmodel.h"
 #include "solver.h"
 
-class PseudoPlastic : public MechModel {
+class PseudoPlastic : public SmallStrainMechModel {
   public:
-    PseudoPlastic(vector<double> l_e, json materialProperties)
-        : MechModel(l_e)
+    PseudoPlastic(const Reader &reader)
+        : SmallStrainMechModel(reader)
     {
         try {
-            bulk_modulus  = materialProperties["bulk_modulus"].get<vector<double>>();
-            shear_modulus = materialProperties["shear_modulus"].get<vector<double>>();
-            yield_stress  = materialProperties["yield_stress"].get<vector<double>>();
+            bulk_modulus  = reader.materialProperties["bulk_modulus"].get<vector<double>>();
+            shear_modulus = reader.materialProperties["shear_modulus"].get<vector<double>>();
+            yield_stress  = reader.materialProperties["yield_stress"].get<vector<double>>();
         } catch (const std::exception &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
@@ -47,7 +47,7 @@ class PseudoPlastic : public MechModel {
 
     virtual void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override = 0; // Pure virtual method
 
-    void postprocess(Solver<3> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override
+    void postprocess(Solver<3, 6> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override
     {
         VectorXf element_plastic_flag = VectorXf::Zero(solver.local_n0 * solver.n_y * solver.n_z);
         for (ptrdiff_t elem_idx = 0; elem_idx < solver.local_n0 * solver.n_y * solver.n_z; ++elem_idx) {
@@ -58,7 +58,7 @@ class PseudoPlastic : public MechModel {
             for (int i = 0; i < solver.world_size; ++i) {
                 if (i == solver.world_rank) {
                     char name[5096];
-                    sprintf(name, "%s/load%i/time_step%i/plastic_flag", reader.ms_datasetname, load_idx, time_idx);
+                    sprintf(name, "%s/load%i/time_step%i/plastic_flag", solver.dataset_name, load_idx, time_idx);
                     reader.WriteSlab<float>(element_plastic_flag.data(), 1, resultsFileName, name);
                 }
                 MPI_Barrier(MPI_COMM_WORLD);
@@ -78,11 +78,11 @@ class PseudoPlastic : public MechModel {
 
 class PseudoPlasticLinearHardening : public PseudoPlastic {
   public:
-    PseudoPlasticLinearHardening(vector<double> l_e, json materialProperties)
-        : PseudoPlastic(l_e, materialProperties)
+    PseudoPlasticLinearHardening(const Reader &reader)
+        : PseudoPlastic(reader)
     {
         try {
-            hardening_parameter = materialProperties["hardening_parameter"].get<vector<double>>();
+            hardening_parameter = reader.materialProperties["hardening_parameter"].get<vector<double>>();
         } catch (const std::exception &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
@@ -106,13 +106,13 @@ class PseudoPlasticLinearHardening : public PseudoPlastic {
         buf1         = bulk_modulus[mat_index] * treps;
 
         if (norm_dev_eps <= eps_crit[mat_index]) {
-            buf2                                 = 2.0 * shear_modulus[mat_index];
-            plastic_flag[element_idx](i / n_str) = mat_index;
+            buf2                             = 2.0 * shear_modulus[mat_index];
+            plastic_flag[element_idx](i / 6) = mat_index;
         } else {
             buf2 = (b * yield_stress[mat_index] + a * E_s[mat_index] * hardening_parameter[mat_index] *
                                                       (norm_dev_eps - eps_crit[mat_index])) /
                    norm_dev_eps;
-            plastic_flag[element_idx](i / n_str) = this->n_mat + mat_index;
+            plastic_flag[element_idx](i / 6) = this->n_mat + mat_index;
         }
         sigma.block<3, 1>(i, 0).setConstant(buf1);
         sigma.block<3, 1>(i, 0) += buf2 * dev_eps.head<3>();
@@ -128,12 +128,12 @@ class PseudoPlasticLinearHardening : public PseudoPlastic {
 
 class PseudoPlasticNonLinearHardening : public PseudoPlastic {
   public:
-    PseudoPlasticNonLinearHardening(vector<double> l_e, json materialProperties)
-        : PseudoPlastic(l_e, materialProperties)
+    PseudoPlasticNonLinearHardening(const Reader &reader)
+        : PseudoPlastic(reader)
     {
         try {
-            hardening_exponent = materialProperties["hardening_exponent"].get<vector<double>>();
-            eps_0              = materialProperties["eps_0"].get<vector<double>>(); // ε0 parameter
+            hardening_exponent = reader.materialProperties["hardening_exponent"].get<vector<double>>();
+            eps_0              = reader.materialProperties["eps_0"].get<vector<double>>(); // ε0 parameter
         } catch (const std::exception &e) {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
@@ -160,14 +160,14 @@ class PseudoPlasticNonLinearHardening : public PseudoPlastic {
             sigma.block<3, 1>(i, 0) += buf2 * dev_eps.head<3>();
             sigma.block<3, 1>(i + 3, 0) = buf2 * dev_eps.tail<3>();
 
-            plastic_flag[element_idx](i / n_str) = mat_index;
+            plastic_flag[element_idx](i / 6) = mat_index;
         } else {
             buf2 = sqrt(2.0 / 3.0) * yield_stress[mat_index] *
                    pow(norm_dev_eps / eps_0[mat_index], hardening_exponent[mat_index]);
             sigma.block<3, 1>(i, 0).setConstant(buf1);
             sigma.block<6, 1>(i, 0) += buf2 * dev_eps / dev_eps.norm();
 
-            plastic_flag[element_idx](i / n_str) = this->n_mat + mat_index;
+            plastic_flag[element_idx](i / 6) = this->n_mat + mat_index;
         }
     }
 

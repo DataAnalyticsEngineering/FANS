@@ -6,14 +6,14 @@
 // Version
 #include "version.h"
 
-template <int howmany>
+template <int howmany, int n_str>
 void runSolver(Reader &reader, const char *output_file_basename)
 {
     reader.ReadMS(howmany);
 
     for (size_t load_path_idx = 0; load_path_idx < reader.load_cases.size(); ++load_path_idx) {
-        Matmodel<howmany> *matmodel = createMatmodel<howmany>(reader);
-        Solver<howmany>   *solver   = createSolver(reader, matmodel);
+        Matmodel<howmany, n_str> *matmodel = createMatmodel<howmany, n_str>(reader);
+        Solver<howmany, n_str>   *solver   = createSolver(reader, matmodel);
 
         for (size_t time_step_idx = 0; time_step_idx < reader.load_cases[load_path_idx].n_steps; ++time_step_idx) {
             if (reader.load_cases[load_path_idx].mixed) {
@@ -49,9 +49,11 @@ int main(int argc, char *argv[])
     reader.ReadInputFile(argv[1]);
 
     if (reader.problemType == "thermal") {
-        runSolver<1>(reader, argv[2]);
-    } else if (reader.problemType == "mechanical") {
-        runSolver<3>(reader, argv[2]);
+        runSolver<1, 3>(reader, argv[2]);
+    } else if (reader.problemType == "mechanical" && reader.strain_type == "small") {
+        runSolver<3, 6>(reader, argv[2]);
+    } else if (reader.problemType == "mechanical" && reader.strain_type == "large") {
+        runSolver<3, 9>(reader, argv[2]);
     } else {
         throw std::invalid_argument(reader.problemType + " is not a valid problem type");
     }

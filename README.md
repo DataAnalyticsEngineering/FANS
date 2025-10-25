@@ -175,7 +175,9 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 ### Problem Type and Material Model
 
 ```json
+"problem_type": "mechanical",
 "matmodel": "LinearElasticIsotropic",
+"strain_type": "small",
 "material_properties": {
                          "bulk_modulus": [62.5000, 222.222],
                          "shear_modulus": [28.8462, 166.6667]
@@ -185,20 +187,24 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 - `problem_type`: This defines the type of physical problem you are solving. Common options include `thermal` problems and `mechanical` problems.
 - `matmodel`: This specifies the material model to be used in the simulation. Examples include
 
-  - `LinearThermalIsotropic` for linear isotropic conductive material model
-  - `LinearThermalTriclinic` for linear triclinic conductive material model
-  - `GBDiffusion` for diffusion model with transversely isotropic grain boundary and isotropic bulk for polycrystalline materials
+  - `LinearThermalIsotropic` for linear isotropic conductive material model.
+  - `LinearThermalTriclinic` for linear triclinic conductive material model.
+  - `GBDiffusion` for diffusion model with transversely isotropic grain boundary and isotropic bulk for polycrystalline materials.
 
-  - `LinearElasticIsotropic` for linear isotropic elastic material model
-  - `LinearElasticTriclinic` for linear triclinic elastic material model
-  - `PseudoPlasticLinearHardening` / `PseudoPlasticNonLinearHardening` for plasticity mimicking model with linear/nonlinear hardening
+  - `LinearElasticIsotropic` for linear isotropic elastic material model.
+  - `LinearElasticTriclinic` for linear triclinic elastic material model.
+  - `PseudoPlasticLinearHardening` / `PseudoPlasticNonLinearHardening` for plasticity mimicking model with linear/nonlinear hardening.
   - `J2ViscoPlastic_LinearIsotropicHardening` / `J2ViscoPlastic_NonLinearIsotropicHardening` for rate-independent / dependent J2 plasticity model with kinematic and linear/nonlinear isotropic hardening.
+  - `SaintVenantKirchhoff` for the hyperelastic Saint Venant-Kirchhoff material model.
+  - `CompressibleNeoHookean` for the compressible Neo-Hookean material model.
 
+- `strain_type`: This indicates whether the problem is formulated using infinitesimal (`small`) strain or finite (`large`) strain theory.
 - `material_properties`: This provides the necessary material parameters for the chosen material model. For thermal problems, you might specify `conductivity`, while mechanical problems might require `bulk_modulus`, `shear_modulus`, and more properties for advanced material models. These properties can be defined as arrays to represent multiple phases within the microstructure.
 
 ### Solver Settings
 
 ```json
+"FE_type": "HEX8",
 "method": "cg",
 "error_parameters":{
                      "measure": "Linfinity",
@@ -208,6 +214,10 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 "n_it": 100,
 ```
 
+- `FE_type`: This specifies the type of finite element to be used. Common options include:
+  - `HEX8`: Standard trilinear hexahedral elements with full integration (8 Gauss points). Suitable for most problems but may exhibit volumetric locking for nearly incompressible materials (Poisson's ratio ~ 0.5).
+  - `BBAR`: B-bar elements with selective reduced integration to mitigate volumetric locking. Recommended for materials with high Poisson's ratios (0.4 to 0.5).
+  - `HEX8R`: Reduced integration elements with a single Gauss point at the element center. Use with caution as they may lead to hourglassing and less accurate results.
 - `method`: This indicates the numerical method to be used for solving the system of equations. `cg` stands for the Conjugate Gradient method, and `fp` stands for the Fixed Point method.
 - `error_parameters`: This section defines the error parameters for the solver. Error control is applied to the finite element nodal residual of the problem.
   - `measure`: Specifies the norm used to measure the error. Options include `Linfinity`, `L1`, or `L2`.
@@ -234,9 +244,10 @@ FANS requires a JSON input file specifying the problem parameters. Example input
                         ],
 ```
 
-- `macroscale_loading`: This defines the external loading applied to the microstructure. It is an array of arrays, where each sub-array represents a loading condition applied to the system. The format of the loading array depends on the problem type:
-- For `thermal` problems, the array typically has 3 components, representing the temperature gradients in the $x$, $y$, and $z$ directions.
-- For `mechanical` problems, the array must have 6 components, corresponding to the components of the strain tensor in Mandel notation (e.g., $[\varepsilon_{11}, \varepsilon_{22}, \varepsilon_{33}, \sqrt{2}\varepsilon_{12}, \sqrt{2}\varepsilon_{13}, \sqrt{2}\varepsilon_{23}]$).
+- `macroscale_loading`: This defines the external loading applied to the microstructure. It is an array of arrays, where each sub-array represents a load path applied to the system. The format of the load path depends on the problem type:
+  - For `thermal` problems, the array typically has 3 components, representing the temperature gradients in the $x$, $y$, and $z$ directions.
+  - For `small` strain `mechanical` problems, the array must have 6 components, corresponding to the components of the strain tensor in Mandel notation (e.g., $[\varepsilon_{11}, \varepsilon_{22}, \varepsilon_{33}, \sqrt{2}\varepsilon_{12}, \sqrt{2}\varepsilon_{13}, \sqrt{2}\varepsilon_{23}]$).
+  - For `large` strain `mechanical` problems, the array must have 9 components, corresponding to the deformation gradient tensor components (e.g., $[F_{11}, F_{12}, F_{13}, F_{21}, F_{22}, F_{23}, F_{31}, F_{32}, F_{33}]$).
 
 In the case of path/time-dependent loading, as shown, for example, in plasticity problems, the `macroscale_loading` array can include multiple steps with corresponding loading conditions.
 

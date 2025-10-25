@@ -33,8 +33,8 @@ MicroSimulation::MicroSimulation(int sim_id, char *input_file)
     reader.ReadInputFile(input_file);
 
     reader.ReadMS(3);
-    matmodel = createMatmodel<3>(reader);
-    solver   = createSolver<3>(reader, matmodel);
+    matmodel = createMatmodel<3, 6>(reader);
+    solver   = createSolver<3, 6>(reader, matmodel);
 }
 
 py::dict MicroSimulation::solve(py::dict macro_data, double dt)

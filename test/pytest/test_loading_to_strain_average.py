@@ -1,8 +1,7 @@
-import os
 import numpy as np
 import json
 import pytest
-from fans_dashboard.core.utils import identify_hierarchy, extract_and_organize_data
+from MSUtils.fans_dashboard.utils import identify_hierarchy, extract_and_organize_data
 
 
 def test_loading_to_strain_average(test_files):
@@ -31,7 +30,15 @@ def test_loading_to_strain_average(test_files):
         )
         return
 
-    macroscale_loading = np.array(input_data.get("macroscale_loading", {}))
+    macroscale_loading_raw = input_data.get("macroscale_loading", [])
+
+    def process_loading(loading_element):
+        if isinstance(loading_element, dict):
+            return None
+        else:
+            return np.array(loading_element)
+
+    macroscale_loading = [process_loading(elem) for elem in macroscale_loading_raw]
 
     # Extract hierarchy information from the h5 file
     hierarchy = identify_hierarchy(results_h5_file)
@@ -67,9 +74,7 @@ def test_loading_to_strain_average(test_files):
                 # Get corresponding macroscale loading
                 # Assuming macroscale_loading is organized to match load cases
                 current_loading = (
-                    np.array(macroscale_loading)[j]
-                    if j < len(macroscale_loading)
-                    else None
+                    macroscale_loading[j] if j < len(macroscale_loading) else None
                 )
 
                 if current_loading is not None:

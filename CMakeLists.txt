@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.21)
 # ##############################################################################
 
 project(FANS
-        VERSION 0.4.3
+        VERSION 0.5.0
         LANGUAGES C CXX
 )
 
@@ -19,6 +19,15 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # TODO: should be developer specific, by using e.g. CMake Presets
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 set(CMAKE_PREFIX_PATH $ENV{CMAKE_PREFIX_PATH})
+
+# Memory leak detection with AddressSanitizer and LeakSanitizer
+option(FANS_ENABLE_SANITIZERS "Enable AddressSanitizer and LeakSanitizer for memory leak detection" OFF)
+if (FANS_ENABLE_SANITIZERS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,leak -fno-omit-frame-pointer -g")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,leak")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address,leak")
+    message(STATUS "Memory sanitizers enabled: AddressSanitizer and LeakSanitizer")
+endif()
 
 # IPO
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.9")
@@ -155,6 +164,9 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/material_models/LinearElastic.h
         include/material_models/PseudoPlastic.h
         include/material_models/J2Plasticity.h
+
+        include/material_models/SaintVenantKirchhoff.h
+        include/material_models/CompressibleNeoHookean.h
 )
 
 # version.h is generated and added to the build include directory

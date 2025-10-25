@@ -1,9 +1,8 @@
-import os
 import numpy as np
 import json
 import pytest
-from fans_dashboard.core.utils import identify_hierarchy, extract_and_organize_data
-from fans_dashboard.core.tensortools import (
+from MSUtils.fans_dashboard.utils import identify_hierarchy, extract_and_organize_data
+from MSUtils.fans_dashboard.tensortools import (
     Ciso,
     compute_VoigtReuss_bounds,
     is_spd,
