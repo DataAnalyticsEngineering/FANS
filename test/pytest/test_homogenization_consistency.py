@@ -1,8 +1,7 @@
-import os
 import numpy as np
 import json
 import pytest
-from fans_dashboard.core.utils import identify_hierarchy, extract_and_organize_data
+from MSUtils.fans_dashboard.utils import identify_hierarchy, extract_and_organize_data
 
 
 def test_homogenization_consistency(test_files):

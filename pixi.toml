@@ -18,9 +18,7 @@ ipykernel = ">=7.0.1,<8"
 time = ">=1.9,<2"
 
 [feature.dashboard.pypi-dependencies]
-fans-dashboard = { path = "FANS_Dashboard", editable = true }
 MSUtils = {git = "https://github.com/DataAnalyticsEngineering/MSUtils.git"}
-pyrecest = {git = "https://github.com/FlorianPfaff/pyRecEst.git"}
 
 [feature.dashboard.tasks]
 pytest = "pytest -v -s"
