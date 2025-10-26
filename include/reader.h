@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <unsupported/Eigen/CXX11/Tensor>
 #include "mixedBCs.h"
 
 using namespace std;
@@ -243,21 +244,26 @@ void Reader::WriteSlab(
     /*------------------------------------------------------------------*/
     /* 4. transpose local slab  [X][Y][Z][k]  ->  [Z][Y][X][k]          */
     /*------------------------------------------------------------------*/
-    const size_t NxLoc = static_cast<size_t>(local_n0);
-    const size_t NyLoc = static_cast<size_t>(Ny);
-    const size_t NzLoc = static_cast<size_t>(Nz);
-    const size_t kLoc  = static_cast<size_t>(kDim);
+    const Eigen::Index NxLoc     = static_cast<Eigen::Index>(local_n0);
+    const Eigen::Index NyLoc     = static_cast<Eigen::Index>(Ny);
+    const Eigen::Index NzLoc     = static_cast<Eigen::Index>(Nz);
+    const Eigen::Index kLoc      = static_cast<Eigen::Index>(kDim);
+    const size_t       slabElems = static_cast<size_t>(NxLoc * NyLoc * NzLoc * kLoc);
 
-    size_t         slabElems = NxLoc * NyLoc * NzLoc * kLoc;
-    std::vector<T> tmp(slabElems); /* automatic RAII buffer */
+    T *tmp = static_cast<T *>(fftw_malloc(slabElems * sizeof(T)));
+    if (!tmp) {
+        throw std::bad_alloc();
+    }
 
-    for (size_t x = 0; x < NxLoc; ++x)
-        for (size_t y = 0; y < NyLoc; ++y)
-            for (size_t z = 0; z < NzLoc; ++z) {
-                size_t srcBase = (((x * NyLoc) + y) * NzLoc + z) * kLoc; /* X-major */
-                size_t dstBase = (((z * NyLoc) + y) * NxLoc + x) * kLoc; /* Z-major */
-                std::memcpy(&tmp[dstBase], &data[srcBase], kLoc * sizeof(T));
-            }
+    Eigen::TensorMap<Eigen::Tensor<const T, 4, Eigen::RowMajor>>
+        input_tensor(data, NxLoc, NyLoc, NzLoc, kLoc);
+
+    Eigen::TensorMap<Eigen::Tensor<T, 4, Eigen::RowMajor>>
+        output_tensor(tmp, NzLoc, NyLoc, NxLoc, kLoc);
+
+    // Permute dimensions: (0,1,2,3) -> (2,1,0,3) swaps X and Z
+    Eigen::array<Eigen::Index, 4> shuffle_dims = {2, 1, 0, 3};
+    output_tensor                              = input_tensor.shuffle(shuffle_dims);
 
     /*------------------------------------------------------------------*/
     /* 5. MEMORY dataspace matches FILE slab exactly                    */
@@ -268,13 +274,14 @@ void Reader::WriteSlab(
     // H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
 
     herr_t status = H5Dwrite(dset_id, data_type,
-                             memspace, filespace, plist_id, tmp.data());
+                             memspace, filespace, plist_id, tmp);
     if (status < 0)
         throw std::runtime_error("WriteSlab: H5Dwrite failed");
 
     /*------------------------------------------------------------------*/
     /* 6. tidy up                                                       */
     /*------------------------------------------------------------------*/
+    fftw_free(tmp);
     H5Sclose(memspace);
     H5Sclose(filespace);
     H5Pclose(plist_id);

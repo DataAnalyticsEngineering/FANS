@@ -393,14 +393,15 @@ void Reader ::ReadMS(int hm)
                                      static_cast<size_t>(dims[2]));
 
     if (is_zyx) {
-        /* tmp =  [z][y][x] , we need ms = [x][y][z] */
-        for (size_t z = 0; z < dims[2]; ++z)
-            for (size_t y = 0; y < dims[1]; ++y)
-                for (size_t x = 0; x < static_cast<size_t>(local_n0); ++x) {
-                    size_t idx_tmp = (z * dims[1] + y) * local_n0 + x; // z-major
-                    size_t idx_ms  = (x * dims[1] + y) * dims[2] + z;  // x-major
-                    ms[idx_ms]     = tmp[idx_tmp];
-                }
+        const Eigen::Index Nx = static_cast<Eigen::Index>(local_n0);
+        const Eigen::Index Ny = static_cast<Eigen::Index>(dims[1]);
+        const Eigen::Index Nz = static_cast<Eigen::Index>(dims[2]);
+
+        Eigen::TensorMap<Eigen::Tensor<const unsigned short, 3, Eigen::RowMajor>>
+            input_tensor(tmp, Nz, Ny, Nx); // [Z][Y][X] in file
+        Eigen::TensorMap<Eigen::Tensor<unsigned short, 3, Eigen::RowMajor>>
+            output_tensor(ms, Nx, Ny, Nz); // [X][Y][Z] in memory
+        output_tensor = input_tensor.shuffle(Eigen::array<Eigen::Index, 3>{2, 1, 0});
         FANS_free(tmp);
     } else {
         /* XYZ case: the slab is already in correct order */
