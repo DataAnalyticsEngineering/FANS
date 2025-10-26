@@ -35,6 +35,7 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     git \
     file \
 # FANS dependencies \
+    libhdf5-dev \
     libhdf5-openmpi-dev \
     libopenmpi-dev \
     libeigen3-dev \
