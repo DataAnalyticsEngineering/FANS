@@ -7,6 +7,9 @@
 #include <vector>
 #include <unsupported/Eigen/CXX11/Tensor>
 #include "mixedBCs.h"
+#include "hdf5.h"
+#include "H5FDmpio.h"
+#include "mpi.h"
 
 using namespace std;
 
@@ -58,6 +61,15 @@ class Reader {
     void ComputeVolumeFractions();
     // void ReadHDF5(char file_name[], char dset_name[]);
     void safe_create_group(hid_t file, const char *const name);
+
+    // Convenience methods to check if a result should be written and write it
+    template <typename T>
+    void writeData(const char *fieldName, const char *file_name, const char *dataset_name,
+                   int load_idx, int time_idx, T *data, hsize_t *dims, int ndims);
+
+    template <typename T>
+    void writeSlab(const char *fieldName, const char *file_name, const char *dataset_name,
+                   int load_idx, int time_idx, T *data, int size);
 
     template <typename T>
     void WriteSlab(T *data, int _howmany, const char *file_name, const char *dset_name);
@@ -177,7 +189,7 @@ void Reader::WriteSlab(
     /* 1. open or create the HDF5 file                                  */
     /*------------------------------------------------------------------*/
     hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
-    // H5Pset_fapl_mpio(plist_id, comm, info);   /* if you need MPI-IO */
+    H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, MPI_INFO_NULL);
 
     /* temporarily silence “file not found” during H5Fopen */
     herr_t (*old_func)(hid_t, void *);
@@ -271,7 +283,7 @@ void Reader::WriteSlab(
     hid_t memspace = H5Screate_simple(4, fcount, nullptr);
 
     plist_id = H5Pcreate(H5P_DATASET_XFER);
-    // H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
+    H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
 
     herr_t status = H5Dwrite(dset_id, data_type,
                              memspace, filespace, plist_id, tmp);
@@ -287,6 +299,30 @@ void Reader::WriteSlab(
     H5Pclose(plist_id);
     H5Dclose(dset_id);
     H5Fclose(file_id);
+}
+
+template <typename T>
+void Reader::writeData(const char *fieldName, const char *file_name, const char *dataset_name,
+                       int load_idx, int time_idx, T *data, hsize_t *dims, int ndims)
+{
+    if (world_rank != 0 || std::find(resultsToWrite.begin(), resultsToWrite.end(), fieldName) == resultsToWrite.end()) {
+        return;
+    }
+    char name[5096];
+    snprintf(name, sizeof(name), "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, fieldName);
+    WriteData(data, file_name, name, dims, ndims);
+}
+
+template <typename T>
+void Reader::writeSlab(const char *fieldName, const char *file_name, const char *dataset_name,
+                       int load_idx, int time_idx, T *data, int size)
+{
+    if (std::find(resultsToWrite.begin(), resultsToWrite.end(), fieldName) == resultsToWrite.end()) {
+        return;
+    }
+    char name[5096];
+    snprintf(name, sizeof(name), "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, fieldName);
+    WriteSlab(data, size, file_name, name);
 }
 
 #endif

@@ -567,54 +567,30 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, const char resultsFileN
         }
     }
 
-    // Write results to results h5 file
-    auto writeData = [&](const char *resultName, const char *resultPrefix, auto *data, hsize_t *dims, int ndims) {
-        if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), resultName) != reader.resultsToWrite.end()) {
-            char name[5096];
-            sprintf(name, "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, resultPrefix);
-            reader.WriteData(data, resultsFileName, name, dims, ndims);
-        }
-    };
-
-    auto writeSlab = [&](const char *resultName, const char *resultPrefix, auto *data, int size) {
-        if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), resultName) != reader.resultsToWrite.end()) {
-            char name[5096];
-            sprintf(name, "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, resultPrefix);
-            reader.WriteSlab(data, size, resultsFileName, name);
-        }
-    };
-
-    for (int i = 0; i < world_size; ++i) {
-        if (i == world_rank) {
-            if (world_rank == 0) {
-                hsize_t dims[1] = {static_cast<hsize_t>(n_str)};
-                writeData("stress_average", "stress_average", stress_average.data(), dims, 1);
-                writeData("strain_average", "strain_average", strain_average.data(), dims, 1);
-
-                for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
-                    char stress_name[512];
-                    char strain_name[512];
-                    sprintf(stress_name, "phase_stress_average_phase%d", mat_index);
-                    sprintf(strain_name, "phase_strain_average_phase%d", mat_index);
-                    writeData("phase_stress_average", stress_name, phase_stress_average[mat_index].data(), dims, 1);
-                    writeData("phase_strain_average", strain_name, phase_strain_average[mat_index].data(), dims, 1);
-                }
-                dims[0] = iter + 1;
-                writeData("absolute_error", "absolute_error", err_all.data(), dims, 1);
-            }
-            writeSlab("microstructure", "microstructure", ms, 1);
-            writeSlab("displacement_fluctuation", "displacement_fluctuation", v_u, howmany);
-            writeSlab("displacement", "displacement", u_total.data(), howmany);
-            writeSlab("residual", "residual", v_r, howmany);
-            writeSlab("strain", "strain", strain.data(), n_str);
-            writeSlab("stress", "stress", stress.data(), n_str);
-        }
-        MPI_Barrier(MPI_COMM_WORLD);
+    hsize_t dims[1] = {static_cast<hsize_t>(n_str)};
+    reader.writeData("stress_average", resultsFileName, dataset_name, load_idx, time_idx, stress_average.data(), dims, 1);
+    reader.writeData("strain_average", resultsFileName, dataset_name, load_idx, time_idx, strain_average.data(), dims, 1);
+    for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
+        char stress_name[512];
+        char strain_name[512];
+        sprintf(stress_name, "phase_stress_average_phase%d", mat_index);
+        sprintf(strain_name, "phase_strain_average_phase%d", mat_index);
+        reader.writeData(stress_name, resultsFileName, dataset_name, load_idx, time_idx, phase_stress_average[mat_index].data(), dims, 1);
+        reader.writeData(strain_name, resultsFileName, dataset_name, load_idx, time_idx, phase_strain_average[mat_index].data(), dims, 1);
     }
+    dims[0] = iter + 1;
+    reader.writeData("absolute_error", resultsFileName, dataset_name, load_idx, time_idx, err_all.data(), dims, 1);
+
+    reader.writeSlab("microstructure", resultsFileName, dataset_name, load_idx, time_idx, ms, 1);
+    reader.writeSlab("displacement_fluctuation", resultsFileName, dataset_name, load_idx, time_idx, v_u, howmany);
+    reader.writeSlab("displacement", resultsFileName, dataset_name, load_idx, time_idx, u_total.data(), howmany);
+    reader.writeSlab("residual", resultsFileName, dataset_name, load_idx, time_idx, v_r, howmany);
+    reader.writeSlab("strain", resultsFileName, dataset_name, load_idx, time_idx, strain.data(), n_str);
+    reader.writeSlab("stress", resultsFileName, dataset_name, load_idx, time_idx, stress.data(), n_str);
 
     matmodel->postprocess(*this, reader, resultsFileName, load_idx, time_idx);
 
-    // Compute homogenized tangent
+    // Compute homogenized tangent only if requested
     if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "homogenized_tangent") != reader.resultsToWrite.end()) {
         homogenized_tangent = get_homogenized_tangent(1e-6);
         hsize_t dims[2]     = {static_cast<hsize_t>(n_str), static_cast<hsize_t>(n_str)};
@@ -622,7 +598,7 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, const char resultsFileN
             cout << "# Homogenized tangent: " << endl
                  << setprecision(12) << homogenized_tangent << endl
                  << endl;
-            writeData("homogenized_tangent", "homogenized_tangent", homogenized_tangent.data(), dims, 2);
+            reader.writeData("homogenized_tangent", resultsFileName, dataset_name, load_idx, time_idx, homogenized_tangent.data(), dims, 2);
         }
     }
 }
