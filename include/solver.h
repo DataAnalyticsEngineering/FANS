@@ -581,6 +581,8 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, const char resultsFileN
     dims[0] = iter + 1;
     reader.writeData("absolute_error", resultsFileName, dataset_name, load_idx, time_idx, err_all.data(), dims, 1);
 
+    vector<int> rank_field(local_n0 * n_y * n_z, world_rank);
+    reader.writeSlab("mpi_rank", resultsFileName, dataset_name, load_idx, time_idx, rank_field.data(), 1);
     reader.writeSlab("microstructure", resultsFileName, dataset_name, load_idx, time_idx, ms, 1);
     reader.writeSlab("displacement_fluctuation", resultsFileName, dataset_name, load_idx, time_idx, v_u, howmany);
     reader.writeSlab("displacement", resultsFileName, dataset_name, load_idx, time_idx, u_total.data(), howmany);
