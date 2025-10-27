@@ -33,6 +33,7 @@ FANS has the following dependencies:
   ```bash
   apt-get install \
       libhdf5-dev \
+      libhdf5-openmpi-dev \
       libopenmpi-dev \
       libeigen3-dev \
       libfftw3-dev \

@@ -1,5 +1,9 @@
 # FANS Changelog
 
+## latest
+
+- Optimize HDF5 I/O performance by using collective I/O operations [#105](https://github.com/DataAnalyticsEngineering/FANS/pull/105)
+
 ## v0.5.0
 
 - Add explicit FE types (HEX8, HEX8R, BBAR) to JSON input [#96](https://github.com/DataAnalyticsEngineering/FANS/pull/96)

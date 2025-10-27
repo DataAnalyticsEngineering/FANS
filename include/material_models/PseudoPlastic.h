@@ -54,16 +54,7 @@ class PseudoPlastic : public SmallStrainMechModel {
             element_plastic_flag(elem_idx) = plastic_flag[elem_idx].cast<float>().mean();
         }
 
-        if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "plastic_flag") != reader.resultsToWrite.end()) {
-            for (int i = 0; i < solver.world_size; ++i) {
-                if (i == solver.world_rank) {
-                    char name[5096];
-                    sprintf(name, "%s/load%i/time_step%i/plastic_flag", solver.dataset_name, load_idx, time_idx);
-                    reader.WriteSlab<float>(element_plastic_flag.data(), 1, resultsFileName, name);
-                }
-                MPI_Barrier(MPI_COMM_WORLD);
-            }
-        }
+        reader.writeSlab("plastic_flag", resultsFileName, solver.dataset_name, load_idx, time_idx, element_plastic_flag.data(), 1);
     }
 
   protected:
