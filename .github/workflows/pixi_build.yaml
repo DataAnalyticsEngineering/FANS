@@ -31,12 +31,12 @@ jobs:
         run: pixi run test
 
       - name: Upload test logs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.os }} test-logs
           path: test/output/*.log
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: ${{ matrix.os }} PyTest logs
