@@ -1,6 +1,6 @@
 # FANS Changelog
 
-## latest
+## v0.5.1
 
 - Optimize HDF5 I/O performance by using collective I/O operations [#105](https://github.com/DataAnalyticsEngineering/FANS/pull/105)
 
