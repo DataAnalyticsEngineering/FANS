@@ -161,7 +161,7 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
         }
     }
 
-    void postprocess(Solver<1, 3> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override
+    void postprocess(Solver<1, 3> &solver, Reader &reader, int load_idx, int time_idx) override
     {
         // Write GBnormals to HDF5 file if requested
         if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "GBnormals") != reader.resultsToWrite.end()) {
@@ -174,7 +174,7 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
                     GBnormals_field[element_idx * 3 + 2] = GBnormals[3 * mat_index + 2];
                 }
             }
-            reader.writeSlab("GBnormals", resultsFileName, solver.dataset_name, load_idx, time_idx, GBnormals_field, 3);
+            reader.writeSlab("GBnormals", load_idx, time_idx, GBnormals_field, 3);
             FANS_free(GBnormals_field);
         }
     }

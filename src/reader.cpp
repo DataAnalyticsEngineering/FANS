@@ -60,14 +60,14 @@ void Reader::ComputeVolumeFractions()
     }
 }
 
-void Reader ::ReadInputFile(char fn[])
+void Reader ::ReadInputFile(char input_fn[], char output_fn[])
 {
     try {
 
         MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
         MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-        ifstream i(fn);
+        ifstream i(input_fn);
         json     j;
         i >> j;
 
@@ -81,6 +81,11 @@ void Reader ::ReadInputFile(char fn[])
         } else {
             strcpy(results_prefix, "");
         }
+        // Set output file name
+        std::snprintf(results_filename, sizeof(results_filename), "%s", output_fn);
+
+        // Construct dataset_name as "<ms_datasetname>_results/<results_prefix>"
+        std::snprintf(dataset_name, sizeof(dataset_name), "%s_results/%s", ms_datasetname, results_prefix);
 
         errorParameters = j["error_parameters"];
         TOL             = errorParameters["tolerance"].get<double>();
@@ -187,7 +192,7 @@ void Reader ::ReadInputFile(char fn[])
         }
 
     } catch (const std::exception &e) {
-        fprintf(stderr, "ERROR trying to read input file '%s' for FANS\n", fn);
+        fprintf(stderr, "ERROR trying to read input file '%s' for FANS\n", input_fn);
         exit(10);
     }
 }
@@ -418,16 +423,6 @@ void Reader ::ReadMS(int hm)
     H5Fclose(file_id);
 
     this->ComputeVolumeFractions();
-}
-
-// Default constructor
-Reader::Reader()
-    : ms(nullptr), strain_type("small")
-{
-    // Initialize string members
-    ms_filename[0]    = '\0';
-    ms_datasetname[0] = '\0';
-    results_prefix[0] = '\0';
 }
 
 Reader::~Reader()

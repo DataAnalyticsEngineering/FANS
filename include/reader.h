@@ -16,15 +16,15 @@ using namespace std;
 class Reader {
   public:
     // Default constructor
-    Reader();
+    Reader() = default;
 
     // Destructor to free allocated memory
     ~Reader();
 
     // contents of input file:
-    char             ms_filename[4096];    // Name of Micro-structure hdf5 file
-    char             ms_datasetname[4096]; // Absolute path of Micro-structure in hdf5 file
-    char             results_prefix[4096];
+    char             ms_filename[4096]{};    // Name of Micro-structure hdf5 file
+    char             ms_datasetname[4096]{}; // Absolute path of Micro-structure in hdf5 file
+    char             results_prefix[4096]{};
     int              n_mat;
     json             materialProperties;
     double           TOL;
@@ -35,15 +35,17 @@ class Reader {
     string           problemType;
     string           matmodel;
     string           method;
-    string           strain_type; // "small" (default) or "large"
-    string           FE_type;     // "HEX8" (default), "HEX8R", or "BBAR"
+    string           strain_type{"small"}; // "small" (default) or "large"
+    string           FE_type;              // "HEX8" (default), "HEX8R", or "BBAR"
     vector<string>   resultsToWrite;
+    char             results_filename[4096]{}; // Output HDF5 filename
+    char             dataset_name[8192]{};     // Base path for results in HDF5 file
 
     // contents of microstructure file:
     vector<int>     dims;
     vector<double>  l_e;
     vector<double>  L;
-    unsigned short *ms; // Micro-structure
+    unsigned short *ms{nullptr}; // Micro-structure
     bool            is_zyx = true;
 
     int world_rank;
@@ -56,7 +58,7 @@ class Reader {
     ptrdiff_t local_1_start;
 
     // void Setup(ptrdiff_t howmany);
-    void ReadInputFile(char fn[]);
+    void ReadInputFile(char input_fn[], char output_fn[]);
     void ReadMS(int hm);
     void ComputeVolumeFractions();
     // void ReadHDF5(char file_name[], char dset_name[]);
@@ -64,22 +66,20 @@ class Reader {
 
     // Convenience methods to check if a result should be written and write it
     template <typename T>
-    void writeData(const char *fieldName, const char *file_name, const char *dataset_name,
-                   int load_idx, int time_idx, T *data, hsize_t *dims, int ndims);
+    void writeData(const char *fieldName, int load_idx, int time_idx, T *data, hsize_t *dims, int ndims);
 
     template <typename T>
-    void writeSlab(const char *fieldName, const char *file_name, const char *dataset_name,
-                   int load_idx, int time_idx, T *data, int size);
+    void writeSlab(const char *fieldName, int load_idx, int time_idx, T *data, int size);
 
     template <typename T>
-    void WriteSlab(T *data, int _howmany, const char *file_name, const char *dset_name);
+    void WriteSlab(T *data, int _howmany, const char *dset_name);
 
     template <typename T>
-    void WriteData(T *data, const char *file_name, const char *dset_name, hsize_t *dims, int rank);
+    void WriteData(T *data, const char *dset_name, hsize_t *dims, int rank);
 };
 
 template <typename T>
-void Reader::WriteData(T *data, const char *file_name, const char *dset_name, hsize_t *dims, int rank)
+void Reader::WriteData(T *data, const char *dset_name, hsize_t *dims, int rank)
 {
     hid_t data_type;
     if (std::is_same<T, double>::value) {
@@ -102,12 +102,12 @@ void Reader::WriteData(T *data, const char *file_name, const char *dset_name, hs
     /* Turn off error handling */
     H5Eset_auto(H5E_DEFAULT, NULL, NULL);
 
-    file_id = H5Fopen(file_name, H5F_ACC_RDWR, plist_id);
+    file_id = H5Fopen(results_filename, H5F_ACC_RDWR, plist_id);
     /* Restore previous error handler */
     H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
 
     if (file_id < 0) {
-        file_id = H5Fcreate(file_name, H5F_ACC_EXCL, H5P_DEFAULT, plist_id);
+        file_id = H5Fcreate(results_filename, H5F_ACC_EXCL, H5P_DEFAULT, plist_id);
     }
     H5Pclose(plist_id);
 
@@ -165,7 +165,6 @@ template <typename T>
 void Reader::WriteSlab(
     T          *data,     // in:  local slab, layout [X][Y][Z][k]
     int         _howmany, // global size of the 4th axis (k)
-    const char *file_name,
     const char *dset_name)
 {
     /*------------------------------------------------------------------*/
@@ -197,10 +196,10 @@ void Reader::WriteSlab(
     H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
     H5Eset_auto(H5E_DEFAULT, nullptr, nullptr);
 
-    hid_t file_id = H5Fopen(file_name, H5F_ACC_RDWR, plist_id);
+    hid_t file_id = H5Fopen(results_filename, H5F_ACC_RDWR, plist_id);
     H5Eset_auto(H5E_DEFAULT, old_func, old_client_data); /* restore */
     if (file_id < 0)                                     /* create if absent */
-        file_id = H5Fcreate(file_name, H5F_ACC_EXCL, H5P_DEFAULT, plist_id);
+        file_id = H5Fcreate(results_filename, H5F_ACC_EXCL, H5P_DEFAULT, plist_id);
     H5Pclose(plist_id);
 
     /*------------------------------------------------------------------*/
@@ -302,27 +301,25 @@ void Reader::WriteSlab(
 }
 
 template <typename T>
-void Reader::writeData(const char *fieldName, const char *file_name, const char *dataset_name,
-                       int load_idx, int time_idx, T *data, hsize_t *dims, int ndims)
+void Reader::writeData(const char *fieldName, int load_idx, int time_idx, T *data, hsize_t *dims, int ndims)
 {
     if (world_rank != 0 || std::find(resultsToWrite.begin(), resultsToWrite.end(), fieldName) == resultsToWrite.end()) {
         return;
     }
     char name[5096];
     snprintf(name, sizeof(name), "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, fieldName);
-    WriteData(data, file_name, name, dims, ndims);
+    WriteData(data, name, dims, ndims);
 }
 
 template <typename T>
-void Reader::writeSlab(const char *fieldName, const char *file_name, const char *dataset_name,
-                       int load_idx, int time_idx, T *data, int size)
+void Reader::writeSlab(const char *fieldName, int load_idx, int time_idx, T *data, int size)
 {
     if (std::find(resultsToWrite.begin(), resultsToWrite.end(), fieldName) == resultsToWrite.end()) {
         return;
     }
     char name[5096];
     snprintf(name, sizeof(name), "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, fieldName);
-    WriteSlab(data, size, file_name, name);
+    WriteSlab(data, size, name);
 }
 
 #endif
