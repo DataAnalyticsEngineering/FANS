@@ -46,7 +46,8 @@ int main(int argc, char *argv[])
     fftw_mpi_init();
 
     Reader reader;
-    reader.ReadInputFile(argv[1], argv[2]);
+    reader.ReadInputFile(argv[1]);
+    reader.OpenResultsFile(argv[2]);
 
     if (reader.problemType == "thermal") {
         runSolver<1, 3>(reader);
@@ -57,6 +58,7 @@ int main(int argc, char *argv[])
     } else {
         throw std::invalid_argument(reader.problemType + " is not a valid problem type");
     }
+    reader.CloseResultsFile();
 
     MPI_Finalize();
     return 0;

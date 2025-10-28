@@ -60,7 +60,7 @@ void Reader::ComputeVolumeFractions()
     }
 }
 
-void Reader ::ReadInputFile(char input_fn[], char output_fn[])
+void Reader ::ReadInputFile(char input_fn[])
 {
     try {
 
@@ -81,8 +81,6 @@ void Reader ::ReadInputFile(char input_fn[], char output_fn[])
         } else {
             strcpy(results_prefix, "");
         }
-        // Set output file name
-        std::snprintf(results_filename, sizeof(results_filename), "%s", output_fn);
 
         // Construct dataset_name as "<ms_datasetname>_results/<results_prefix>"
         std::snprintf(dataset_name, sizeof(dataset_name), "%s_results/%s", ms_datasetname, results_prefix);
@@ -423,6 +421,28 @@ void Reader ::ReadMS(int hm)
     H5Fclose(file_id);
 
     this->ComputeVolumeFractions();
+}
+
+void Reader::OpenResultsFile(const char *output_fn)
+{
+    std::snprintf(results_filename, sizeof(results_filename), "%s", output_fn);
+    hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, MPI_INFO_NULL);
+    results_file_id = H5Fcreate(results_filename, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
+    H5Pclose(plist_id);
+
+    if (results_file_id < 0) {
+        throw std::runtime_error("Failed to create results file");
+    }
+}
+
+void Reader::CloseResultsFile()
+{
+    if (results_file_id >= 0) {
+        H5Fclose(results_file_id);
+        results_file_id = -1;
+    }
+    results_filename[0] = '\0';
 }
 
 Reader::~Reader()

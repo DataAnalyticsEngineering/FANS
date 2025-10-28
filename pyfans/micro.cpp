@@ -30,7 +30,7 @@ MicroSimulation::MicroSimulation(int sim_id, char *input_file)
     fftw_mpi_init();
 
     // Input file name is hardcoded. TODO: Make it configurable
-    reader.ReadInputFile(input_file, "micro_results.h5");
+    reader.ReadInputFile(input_file);
 
     reader.ReadMS(3);
     matmodel = createMatmodel<3, 6>(reader);
