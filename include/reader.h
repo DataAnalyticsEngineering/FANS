@@ -16,15 +16,15 @@ using namespace std;
 class Reader {
   public:
     // Default constructor
-    Reader();
+    Reader() = default;
 
     // Destructor to free allocated memory
     ~Reader();
 
     // contents of input file:
-    char             ms_filename[4096];    // Name of Micro-structure hdf5 file
-    char             ms_datasetname[4096]; // Absolute path of Micro-structure in hdf5 file
-    char             results_prefix[4096];
+    char             ms_filename[4096]{};    // Name of Micro-structure hdf5 file
+    char             ms_datasetname[4096]{}; // Absolute path of Micro-structure in hdf5 file
+    char             results_prefix[4096]{};
     int              n_mat;
     json             materialProperties;
     double           TOL;
@@ -35,15 +35,18 @@ class Reader {
     string           problemType;
     string           matmodel;
     string           method;
-    string           strain_type; // "small" (default) or "large"
-    string           FE_type;     // "HEX8" (default), "HEX8R", or "BBAR"
+    string           strain_type{"small"}; // "small" (default) or "large"
+    string           FE_type;              // "HEX8" (default), "HEX8R", or "BBAR"
     vector<string>   resultsToWrite;
+    char             results_filename[4096]{}; // Output HDF5 filename
+    char             dataset_name[8192]{};     // Base path for results in HDF5 file
+    hid_t            results_file_id = -1;     // Open HDF5 file handle for results
 
     // contents of microstructure file:
     vector<int>     dims;
     vector<double>  l_e;
     vector<double>  L;
-    unsigned short *ms; // Micro-structure
+    unsigned short *ms{nullptr}; // Micro-structure
     bool            is_zyx = true;
 
     int world_rank;
@@ -56,30 +59,30 @@ class Reader {
     ptrdiff_t local_1_start;
 
     // void Setup(ptrdiff_t howmany);
-    void ReadInputFile(char fn[]);
+    void ReadInputFile(char input_fn[]);
     void ReadMS(int hm);
     void ComputeVolumeFractions();
     // void ReadHDF5(char file_name[], char dset_name[]);
     void safe_create_group(hid_t file, const char *const name);
+    void OpenResultsFile(const char *output_fn); // Open results file once
+    void CloseResultsFile();                     // Explicitly close results file
 
     // Convenience methods to check if a result should be written and write it
     template <typename T>
-    void writeData(const char *fieldName, const char *file_name, const char *dataset_name,
-                   int load_idx, int time_idx, T *data, hsize_t *dims, int ndims);
+    void writeData(const char *fieldName, int load_idx, int time_idx, T *data, hsize_t *dims, int ndims);
 
     template <typename T>
-    void writeSlab(const char *fieldName, const char *file_name, const char *dataset_name,
-                   int load_idx, int time_idx, T *data, int size);
+    void writeSlab(const char *fieldName, int load_idx, int time_idx, T *data, int size);
 
     template <typename T>
-    void WriteSlab(T *data, int _howmany, const char *file_name, const char *dset_name);
+    void WriteSlab(T *data, int _howmany, const char *dset_name);
 
     template <typename T>
-    void WriteData(T *data, const char *file_name, const char *dset_name, hsize_t *dims, int rank);
+    void WriteData(T *data, const char *dset_name, hsize_t *dims, int rank);
 };
 
 template <typename T>
-void Reader::WriteData(T *data, const char *file_name, const char *dset_name, hsize_t *dims, int rank)
+void Reader::WriteData(T *data, const char *dset_name, hsize_t *dims, int rank)
 {
     hid_t data_type;
     if (std::is_same<T, double>::value) {
@@ -90,26 +93,10 @@ void Reader::WriteData(T *data, const char *file_name, const char *dset_name, hs
         throw std::invalid_argument("Conversion of this data type to H5 data type not yet implemented");
     }
 
-    hid_t plist_id;
-    hid_t file_id;
-    plist_id = H5Pcreate(H5P_FILE_ACCESS);
-
-    // TODO: refactor this into a general error handling method
-    /* Save old error handler */
-    herr_t (*old_func)(hid_t, void *);
-    void *old_client_data;
-    H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
-    /* Turn off error handling */
-    H5Eset_auto(H5E_DEFAULT, NULL, NULL);
-
-    file_id = H5Fopen(file_name, H5F_ACC_RDWR, plist_id);
-    /* Restore previous error handler */
-    H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
-
+    hid_t file_id = results_file_id;
     if (file_id < 0) {
-        file_id = H5Fcreate(file_name, H5F_ACC_EXCL, H5P_DEFAULT, plist_id);
+        throw std::runtime_error("WriteData: results file is not open");
     }
-    H5Pclose(plist_id);
 
     // Ensure all groups in the path are created
     safe_create_group(file_id, dset_name);
@@ -135,18 +122,36 @@ void Reader::WriteData(T *data, const char *file_name, const char *dset_name, hs
         throw std::runtime_error("Error creating dataset");
     }
 
-    // Write the data to the dataset
-    if (H5Dwrite(dataset_id, data_type, H5S_ALL, H5S_ALL, H5P_DEFAULT, data) < 0) {
+    // Perform the write: only rank 0 has meaningful data; other ranks use an empty memory selection
+    hid_t memspace = H5Screate_simple(rank, dims, NULL);
+    if (world_rank == 0) {
+        /* root keeps full memspace */
+    } else {
+        /* non-root select none so they participate but write nothing */
+        H5Sselect_none(memspace);
+        /* also ensure file selection is none on non-root ranks */
+        H5Sselect_none(dataspace_id);
+    }
+
+    hid_t dxpl = H5Pcreate(H5P_DATASET_XFER);
+    H5Pset_dxpl_mpio(dxpl, H5FD_MPIO_INDEPENDENT);
+
+    // Use dataspace_id as the FILE selection; on non-root ranks select none so
+    // the number of elements selected in memspace and filespace match per rank.
+    if (H5Dwrite(dataset_id, data_type, memspace, dataspace_id, dxpl, (world_rank == 0 ? data : nullptr)) < 0) {
+        H5Pclose(dxpl);
+        H5Sclose(memspace);
         H5Dclose(dataset_id);
         H5Sclose(dataspace_id);
-        H5Fclose(file_id);
         throw std::runtime_error("Error writing data to dataset");
     }
 
-    // Close the dataset and the file
+    H5Pclose(dxpl);
+    H5Sclose(memspace);
+
+    // Close the dataset and dataspace
     H5Dclose(dataset_id);
     H5Sclose(dataspace_id);
-    H5Fclose(file_id);
 }
 
 // this function has to be here because of the template
@@ -165,7 +170,6 @@ template <typename T>
 void Reader::WriteSlab(
     T          *data,     // in:  local slab, layout [X][Y][Z][k]
     int         _howmany, // global size of the 4th axis (k)
-    const char *file_name,
     const char *dset_name)
 {
     /*------------------------------------------------------------------*/
@@ -188,20 +192,13 @@ void Reader::WriteSlab(
     /*------------------------------------------------------------------*/
     /* 1. open or create the HDF5 file                                  */
     /*------------------------------------------------------------------*/
-    hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
-    H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, MPI_INFO_NULL);
-
-    /* temporarily silence “file not found” during H5Fopen */
+    hid_t file_id = results_file_id;
+    hid_t plist_id;
+    if (file_id < 0) {
+        throw std::runtime_error("WriteSlab: results file is not open");
+    }
     herr_t (*old_func)(hid_t, void *);
     void *old_client_data;
-    H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
-    H5Eset_auto(H5E_DEFAULT, nullptr, nullptr);
-
-    hid_t file_id = H5Fopen(file_name, H5F_ACC_RDWR, plist_id);
-    H5Eset_auto(H5E_DEFAULT, old_func, old_client_data); /* restore */
-    if (file_id < 0)                                     /* create if absent */
-        file_id = H5Fcreate(file_name, H5F_ACC_EXCL, H5P_DEFAULT, plist_id);
-    H5Pclose(plist_id);
 
     /*------------------------------------------------------------------*/
     /* 2. create the dataset (global dims =  Z Y X k ) if necessary     */
@@ -298,31 +295,28 @@ void Reader::WriteSlab(
     H5Sclose(filespace);
     H5Pclose(plist_id);
     H5Dclose(dset_id);
-    H5Fclose(file_id);
 }
 
 template <typename T>
-void Reader::writeData(const char *fieldName, const char *file_name, const char *dataset_name,
-                       int load_idx, int time_idx, T *data, hsize_t *dims, int ndims)
-{
-    if (world_rank != 0 || std::find(resultsToWrite.begin(), resultsToWrite.end(), fieldName) == resultsToWrite.end()) {
-        return;
-    }
-    char name[5096];
-    snprintf(name, sizeof(name), "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, fieldName);
-    WriteData(data, file_name, name, dims, ndims);
-}
-
-template <typename T>
-void Reader::writeSlab(const char *fieldName, const char *file_name, const char *dataset_name,
-                       int load_idx, int time_idx, T *data, int size)
+void Reader::writeData(const char *fieldName, int load_idx, int time_idx, T *data, hsize_t *dims, int ndims)
 {
     if (std::find(resultsToWrite.begin(), resultsToWrite.end(), fieldName) == resultsToWrite.end()) {
         return;
     }
     char name[5096];
     snprintf(name, sizeof(name), "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, fieldName);
-    WriteSlab(data, size, file_name, name);
+    WriteData(data, name, dims, ndims);
+}
+
+template <typename T>
+void Reader::writeSlab(const char *fieldName, int load_idx, int time_idx, T *data, int size)
+{
+    if (std::find(resultsToWrite.begin(), resultsToWrite.end(), fieldName) == resultsToWrite.end()) {
+        return;
+    }
+    char name[5096];
+    snprintf(name, sizeof(name), "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, fieldName);
+    WriteSlab(data, size, name);
 }
 
 #endif

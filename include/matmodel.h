@@ -29,7 +29,7 @@ class Matmodel {
     void                                     getStrainStress(double *strain, double *stress, Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
     void                                     setGradient(vector<double> _g0);
 
-    virtual void postprocess(Solver<howmany, n_str> &solver, Reader &reader, const char resultsFileName[], int load_idx, int time_idx) {};
+    virtual void postprocess(Solver<howmany, n_str> &solver, Reader &reader, int load_idx, int time_idx) {};
 
     virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) {}
     virtual void updateInternalVariables() {}

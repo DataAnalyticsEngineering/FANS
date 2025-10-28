@@ -51,7 +51,7 @@ class Solver : private MixedBCController<howmany> {
     template <int padding>
     void compute_residual(RealArray &r_matrix, RealArray &u_matrix);
 
-    void postprocess(Reader &reader, const char resultsFileName[], int load_idx, int time_idx); //!< Computes Strain and stress
+    void postprocess(Reader &reader, int load_idx, int time_idx); //!< Computes Strain and stress
 
     void   convolution();
     double compute_error(RealArray &r);
@@ -62,8 +62,6 @@ class Solver : private MixedBCController<howmany> {
 
     MatrixXd homogenized_tangent;
     MatrixXd get_homogenized_tangent(double pert_param);
-
-    char dataset_name[5096]; // Dataset name for postprocessing results
 
     void enableMixedBC(const MixedBC &mbc, size_t step)
     {
@@ -134,9 +132,6 @@ Solver<howmany, n_str>::Solver(Reader &reader, Matmodel<howmany, n_str> *mat)
     matmodel->initializeInternalVariables(local_n0 * n_y * n_z, matmodel->n_gp);
 
     computeFundamentalSolution();
-
-    // Set dataset name as member variable of the Solver class
-    sprintf(dataset_name, "%s_results/%s", reader.ms_datasetname, reader.results_prefix);
 }
 
 template <int howmany, int n_str>
@@ -438,7 +433,7 @@ double Solver<howmany, n_str>::compute_error(RealArray &r)
 }
 
 template <int howmany, int n_str>
-void Solver<howmany, n_str>::postprocess(Reader &reader, const char resultsFileName[], int load_idx, int time_idx)
+void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_idx)
 {
     VectorXd strain         = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
     VectorXd stress         = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
@@ -568,29 +563,29 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, const char resultsFileN
     }
 
     hsize_t dims[1] = {static_cast<hsize_t>(n_str)};
-    reader.writeData("stress_average", resultsFileName, dataset_name, load_idx, time_idx, stress_average.data(), dims, 1);
-    reader.writeData("strain_average", resultsFileName, dataset_name, load_idx, time_idx, strain_average.data(), dims, 1);
+    reader.writeData("stress_average", load_idx, time_idx, stress_average.data(), dims, 1);
+    reader.writeData("strain_average", load_idx, time_idx, strain_average.data(), dims, 1);
     for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
         char stress_name[512];
         char strain_name[512];
         sprintf(stress_name, "phase_stress_average_phase%d", mat_index);
         sprintf(strain_name, "phase_strain_average_phase%d", mat_index);
-        reader.writeData(stress_name, resultsFileName, dataset_name, load_idx, time_idx, phase_stress_average[mat_index].data(), dims, 1);
-        reader.writeData(strain_name, resultsFileName, dataset_name, load_idx, time_idx, phase_strain_average[mat_index].data(), dims, 1);
+        reader.writeData(stress_name, load_idx, time_idx, phase_stress_average[mat_index].data(), dims, 1);
+        reader.writeData(strain_name, load_idx, time_idx, phase_strain_average[mat_index].data(), dims, 1);
     }
     dims[0] = iter + 1;
-    reader.writeData("absolute_error", resultsFileName, dataset_name, load_idx, time_idx, err_all.data(), dims, 1);
+    reader.writeData("absolute_error", load_idx, time_idx, err_all.data(), dims, 1);
 
     vector<int> rank_field(local_n0 * n_y * n_z, world_rank);
-    reader.writeSlab("mpi_rank", resultsFileName, dataset_name, load_idx, time_idx, rank_field.data(), 1);
-    reader.writeSlab("microstructure", resultsFileName, dataset_name, load_idx, time_idx, ms, 1);
-    reader.writeSlab("displacement_fluctuation", resultsFileName, dataset_name, load_idx, time_idx, v_u, howmany);
-    reader.writeSlab("displacement", resultsFileName, dataset_name, load_idx, time_idx, u_total.data(), howmany);
-    reader.writeSlab("residual", resultsFileName, dataset_name, load_idx, time_idx, v_r, howmany);
-    reader.writeSlab("strain", resultsFileName, dataset_name, load_idx, time_idx, strain.data(), n_str);
-    reader.writeSlab("stress", resultsFileName, dataset_name, load_idx, time_idx, stress.data(), n_str);
+    reader.writeSlab("mpi_rank", load_idx, time_idx, rank_field.data(), 1);
+    reader.writeSlab("microstructure", load_idx, time_idx, ms, 1);
+    reader.writeSlab("displacement_fluctuation", load_idx, time_idx, v_u, howmany);
+    reader.writeSlab("displacement", load_idx, time_idx, u_total.data(), howmany);
+    reader.writeSlab("residual", load_idx, time_idx, v_r, howmany);
+    reader.writeSlab("strain", load_idx, time_idx, strain.data(), n_str);
+    reader.writeSlab("stress", load_idx, time_idx, stress.data(), n_str);
 
-    matmodel->postprocess(*this, reader, resultsFileName, load_idx, time_idx);
+    matmodel->postprocess(*this, reader, load_idx, time_idx);
 
     // Compute homogenized tangent only if requested
     if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "homogenized_tangent") != reader.resultsToWrite.end()) {
@@ -600,7 +595,7 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, const char resultsFileN
             cout << "# Homogenized tangent: " << endl
                  << setprecision(12) << homogenized_tangent << endl
                  << endl;
-            reader.writeData("homogenized_tangent", resultsFileName, dataset_name, load_idx, time_idx, homogenized_tangent.data(), dims, 2);
+            reader.writeData("homogenized_tangent", load_idx, time_idx, homogenized_tangent.data(), dims, 2);
         }
     }
 }

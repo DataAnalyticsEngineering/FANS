@@ -60,14 +60,14 @@ void Reader::ComputeVolumeFractions()
     }
 }
 
-void Reader ::ReadInputFile(char fn[])
+void Reader ::ReadInputFile(char input_fn[])
 {
     try {
 
         MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
         MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-        ifstream i(fn);
+        ifstream i(input_fn);
         json     j;
         i >> j;
 
@@ -81,6 +81,9 @@ void Reader ::ReadInputFile(char fn[])
         } else {
             strcpy(results_prefix, "");
         }
+
+        // Construct dataset_name as "<ms_datasetname>_results/<results_prefix>"
+        std::snprintf(dataset_name, sizeof(dataset_name), "%s_results/%s", ms_datasetname, results_prefix);
 
         errorParameters = j["error_parameters"];
         TOL             = errorParameters["tolerance"].get<double>();
@@ -187,7 +190,7 @@ void Reader ::ReadInputFile(char fn[])
         }
 
     } catch (const std::exception &e) {
-        fprintf(stderr, "ERROR trying to read input file '%s' for FANS\n", fn);
+        fprintf(stderr, "ERROR trying to read input file '%s' for FANS\n", input_fn);
         exit(10);
     }
 }
@@ -420,14 +423,26 @@ void Reader ::ReadMS(int hm)
     this->ComputeVolumeFractions();
 }
 
-// Default constructor
-Reader::Reader()
-    : ms(nullptr), strain_type("small")
+void Reader::OpenResultsFile(const char *output_fn)
 {
-    // Initialize string members
-    ms_filename[0]    = '\0';
-    ms_datasetname[0] = '\0';
-    results_prefix[0] = '\0';
+    std::snprintf(results_filename, sizeof(results_filename), "%s", output_fn);
+    hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, MPI_INFO_NULL);
+    results_file_id = H5Fcreate(results_filename, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
+    H5Pclose(plist_id);
+
+    if (results_file_id < 0) {
+        throw std::runtime_error("Failed to create results file");
+    }
+}
+
+void Reader::CloseResultsFile()
+{
+    if (results_file_id >= 0) {
+        H5Fclose(results_file_id);
+        results_file_id = -1;
+    }
+    results_filename[0] = '\0';
 }
 
 Reader::~Reader()
