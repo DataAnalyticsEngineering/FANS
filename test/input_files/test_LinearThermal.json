@@ -7,6 +7,7 @@
 
     "problem_type": "thermal",
     "matmodel": "LinearThermalIsotropic",
+    "strain_type": "small",
     "material_properties":{
         "conductivity": [1, 10]
     },

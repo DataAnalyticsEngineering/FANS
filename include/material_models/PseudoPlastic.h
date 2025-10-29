@@ -47,23 +47,14 @@ class PseudoPlastic : public SmallStrainMechModel {
 
     virtual void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override = 0; // Pure virtual method
 
-    void postprocess(Solver<3, 6> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override
+    void postprocess(Solver<3, 6> &solver, Reader &reader, int load_idx, int time_idx) override
     {
         VectorXf element_plastic_flag = VectorXf::Zero(solver.local_n0 * solver.n_y * solver.n_z);
         for (ptrdiff_t elem_idx = 0; elem_idx < solver.local_n0 * solver.n_y * solver.n_z; ++elem_idx) {
             element_plastic_flag(elem_idx) = plastic_flag[elem_idx].cast<float>().mean();
         }
 
-        if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "plastic_flag") != reader.resultsToWrite.end()) {
-            for (int i = 0; i < solver.world_size; ++i) {
-                if (i == solver.world_rank) {
-                    char name[5096];
-                    sprintf(name, "%s/load%i/time_step%i/plastic_flag", solver.dataset_name, load_idx, time_idx);
-                    reader.WriteSlab<float>(element_plastic_flag.data(), 1, resultsFileName, name);
-                }
-                MPI_Barrier(MPI_COMM_WORLD);
-            }
-        }
+        reader.writeSlab("plastic_flag", load_idx, time_idx, element_plastic_flag.data(), 1);
     }
 
   protected:

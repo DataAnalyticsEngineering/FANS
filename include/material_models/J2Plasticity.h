@@ -118,7 +118,7 @@ class J2Plasticity : public SmallStrainMechModel {
     virtual double compute_q_trial(double psi_val, int mat_index)                             = 0;
     virtual double compute_gamma(double f_trial, int mat_index, int i, ptrdiff_t element_idx) = 0;
 
-    void postprocess(Solver<3, 6> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override;
+    void postprocess(Solver<3, 6> &solver, Reader &reader, int load_idx, int time_idx) override;
 
   protected:
     // Material properties
@@ -237,7 +237,7 @@ class J2ViscoPlastic_NonLinearIsotropicHardening : public J2Plasticity {
     vector<double> sigma_diff;  // sqrt(2/3) * (sigma_inf - yield_stress)
 };
 
-inline void J2Plasticity::postprocess(Solver<3, 6> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx)
+inline void J2Plasticity::postprocess(Solver<3, 6> &solver, Reader &reader, int load_idx, int time_idx)
 {
     int      n_str                             = 6; // The plastic strain and stress vectors have 6 components each
     VectorXd mean_plastic_strain               = VectorXd::Zero(solver.local_n0 * solver.n_y * solver.n_z * n_str);
@@ -251,38 +251,9 @@ inline void J2Plasticity::postprocess(Solver<3, 6> &solver, Reader &reader, cons
         mean_kinematic_hardening_variable.segment(n_str * elem_idx, n_str) = psi_bar_t[elem_idx].rowwise().mean();
     }
 
-    if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "plastic_strain") != reader.resultsToWrite.end()) {
-        for (int i = 0; i < solver.world_size; ++i) {
-            if (i == solver.world_rank) {
-                char name[5096];
-                sprintf(name, "%s/load%i/time_step%i/plastic_strain", solver.dataset_name, load_idx, time_idx);
-                reader.WriteSlab<double>(mean_plastic_strain.data(), n_str, resultsFileName, name);
-            }
-            MPI_Barrier(MPI_COMM_WORLD);
-        }
-    }
-
-    if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "isotropic_hardening_variable") != reader.resultsToWrite.end()) {
-        for (int i = 0; i < solver.world_size; ++i) {
-            if (i == solver.world_rank) {
-                char name[5096];
-                sprintf(name, "%s/load%i/time_step%i/isotropic_hardening_variable", solver.dataset_name, load_idx, time_idx);
-                reader.WriteSlab<double>(mean_isotropic_hardening_variable.data(), 1, resultsFileName, name);
-            }
-            MPI_Barrier(MPI_COMM_WORLD);
-        }
-    }
-
-    if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "kinematic_hardening_variable") != reader.resultsToWrite.end()) {
-        for (int i = 0; i < solver.world_size; ++i) {
-            if (i == solver.world_rank) {
-                char name[5096];
-                sprintf(name, "%s/load%i/time_step%i/kinematic_hardening_variable", solver.dataset_name, load_idx, time_idx);
-                reader.WriteSlab<double>(mean_kinematic_hardening_variable.data(), n_str, resultsFileName, name);
-            }
-            MPI_Barrier(MPI_COMM_WORLD);
-        }
-    }
+    reader.writeSlab("plastic_strain", load_idx, time_idx, mean_plastic_strain.data(), n_str);
+    reader.writeSlab("isotropic_hardening_variable", load_idx, time_idx, mean_isotropic_hardening_variable.data(), 1);
+    reader.writeSlab("kinematic_hardening_variable", load_idx, time_idx, mean_kinematic_hardening_variable.data(), n_str);
 }
 
 #endif // J2PLASTICITY_H

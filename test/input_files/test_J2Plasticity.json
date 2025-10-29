@@ -7,6 +7,7 @@
 
     "problem_type": "mechanical",
     "matmodel": "J2ViscoPlastic_NonLinearIsotropicHardening",
+    "strain_type": "small",
     "material_properties":{
         "bulk_modulus": [62.5000, 222.222],
         "shear_modulus": [28.8462, 166.6667],
