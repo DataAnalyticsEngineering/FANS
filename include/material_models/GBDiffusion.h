@@ -95,7 +95,7 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
             throw std::runtime_error("Error in GBDiffusion initialization: " + std::string(e.what()));
         }
 
-        kapparef_mat = Matrix3d::Zero(3, 3);
+        Matrix3d kappa_temp = Matrix3d::Zero();
         Matrix3d phase_kappa;
         phase_stiffness = new Matrix<double, 8, 8>[n_mat];
 
@@ -112,12 +112,14 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
             } else {
                 throw std::runtime_error("GBDiffusion: Unknown material index");
             }
-            kapparef_mat += phase_kappa;
+            kappa_temp += phase_kappa;
             for (int p = 0; p < n_gp; ++p) {
                 phase_stiffness[i] += B_int[p].transpose() * phase_kappa * B_int[p] * v_e / n_gp;
             }
         }
-        kapparef_mat /= n_mat;
+        if (kapparef_mat.isZero()) {
+            kapparef_mat = kappa_temp / n_mat;
+        }
     }
     ~GBDiffusion()
     {
