@@ -1,5 +1,9 @@
 # FANS Changelog
 
+## v0.5.2
+
+- Bugfix: Fix bad initial guess for time steps > 0 [#109](https://github.com/DataAnalyticsEngineering/FANS/pull/109)
+
 ## v0.5.1
 
 - Optimize HDF5 I/O performance by using collective I/O operations [#105](https://github.com/DataAnalyticsEngineering/FANS/pull/105)

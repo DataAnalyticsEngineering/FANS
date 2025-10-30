@@ -2980,7 +2980,7 @@ packages:
   timestamp: 1756729456476
 - conda: .
   name: fans
-  version: 0.5.1
+  version: 0.5.2
   build: h04f5b5a_0
   subdir: linux-64
   depends:
@@ -2990,11 +2990,11 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: d5e0302baa75f0e91fbd39b1522414587d409c152c954deaeb11704087492fe3
+    hash: 13d11b1d925bc1f93dc8a2bf943ad51e99d9f24f4f1c401d7740c506b16a4f91
     globs: []
 - conda: .
   name: fans
-  version: 0.5.1
+  version: 0.5.2
   build: hbf21a9e_0
   subdir: linux-aarch64
   depends:
@@ -3004,11 +3004,11 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: db088b7aabb1d43e2b88b97366451797048f78a34f40b6a43327a6d28d8adbc6
+    hash: a36e5948b4849afaf71c6c8b684f829cec5e9912848a8ba127ae7c81afe4e575
     globs: []
 - conda: .
   name: fans
-  version: 0.5.1
+  version: 0.5.2
   build: hbf21a9e_0
   subdir: linux-ppc64le
   depends:
@@ -3018,11 +3018,11 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: db088b7aabb1d43e2b88b97366451797048f78a34f40b6a43327a6d28d8adbc6
+    hash: a36e5948b4849afaf71c6c8b684f829cec5e9912848a8ba127ae7c81afe4e575
     globs: []
 - conda: .
   name: fans
-  version: 0.5.1
+  version: 0.5.2
   build: hbf21a9e_0
   subdir: osx-64
   depends:
@@ -3031,11 +3031,11 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: db088b7aabb1d43e2b88b97366451797048f78a34f40b6a43327a6d28d8adbc6
+    hash: a36e5948b4849afaf71c6c8b684f829cec5e9912848a8ba127ae7c81afe4e575
     globs: []
 - conda: .
   name: fans
-  version: 0.5.1
+  version: 0.5.2
   build: hbf21a9e_0
   subdir: osx-arm64
   depends:
@@ -3044,7 +3044,7 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: db088b7aabb1d43e2b88b97366451797048f78a34f40b6a43327a6d28d8adbc6
+    hash: a36e5948b4849afaf71c6c8b684f829cec5e9912848a8ba127ae7c81afe4e575
     globs: []
 - conda: https://conda.anaconda.org/conda-forge/linux-64/fftw-3.3.10-mpi_openmpi_h99e62ba_10.conda
   sha256: 59a1fd0daa71bd5529e19b4da8aae2ded4d4ef05e5e31d80c39cbe2fc7664b6a
