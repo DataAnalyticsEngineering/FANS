@@ -1,6 +1,6 @@
 # FANS Changelog
 
-## latest
+## v0.5.2
 
 - Bugfix: Fix bad initial guess for time steps > 0 [#109](https://github.com/DataAnalyticsEngineering/FANS/pull/109)
 
