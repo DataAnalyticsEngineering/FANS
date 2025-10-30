@@ -22,12 +22,14 @@ class J2Plasticity : public SmallStrainMechModel {
         }
         n_mat = bulk_modulus.size();
 
-        const double Kbar      = std::accumulate(bulk_modulus.begin(), bulk_modulus.end(), 0.0) / static_cast<double>(n_mat);
-        const double Gbar      = std::accumulate(shear_modulus.begin(), shear_modulus.end(), 0.0) / static_cast<double>(n_mat);
-        const double lambdabar = Kbar - 2.0 * Gbar / 3.0;
-        kapparef_mat.setZero();
-        kapparef_mat.topLeftCorner(3, 3).setConstant(lambdabar);
-        kapparef_mat.diagonal().array() += 2.0 * Gbar;
+        if (kapparef_mat.isZero()) {
+            const double Kbar      = std::accumulate(bulk_modulus.begin(), bulk_modulus.end(), 0.0) / static_cast<double>(n_mat);
+            const double Gbar      = std::accumulate(shear_modulus.begin(), shear_modulus.end(), 0.0) / static_cast<double>(n_mat);
+            const double lambdabar = Kbar - 2.0 * Gbar / 3.0;
+            kapparef_mat.setZero();
+            kapparef_mat.topLeftCorner(3, 3).setConstant(lambdabar);
+            kapparef_mat.diagonal().array() += 2.0 * Gbar;
+        }
 
         // Allocate the member matrices/vectors for performance optimization
         sqrt_two_over_three = sqrt(2.0 / 3.0);

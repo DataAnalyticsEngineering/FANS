@@ -15,7 +15,17 @@ void runSolver(Reader &reader)
         Matmodel<howmany, n_str> *matmodel = createMatmodel<howmany, n_str>(reader);
         Solver<howmany, n_str>   *solver   = createSolver(reader, matmodel);
 
+        if (reader.world_rank == 0) {
+            printf("\n╔════════════════════════════════════════════════════════════ Load case %zu/%zu: %zu time steps ════════════════════════════════════════════════════════════╗\n",
+                   load_path_idx + 1, reader.load_cases.size(), reader.load_cases[load_path_idx].n_steps);
+        }
+
         for (size_t time_step_idx = 0; time_step_idx < reader.load_cases[load_path_idx].n_steps; ++time_step_idx) {
+            if (reader.world_rank == 0) {
+                printf("║   ▶ Time step %zu/%zu (load case %zu/%zu) ◀ \n",
+                       time_step_idx + 1, reader.load_cases[load_path_idx].n_steps,
+                       load_path_idx + 1, reader.load_cases.size());
+            }
             if (reader.load_cases[load_path_idx].mixed) {
                 solver->enableMixedBC(reader.load_cases[load_path_idx].mbc, time_step_idx);
             } else {
@@ -27,6 +37,9 @@ void runSolver(Reader &reader)
         }
         delete solver;
         delete matmodel;
+        if (reader.world_rank == 0) {
+            printf("╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝\n");
+        }
     }
 }
 

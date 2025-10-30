@@ -31,6 +31,7 @@ class Solver : private MixedBCController<howmany> {
     unsigned short *ms;  // Micro-structure
     double         *v_r; //!< Residual vector
     double         *v_u;
+    double         *v_u_prev; //!< Previous displacement for extrapolation
     double         *buffer_padding;
 
     RealArray      v_r_real; // can't do the "classname()" intialization here, and Map doesn't have a default constructor
@@ -44,7 +45,8 @@ class Solver : private MixedBCController<howmany> {
     void iterateCubes(F f);
 
     void         solve();
-    virtual void internalSolve() {}; // important to have "{}" here, otherwise we get an error about undefined reference to vtable
+    void         extrapolateDisplacement(); //!< Linear extrapolation for next time step
+    virtual void internalSolve() {};        // important to have "{}" here, otherwise we get an error about undefined reference to vtable
 
     template <int padding, typename F>
     void compute_residual_basic(RealArray &r_matrix, RealArray &u_matrix, F f);
@@ -120,6 +122,7 @@ Solver<howmany, n_str>::Solver(Reader &reader, Matmodel<howmany, n_str> *mat)
 
       v_u(fftw_alloc_real((local_n0 + 1) * n_y * n_z * howmany)),
       v_u_real(v_u, n_z * howmany, local_n0 * n_y, OuterStride<>(n_z * howmany)),
+      v_u_prev(fftw_alloc_real(local_n0 * n_y * n_z * howmany)),
 
       rhat((std::complex<double> *) v_r, local_n1 * n_x * (n_z / 2 + 1) * howmany), // actual initialization is below
       buffer_padding(fftw_alloc_real(n_y * (n_z + 2) * howmany))
@@ -128,6 +131,7 @@ Solver<howmany, n_str>::Solver(Reader &reader, Matmodel<howmany, n_str> *mat)
     for (ptrdiff_t i = local_n0 * n_y * n_z * howmany; i < (local_n0 + 1) * n_y * n_z * howmany; i++) {
         this->v_u[i] = 0;
     }
+    std::memset(v_u_prev, 0, local_n0 * n_y * n_z * howmany * sizeof(double));
 
     matmodel->initializeInternalVariables(local_n0 * n_y * n_z, matmodel->n_gp);
 
@@ -289,6 +293,17 @@ void Solver<howmany, n_str>::solve()
         printf("# FFT contribution to total time   %2.6f %% \n", 100. * double(fft_time) / double(tot_time));
     }
     matmodel->updateInternalVariables();
+}
+
+template <int howmany, int n_str>
+void Solver<howmany, n_str>::extrapolateDisplacement()
+{
+    const size_t n = local_n0 * n_y * n_z * howmany;
+    for (size_t i = 0; i < n; ++i) {
+        const double delta = v_u[i] - v_u_prev[i];
+        v_u_prev[i]        = v_u[i];
+        v_u[i] += delta; // v_u = v_u + (v_u - v_u_prev)
+    }
 }
 
 template <int howmany, int n_str>
@@ -598,6 +613,7 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
             reader.writeData("homogenized_tangent", load_idx, time_idx, homogenized_tangent.data(), dims, 2);
         }
     }
+    extrapolateDisplacement(); // prepare v_u for next time step
 }
 
 template <int howmany, int n_str>
@@ -677,6 +693,10 @@ Solver<howmany, n_str>::~Solver()
     if (v_u) {
         fftw_free(v_u);
         v_u = nullptr;
+    }
+    if (v_u_prev) {
+        fftw_free(v_u_prev);
+        v_u_prev = nullptr;
     }
     if (buffer_padding) {
         fftw_free(buffer_padding);

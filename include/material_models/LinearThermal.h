@@ -16,10 +16,12 @@ class LinearThermalIsotropic : public ThermalModel, public LinearModel<1, 3> {
         }
         n_mat = conductivity.size();
 
-        double kappa_ref = (*max_element(conductivity.begin(), conductivity.end()) +
-                            *min_element(conductivity.begin(), conductivity.end())) /
-                           2;
-        kapparef_mat = kappa_ref * Matrix3d::Identity();
+        if (kapparef_mat.isZero()) {
+            double kappa_ref = (*max_element(conductivity.begin(), conductivity.end()) +
+                                *min_element(conductivity.begin(), conductivity.end())) /
+                               2;
+            kapparef_mat = kappa_ref * Matrix3d::Identity();
+        }
 
         Matrix3d phase_kappa;
         phase_stiffness = new Matrix<double, 8, 8>[n_mat];

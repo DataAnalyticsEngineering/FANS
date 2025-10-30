@@ -153,7 +153,8 @@ struct MixedBCController {
   protected:
     MixedBC  mbc_local;
     size_t   step_idx = 0;
-    VectorXd g0_vec; // current macro strain (size n_str)
+    VectorXd g0_vec;      // current macro strain (size n_str)
+    VectorXd g0_vec_prev; // previous time step for extrapolation
 
     // call from user code after v_u update each iteration
     template <typename SolverType>
@@ -198,10 +199,18 @@ struct MixedBCController {
                 // Small strain: zero initialization
                 g0_vec = VectorXd::Zero(n_str);
             }
+            g0_vec_prev = g0_vec; // Initialize history
+        } else {
+            // Linear extrapolation for stress-controlled components (t > 0)
+            VectorXd delta = g0_vec - g0_vec_prev;
+            g0_vec_prev    = g0_vec; // Store current before updating
+
+            for (int i = 0; i < mbc_local.idx_F.size(); ++i) {
+                g0_vec(mbc_local.idx_F(i)) += delta(mbc_local.idx_F(i));
+            }
         }
 
-        // Update ONLY the strain-controlled components from the current time step
-        // Stress-controlled components remain from previous converged state
+        // Update strain-controlled components from prescribed path
         if (mbc_local.idx_E.size()) {
             VectorXd prescribed = mbc_local.F_E_path.row(t).transpose();
             for (int i = 0; i < mbc_local.idx_E.size(); ++i) {
