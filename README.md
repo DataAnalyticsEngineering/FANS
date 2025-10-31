@@ -33,7 +33,7 @@ Fourier-Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver fo
 curl -fsSL https://pixi.sh/install.sh | bash
 ```
 
-Install and Use FANS:
+Install and use FANS:
 
 ```bash
 # Install FANS
@@ -49,7 +49,7 @@ FANS is available as a precompiled binary on [conda-forge](https://anaconda.org/
 
 ## Build from Source
 
-**Best for:** Developers, contributors, HPC users, or those needing custom builds.
+**Recommended for:** Developers, contributors, HPC users, or those needing custom builds.
 
 FANS requires the following dependencies:
 
@@ -189,13 +189,13 @@ cd ../test
 FANS includes [`FANS_Dashboard.ipynb`](FANS_Dashboard/FANS_Dashboard.ipynb), a comprehensive pipeline for post-processing, visualization, and analysis of simulation results. We recommend setting up a Python virtual environment via Pixi with all required Python dependencies in an isolated environment:
 
 ```bash
-# Install the dashboard environment
+# Install and activate the dashboard environment
 pixi shell -e dashboard
 ```
 
 The `dashboard` environment includes:
 
-- Python ≥ 3.14
+- Python
 - Jupyter notebook (`ipykernel`)
 - [MSUtils](https://github.com/DataAnalyticsEngineering/MSUtils) for FANS-specific utilities
 - Testing tools (`pytest`)
