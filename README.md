@@ -30,7 +30,7 @@ Fourier-Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver fo
 
 ```bash
 # Install Pixi if not done already
-curl -fsSL https://pixi.sh/install.sh | bash
+curl -fsSL https://pixi.sh/install.sh | sh
 ```
 
 Install and use FANS:
