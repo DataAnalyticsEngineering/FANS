@@ -1,3 +1,11 @@
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/version.svg)](https://anaconda.org/conda-forge/fans)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/platforms.svg)](https://anaconda.org/conda-forge/fans)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/downloads.svg)](https://anaconda.org/conda-forge/fans)
+[![Pixi Badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json)](https://prefix.dev/channels/conda-forge/packages/fans)
+![Last commit](https://img.shields.io/github/last-commit/DataAnalyticsEngineering/FANS)
+![License](https://img.shields.io/github/license/DataAnalyticsEngineering/FANS)
+![Stars](https://img.shields.io/github/stars/DataAnalyticsEngineering/FANS?style=social)
+
 # Fourier-Accelerated Nodal Solvers (FANS)
 
 Fourier-Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver for microscale multiphysics problems. FANS is written in C++, built using CMake, and it has MPI parallelization.
@@ -144,10 +152,6 @@ Install FANS (system-wide) using the following options:
     ```
 
 ### Install using Conda
-
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/version.svg)](https://anaconda.org/conda-forge/fans)
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/platforms.svg)](https://anaconda.org/conda-forge/fans)
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/downloads.svg)](https://anaconda.org/conda-forge/fans)
 
 FANS is also available as a conda package on [conda-forge/fans](https://anaconda.org/conda-forge/fans). No dependencies have to be manually installed for it to work.
 It can be installed via
