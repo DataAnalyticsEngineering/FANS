@@ -60,6 +60,9 @@ Also, we recommend setting up a Python virtual environment for the [`FANS_Dashbo
 # Install Pixi if not done already,
 curl -fsSL https://pixi.sh/install.sh | sh
 
+# Install FANS using pixi
+pixi global install FANS
+
 # Create and activate the environment
 pixi shell -e dashboard
 ```
