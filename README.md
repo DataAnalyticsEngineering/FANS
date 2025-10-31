@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/images/FANS_logo.png" alt="Example Image" width="300" height="300">
+  <img src="docs/images/FANS_logo.png" alt="Example Image" width="250" height="250">
 </p>
 
 [![GitHub Release](https://img.shields.io/github/v/release/DataAnalyticsEngineering/FANS?label=Release&color=004191)](https://prefix.dev/channels/conda-forge/packages/fans)
