@@ -1,10 +1,11 @@
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/version.svg)](https://anaconda.org/conda-forge/fans)
+[![GitHub Release](https://img.shields.io/github/v/release/DataAnalyticsEngineering/FANS?label=Release&color=004191)](https://prefix.dev/channels/conda-forge/packages/fans)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/platforms.svg)](https://anaconda.org/conda-forge/fans)
+[![Build and test pixi-build](https://github.com/DataAnalyticsEngineering/FANS/workflows/Build%20and%20test%20pixi-build/badge.svg)](https://github.com/DataAnalyticsEngineering/FANS/actions)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/downloads.svg)](https://anaconda.org/conda-forge/fans)
 [![Pixi Badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json)](https://prefix.dev/channels/conda-forge/packages/fans)
 ![Last commit](https://img.shields.io/github/last-commit/DataAnalyticsEngineering/FANS)
-![License](https://img.shields.io/github/license/DataAnalyticsEngineering/FANS)
-![Stars](https://img.shields.io/github/stars/DataAnalyticsEngineering/FANS?style=social)
+[![License](https://img.shields.io/github/license/DataAnalyticsEngineering/FANS)](https://github.com/DataAnalyticsEngineering/FANS/blob/main/LICENSE)
+[![Stars](https://img.shields.io/github/stars/DataAnalyticsEngineering/FANS?style=social)](https://github.com/DataAnalyticsEngineering/FANS/stargazers)
 
 # Fourier-Accelerated Nodal Solvers (FANS)
 
@@ -14,153 +15,193 @@ Fourier-Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver fo
   <img src="docs/images/FANS_logo.png" alt="Example Image" width="300" height="300">
 </p>
 
-## Table of contents
+## Table of Contents
 
-- [Dependencies](#dependencies)
-- [Building](#building)
-- [Installing](#installing)
+- [Quick start](#quick-start)
+- [Build from Source](#build-from-source)
+  - [Installing dependencies](#installing-dependencies)
+  - [Building FANS](#building-fans)
+- [Python Environment for the FANS Dashboard](#python-environment-for-the-fans-dashboard)
 - [Input File Format](#input-file-format)
 
-## Dependencies
+## Quick Start
 
-FANS has the following dependencies:
-
-- A C++ compiler (e.g., GCC, Clang, etc.)
-- CMake (version 3.21 or higher)
-- Git (for cloning this repo)
-- MPI (mpicc and mpic++)
-- HDF5 with MPI support
-- Eigen3
-- FFTW3 with MPI support
-- nlohmann-json (for JSON input parsing)
-
-### Installing dependencies
-
-- On Debian-based systems, we recommend installing the dependencies using `apt`,
-
-  ```bash
-  apt-get install \
-      libhdf5-dev \
-      libhdf5-openmpi-dev \
-      libopenmpi-dev \
-      libeigen3-dev \
-      libfftw3-dev \
-      libfftw3-mpi-dev \
-      nlohmann-json3-dev
-  ```
-
-- On macOS, you can obtain the dependencies using `brew` and set the environment variables:
-
-  ```zsh
-  brew install gnu-time cmake gcc@15
-  brew install open-mpi --build-from-source --cc=gcc-15
-  brew install hdf5-mpi --build-from-source --cc=gcc-15
-  brew install fftw eigen nlohmann-json
-
-  export CC=gcc-15 CXX=g++-15 MPICC=mpicc MPICXX=mpicxx
-  ```
-
-### Setting up a Python environment
-
-Also, we recommend setting up a Python virtual environment for the [`FANS_Dashboard.ipynb`](FANS_Dashboard/FANS_Dashboard.ipynb) via [pixi](https://pixi.sh/) with all required Python dependencies in an isolated environment:
+**Want to get started immediately?** Use [Pixi](https://pixi.sh):
 
 ```bash
-# Install Pixi if not done already,
-curl -fsSL https://pixi.sh/install.sh | sh
+# Install Pixi if not done already
+curl -fsSL https://pixi.sh/install.sh | bash
+```
 
-# Install FANS using pixi
-pixi global install FANS
+Install and Use FANS:
 
-# Create and activate the environment
+```bash
+# Install FANS
+pixi global install fans
+
+# Verify installation
+FANS --version
+```
+
+FANS is available as a precompiled binary on [conda-forge](https://anaconda.org/conda-forge/fans). That's it! No dependencies to install, no compilation needed. 🚀
+
+---
+
+## Build from Source
+
+**Best for:** Developers, contributors, HPC users, or those needing custom builds.
+
+FANS requires the following dependencies:
+
+| Dependency | Purpose |  |
+|------------|---------|------------------|
+| **C++ Compiler** | (GCC, Clang, etc.) | C++17 or newer |
+| **CMake** | Build system | ≥ 3.21 |
+| **MPI** | Parallel computing | (OpenMPI, MPICH, Intel MPI) |
+| **HDF5** | Data I/O | **with MPI support** |
+| **FFTW3** | FFT computations | **with MPI support** |
+| **Eigen3** | Linear algebra | ≥ 3.4 |
+| **nlohmann-json** | JSON parsing | ≥ 3.11 |
+
+### Installing Dependencies
+
+<details>
+
+<summary><b> Using Pixi (Cross-platform - Easiest for source builds)</b></summary>
+
+```bash
+# Clone the repository
+git clone https://github.com/DataAnalyticsEngineering/FANS.git
+cd FANS
+
+# Enter development environment (all dependencies pre-installed!)
+pixi shell -e dev
+```
+
+</details>
+
+<details>
+<summary><b>Linux (Debian/Ubuntu)</b></summary>
+
+We recommend installing the dependencies using `apt`:
+
+```bash
+apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    file \
+    libhdf5-dev \
+    libhdf5-openmpi-dev \
+    libopenmpi-dev \
+    libeigen3-dev \
+    libfftw3-dev \
+    libfftw3-mpi-dev \
+    nlohmann-json3-dev
+```
+
+</details>
+
+<details>
+<summary><b>macOS</b></summary>
+
+We recommend installing the dependencies using [`brew`](https://brew.sh):
+
+```bash
+brew install gnu-time cmake gcc@15
+brew install open-mpi --build-from-source --cc=gcc-15
+brew install hdf5-mpi --build-from-source --cc=gcc-15
+brew install fftw eigen nlohmann-json
+
+# Set environment variables
+export CC=gcc-15 CXX=g++-15 MPICC=mpicc MPICXX=mpicxx
+```
+
+</details>
+
+<details>
+<summary><b> Using Spack (HPC environments)</b></summary>
+
+Spack is a package manager designed for high-performance computing environments. It simplifies the installation of complex software stacks, making it ideal for setting up FANS on HPC systems.
+**Install Spack** by following these [installation instructions](https://spack.readthedocs.io/en/latest/getting_started.html). Once Spack is set up, install the required dependencies:
+
+```bash
+spack install cmake
+spack install mpi
+spack install hdf5+cxx+mpi
+spack install eigen
+spack install fftw+mpi
+spack install nlohmann-json
+
+# Load dependencies
+spack load cmake mpi hdf5 eigen fftw nlohmann-json
+```
+
+Additionally, optimized FFTW implementations can be used depending on your system's architecture:
+- AMD systems: `spack install amdfftw+mpi`
+- Cray systems: `spack install cray-fftw+mpi`
+- Fujitsu systems: `spack install fujitsu-fftw+mpi`
+
+</details>
+
+<details>
+<summary><b>Docker images</b></summary>
+
+Pre-configured Docker images are available for containerized deployments. See [`docker/README.md`](docker/README.md) for further details.
+
+</details>
+
+### Building FANS
+
+```bash
+# Clone the repository
+git clone https://github.com/DataAnalyticsEngineering/FANS.git
+cd FANS
+
+# Create build directory
+mkdir build && cd build
+
+# Configure (basic)
+cmake ..
+
+# Build
+cmake --build . -j
+
+# Run tests with 8 mpi processes
+cd ../test
+./run_tests.sh -n 8
+```
+
+**Build Options:**
+
+| CMake Option | Description | Default |
+|--------------|-------------|---------|
+| `CMAKE_BUILD_TYPE` | Build type: `Debug`, `Release`, `RelWithDebInfo` | `NONE` |
+| `CMAKE_INTERPROCEDURAL_OPTIMIZATION` | Enable link-time optimization (LTO) | `ON` (if supported) |
+| `FANS_BUILD_STATIC` | Build static library | `OFF` |
+| `CMAKE_INSTALL_PREFIX` | Installation directory | System default |
+
+---
+
+## Python Environment for the FANS Dashboard
+
+FANS includes [`FANS_Dashboard.ipynb`](FANS_Dashboard/FANS_Dashboard.ipynb), a comprehensive pipeline for post-processing, visualization, and analysis of simulation results. We recommend setting up a Python virtual environment via Pixi with all required Python dependencies in an isolated environment:
+
+```bash
+# Install the dashboard environment
 pixi shell -e dashboard
 ```
 
-We also provide a set of Docker images. For further information, please refer to the [Docker README](docker/README.md).
+The `dashboard` environment includes:
+- Python ≥ 3.14
+- Jupyter notebook (`ipykernel`)
+- [MSUtils](https://github.com/DataAnalyticsEngineering/MSUtils) for FANS-specific utilities
+- Testing tools (`pytest`)
+- Code quality tools (`pre-commit`)
 
-### Installing dependencies using Spack
+See [`FANS_Dashboard`](FANS_Dashboard/) for further details.
 
-Spack is a package manager designed for high-performance computing environments. It simplifies the installation of complex software stacks, making it ideal for setting up FANS on HPC systems.
-
-1. **Install Spack** by following these [installation instructions](https://spack.readthedocs.io/en/latest/getting_started.html).
-
-2. **Install Dependencies**: Once Spack is set up, install the required dependencies:
-
-    ```bash
-    spack install cmake
-    spack install mpi
-    spack install hdf5 +cxx +mpi
-    spack install eigen
-    spack install fftw +mpi
-    spack install nlohmann-json
-    ```
-
-    Additionally, optimized FFTW implementations can be used depending on your system's architecture, for example `amdfftw` (For AMD systems) or `cray-fftw` (For Cray systems), or `fujitsu-fftw` (For Fujitsu systems).
-
-3. **Load Dependencies** Once dependencies are installed, load them before building:
-
-    ```bash
-    spack load cmake mpi hdf5 eigen fftw nlohmann-json
-    ```
-
-## Building
-
-1. Clone the repository:
-
-    ```bash
-    git clone https://github.com/DataAnalyticsEngineering/FANS.git
-    cd FANS
-    ```
-
-2. Configure the build using CMake:
-
-    ```bash
-    mkdir build
-    cd build
-    cmake ..
-    ```
-
-3. Compile:
-
-    ```bash
-    cmake --build . -j
-    ```
-
-The compilation symlinks the generated `FANS` binary into the `test/` directory for convenience.
-
-### Configuring a build
-
-The following CMake configuration options exist:
-
-- `CMAKE_BUILD_TYPE`: Sets the build type. Common values are Debug, Release, RelWithDebInfo, and MinSizeRel.
-  - Default: NONE
-
-- `FANS_BUILD_STATIC`: Build static library instead of shared library.
-  - Default: OFF
-
-- `CMAKE_INTERPROCEDURAL_OPTIMIZATION`: Enable inter-procedural optimization (IPO) for all targets.
-  - Default: ON (if supported)
-  - Note: When you run the configure step for the first time, IPO support is automatically checked and enabled if available. A status message will indicate whether IPO is activated or not supported.
-
-## Installing
-
-Install FANS (system-wide) using the following options:
-
-1. Using CMake (sudo required if --prefix is omitted):
-
-    ```bash
-    cmake --install . [--prefix <install-dir>]
-    ```
-
-### Install using Conda
-
-FANS is also available as a conda package on [conda-forge/fans](https://anaconda.org/conda-forge/fans). No dependencies have to be manually installed for it to work.
-It can be installed via
-
-```bash
-conda install conda-forge::fans
-```
-
-exposing the executable `FANS`.
+---
 
 ## Input File Format
 
