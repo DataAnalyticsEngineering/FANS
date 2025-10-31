@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/FANS_logo.png" alt="Example Image" width="300" height="300">
+</p>
+
 [![GitHub Release](https://img.shields.io/github/v/release/DataAnalyticsEngineering/FANS?label=Release&color=004191)](https://prefix.dev/channels/conda-forge/packages/fans)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/platforms.svg)](https://anaconda.org/conda-forge/fans)
 [![Build and test pixi-build](https://github.com/DataAnalyticsEngineering/FANS/workflows/Build%20and%20test%20pixi-build/badge.svg)](https://github.com/DataAnalyticsEngineering/FANS/actions)
@@ -10,10 +14,6 @@
 # Fourier-Accelerated Nodal Solvers (FANS)
 
 Fourier-Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver for microscale multiphysics problems. FANS is written in C++, built using CMake, and it has MPI parallelization.
-
-<p align="center">
-  <img src="docs/images/FANS_logo.png" alt="Example Image" width="300" height="300">
-</p>
 
 ## Table of Contents
 
@@ -138,6 +138,7 @@ spack load cmake mpi hdf5 eigen fftw nlohmann-json
 ```
 
 Additionally, optimized FFTW implementations can be used depending on your system's architecture:
+
 - AMD systems: `spack install amdfftw+mpi`
 - Cray systems: `spack install cray-fftw+mpi`
 - Fujitsu systems: `spack install fujitsu-fftw+mpi`
@@ -193,6 +194,7 @@ pixi shell -e dashboard
 ```
 
 The `dashboard` environment includes:
+
 - Python ≥ 3.14
 - Jupyter notebook (`ipykernel`)
 - [MSUtils](https://github.com/DataAnalyticsEngineering/MSUtils) for FANS-specific utilities
