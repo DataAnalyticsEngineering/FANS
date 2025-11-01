@@ -29,7 +29,7 @@ Fourier-Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver fo
   - [Macroscale loading conditions](#macroscale-loading-conditions)
   - [Results specification](#results-specification)
 
-## Quick start 🚀
+## Quick start
 
 **Want to get started immediately?** Use [Pixi](https://pixi.sh):
 
@@ -48,7 +48,7 @@ pixi global install fans
 FANS --version
 ```
 
-FANS is available as a precompiled binary on [conda-forge](https://anaconda.org/conda-forge/fans). That's it! No dependencies to install, no compilation needed. 🚀
+FANS is available as a precompiled binary on [conda-forge](https://anaconda.org/conda-forge/fans). That's it! No dependencies to install, no compilation needed 🚀
 
 ---
 
