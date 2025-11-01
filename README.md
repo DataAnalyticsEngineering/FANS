@@ -18,13 +18,18 @@ Fourier-Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver fo
 ## Table of Contents
 
 - [Quick start](#quick-start)
-- [Build from Source](#build-from-source)
+- [Build from source](#build-from-source)
   - [Installing dependencies](#installing-dependencies)
   - [Building FANS](#building-fans)
-- [Python Environment for the FANS Dashboard](#python-environment-for-the-fans-dashboard)
-- [Input File Format](#input-file-format)
+- [Python environment for the FANS dashboard](#python-environment-for-the-fans-dashboard)
+- [Input file format](#input-file-format)
+  - [Microstructure definition](#microstructure-definition)
+  - [Problem type and material model](#problem-type-and-material-model)
+  - [Solver settings](#solver-settings)
+  - [Macroscale loading conditions](#macroscale-loading-conditions)
+  - [Results specification](#results-specification)
 
-## Quick Start
+## Quick start 🚀
 
 **Want to get started immediately?** Use [Pixi](https://pixi.sh):
 
@@ -47,7 +52,7 @@ FANS is available as a precompiled binary on [conda-forge](https://anaconda.org/
 
 ---
 
-## Build from Source
+## Build from source
 
 **Recommended for:** Developers, contributors, HPC users, or those needing custom builds.
 
@@ -63,7 +68,7 @@ FANS requires the following dependencies:
 | **Eigen3** | Linear algebra | ≥ 3.4 |
 | **nlohmann-json** | JSON parsing | ≥ 3.11 |
 
-### Installing Dependencies
+### Installing dependencies
 
 <details>
 
@@ -173,7 +178,7 @@ cd ../test
 ./run_tests.sh -n 8
 ```
 
-**Build Options:**
+**Build options:**
 
 | CMake Option | Description | Default |
 |--------------|-------------|---------|
@@ -182,12 +187,13 @@ cd ../test
 | `FANS_BUILD_STATIC` | Build static library | `OFF` |
 | `CMAKE_INSTALL_PREFIX` | Installation directory | System default |
 | `FANS_LIBRARY_FOR_MICRO_MANAGER` | Build Python bindings using Pybind11 (needed) | `OFF` |
+| `FANS_ENABLE_SANITIZERS` | Enable runtime sanitizers (AddressSanitizer and LeakSanitizer) for memory debugging | `OFF` |
 
 ---
 
-## Python Environment for the FANS Dashboard
+## Python environment for the FANS dashboard
 
-FANS includes [`FANS_Dashboard.ipynb`](FANS_Dashboard/FANS_Dashboard.ipynb), a comprehensive pipeline for post-processing, visualization, and analysis of simulation results. We recommend setting up a Python virtual environment via Pixi with all required Python dependencies in an isolated environment:
+FANS includes [`FANS_Dashboard.ipynb`](FANS_Dashboard/FANS_Dashboard.ipynb), a comprehensive pipeline for post-processing, visualization, and analysis of simulation results. We recommend setting up a Python virtual environment via [Pixi](https://pixi.sh/) with all required Python dependencies in an isolated environment:
 
 ```bash
 # Install and activate the dashboard environment
@@ -206,11 +212,11 @@ See [`FANS_Dashboard`](FANS_Dashboard/) for further details.
 
 ---
 
-## Input File Format
+## Input file format
 
 FANS requires a JSON input file specifying the problem parameters. Example input files can be found in the [`test/input_files`](test/input_files) directory. It is recommended to use these files as a reference to create your input file.
 
-### Microstructure Definition
+### Microstructure definition
 
 ```json
 "microstructure": {
@@ -224,7 +230,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 - `datasetname`: This is the path within the HDF5 file to the specific dataset that represents the microstructure.
 - `L`: Microstructure length defines the physical dimensions of the microstructure in the $x$, $y$, and $z$ directions.
 
-### Problem Type and Material Model
+### Problem type and material model
 
 ```json
 "problem_type": "mechanical",
@@ -253,7 +259,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 - `strain_type`: This indicates whether the problem is formulated using infinitesimal (`small`) strain or finite (`large`) strain theory.
 - `material_properties`: This provides the necessary material parameters for the chosen material model. For thermal problems, you might specify `conductivity`, while mechanical problems might require `bulk_modulus`, `shear_modulus`, and more properties for advanced material models. These properties can be defined as arrays to represent multiple phases within the microstructure.
 
-### Solver Settings
+### Solver settings
 
 ```json
 "FE_type": "HEX8",
@@ -269,7 +275,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 - `FE_type`: This specifies the type of finite element to be used. Common options include:
   - `HEX8`: Standard trilinear hexahedral elements with full integration (8 Gauss points). Suitable for most problems but may exhibit volumetric locking for nearly incompressible materials (Poisson's ratio ~ 0.5).
   - `BBAR`: B-bar elements with selective reduced integration to mitigate volumetric locking. Recommended for materials with high Poisson's ratios (0.4 to 0.5).
-  - `HEX8R`: Reduced integration elements with a single Gauss point at the element center. Use with caution as they may lead to hourglassing and less accurate results.
+  - `HEX8R`: Reduced integration elements with a single Gauss point at the element center. Use with caution—these may produce less accurate field results and can cause local material issues such as negative Jacobian ($J < 0$), leading to nonphysical solutions (hourglassing).
 - `method`: This indicates the numerical method to be used for solving the system of equations. `cg` stands for the Conjugate Gradient method, and `fp` stands for the Fixed Point method.
 - `error_parameters`: This section defines the error parameters for the solver. Error control is applied to the finite element nodal residual of the problem.
   - `measure`: Specifies the norm used to measure the error. Options include `Linfinity`, `L1`, or `L2`.
@@ -277,7 +283,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
   - `tolerance`: Sets the tolerance level for the solver, defining the convergence criterion based on the chosen error measure. The solver iterates until the solution meets this tolerance.
 - `n_it`: Specifies the maximum number of iterations allowed for the FANS solver.
 
-### Macroscale Loading Conditions
+### Macroscale loading conditions
 
 ```json
 "macroscale_loading":   [
@@ -297,9 +303,9 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 ```
 
 - `macroscale_loading`: This defines the external loading applied to the microstructure. It is an array of arrays, where each sub-array represents a load path applied to the system. The format of the load path depends on the problem type:
-  - For `thermal` problems, the array typically has 3 components, representing the temperature gradients in the $x$, $y$, and $z$ directions.
-  - For `small` strain `mechanical` problems, the array must have 6 components, corresponding to the components of the strain tensor in Mandel notation (e.g., $[\varepsilon_{11}, \varepsilon_{22}, \varepsilon_{33}, \sqrt{2}\varepsilon_{12}, \sqrt{2}\varepsilon_{13}, \sqrt{2}\varepsilon_{23}]$).
-  - For `large` strain `mechanical` problems, the array must have 9 components, corresponding to the deformation gradient tensor components (e.g., $[F_{11}, F_{12}, F_{13}, F_{21}, F_{22}, F_{23}, F_{31}, F_{32}, F_{33}]$).
+  - For `thermal` problems, the array typically has 3 components, representing the macroscale temperature gradients in the $x$, $y$, and $z$ directions.
+  - For `small` strain `mechanical` problems, the array must have 6 components, corresponding to the components of the macroscale strain tensor in Mandel notation (e.g., $[\overline{\varepsilon}_{11}, \overline{\varepsilon}_{22}, \overline{\varepsilon}_{33}, \sqrt{2}\,\overline{\varepsilon}_{12}, \sqrt{2}\,\overline{\varepsilon}_{13}, \sqrt{2}\,\overline{\varepsilon}_{23}]$).
+  - For `large` strain `mechanical` problems, the array must have 9 components, corresponding to the macroscale deformation gradient tensor components (e.g., $[\overline{F}_{11}, \overline{F}_{12}, \overline{F}_{13}, \overline{F}_{21}, \overline{F}_{22}, \overline{F}_{23}, \overline{F}_{31}, \overline{F}_{32}, \overline{F}_{33}]$).
 
 In the case of path/time-dependent loading, as shown, for example, in plasticity problems, the `macroscale_loading` array can include multiple steps with corresponding loading conditions.
 
@@ -316,7 +322,7 @@ FANS also supports mixed boundary conditions, where some components can be strai
                           }]
 ```
 
-### Results Specification
+### Results specification
 
 ```json
 "results": ["stress_average", "strain_average", "absolute_error", "phase_stress_average", "phase_strain_average",
