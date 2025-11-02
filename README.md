@@ -2,14 +2,16 @@
   <img src="docs/images/FANS_logo.png" alt="Example Image" width="250" height="250">
 </p>
 
-[![GitHub Release](https://img.shields.io/github/v/release/DataAnalyticsEngineering/FANS?label=Release&color=004191)](https://prefix.dev/channels/conda-forge/packages/fans)
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/platforms.svg)](https://anaconda.org/conda-forge/fans)
-[![Build and test pixi-build](https://github.com/DataAnalyticsEngineering/FANS/workflows/Build%20and%20test%20pixi-build/badge.svg)](https://github.com/DataAnalyticsEngineering/FANS/actions)
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/downloads.svg)](https://anaconda.org/conda-forge/fans)
-[![Pixi Badge](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json)](https://prefix.dev/channels/conda-forge/packages/fans)
-![Last commit](https://img.shields.io/github/last-commit/DataAnalyticsEngineering/FANS)
-[![License](https://img.shields.io/github/license/DataAnalyticsEngineering/FANS)](https://github.com/DataAnalyticsEngineering/FANS/blob/main/LICENSE)
-[![Stars](https://img.shields.io/github/stars/DataAnalyticsEngineering/FANS?style=social)](https://github.com/DataAnalyticsEngineering/FANS/stargazers)
+<p align="center">
+  <a href="https://prefix.dev/channels/conda-forge/packages/fans"><img src="https://img.shields.io/github/v/release/DataAnalyticsEngineering/FANS?label=Release&color=004191" alt="GitHub Release"></a>
+  <a href="https://anaconda.org/conda-forge/fans"><img src="https://anaconda.org/conda-forge/fans/badges/platforms.svg" alt="Anaconda-Server Badge"></a>
+  <a href="https://github.com/DataAnalyticsEngineering/FANS/actions"><img src="https://github.com/DataAnalyticsEngineering/FANS/workflows/Build%20and%20test%20pixi-build/badge.svg" alt="Build and test pixi-build"></a>
+  <a href="https://anaconda.org/conda-forge/fans"><img src="https://anaconda.org/conda-forge/fans/badges/downloads.svg" alt="Anaconda-Server Badge"></a>
+  <a href="https://prefix.dev/channels/conda-forge/packages/fans"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json" alt="Pixi Badge"></a>
+  <img src="https://img.shields.io/github/last-commit/DataAnalyticsEngineering/FANS" alt="Last commit">
+  <a href="https://github.com/DataAnalyticsEngineering/FANS/blob/main/LICENSE"><img src="https://img.shields.io/github/license/DataAnalyticsEngineering/FANS" alt="License"></a>
+  <a href="https://github.com/DataAnalyticsEngineering/FANS/stargazers"><img src="https://img.shields.io/github/stars/DataAnalyticsEngineering/FANS?style=social" alt="Stars"></a>
+</p>
 
 # Fourier-Accelerated Nodal Solver (FANS)
 
