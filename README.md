@@ -33,24 +33,26 @@ Fourier-Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver fo
 
 ## Quick start
 
-**Want to get started immediately?** Use [Pixi](https://pixi.sh):
+**Want to get started immediately?**
+
+FANS is available as a precompiled binary on [conda-forge](https://anaconda.org/conda-forge/fans). Package managers such as [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html), [mamba](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html), [micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html), and [Pixi](https://pixi.sh) can also be used to install FANS from the conda-forge channel.
+
+Use [Pixi](https://pixi.sh) (recommended):
 
 ```bash
-# Install Pixi if not done already
+# Install Pixi (if not already installed)
 curl -fsSL https://pixi.sh/install.sh | sh
-```
 
-Install and use FANS:
-
-```bash
-# Install FANS
+# Install FANS via Pixi
 pixi global install fans
 
 # Verify installation
 FANS --version
 ```
 
-FANS is available as a precompiled binary on [conda-forge](https://anaconda.org/conda-forge/fans). That's it! No dependencies to install, no compilation needed 🚀
+That's it! No dependencies to install, no compilation needed 🚀
+
+To get started immediately, we include ready to use example [input files](test/input_files/) and [microstructures](test/microstructures/) you can use as templates to create your own.
 
 ---
 
@@ -75,6 +77,8 @@ FANS requires the following dependencies:
 <details>
 
 <summary><b> Using Pixi (Cross-platform - Easiest for source builds)</b></summary>
+
+This uses the repository's [pixi.toml](pixi.toml) to define the `dev` environment.
 
 ```bash
 # Clone the repository
@@ -129,8 +133,7 @@ export CC=gcc-15 CXX=g++-15 MPICC=mpicc MPICXX=mpicxx
 <details>
 <summary><b> Using Spack (HPC environments)</b></summary>
 
-Spack is a package manager designed for high-performance computing environments. It simplifies the installation of complex software stacks, making it ideal for setting up FANS on HPC systems.
-**Install Spack** by following these [installation instructions](https://spack.readthedocs.io/en/latest/getting_started.html). Once Spack is set up, install the required dependencies:
+[Spack](https://spack.readthedocs.io/en/latest/) is a flexible package manager for building and managing software stacks in high-performance computing environments. Install Spack by following these [installation instructions](https://spack.readthedocs.io/en/latest/getting_started.html). Once Spack is set up, install the required dependencies:
 
 ```bash
 spack install cmake
@@ -306,8 +309,8 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 
 - `macroscale_loading`: This defines the external loading applied to the microstructure. It is an array of arrays, where each sub-array represents a load path applied to the system. The format of the load path depends on the problem type:
   - For `thermal` problems, the array typically has 3 components, representing the macroscale temperature gradients in the $x$, $y$, and $z$ directions.
-  - For `small` strain `mechanical` problems, the array must have 6 components, corresponding to the components of the macroscale strain tensor in Mandel notation (e.g., $[\overline{\varepsilon}_{11}, \overline{\varepsilon}_{22}, \overline{\varepsilon}_{33}, \sqrt{2}\,\overline{\varepsilon}_{12}, \sqrt{2}\,\overline{\varepsilon}_{13}, \sqrt{2}\,\overline{\varepsilon}_{23}]$).
-  - For `large` strain `mechanical` problems, the array must have 9 components, corresponding to the macroscale deformation gradient tensor components (e.g., $[\overline{F}_{11}, \overline{F}_{12}, \overline{F}_{13}, \overline{F}_{21}, \overline{F}_{22}, \overline{F}_{23}, \overline{F}_{31}, \overline{F}_{32}, \overline{F}_{33}]$).
+  - For `small` strain `mechanical` problems, the array must have 6 components, corresponding to the macroscale strain tensor in Mandel notation: $[\varepsilon_{11},\ \varepsilon_{22},\ \varepsilon_{33},\ \sqrt{2}\,\varepsilon_{12},\ \sqrt{2}\,\varepsilon_{13},\ \sqrt{2}\,\varepsilon_{23}]$.
+  - For `large` strain `mechanical` problems, the array must have 9 components, corresponding to the macroscale deformation gradient tensor: $[F_{11},\ F_{12},\ F_{13},\ F_{21},\ F_{22},\ F_{23},\ F_{31},\ F_{32},\ F_{33}]$.
 
 In the case of path/time-dependent loading, as shown, for example, in plasticity problems, the `macroscale_loading` array can include multiple steps with corresponding loading conditions.
 
