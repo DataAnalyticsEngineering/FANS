@@ -31,6 +31,7 @@ class Solver : private MixedBCController<howmany> {
     unsigned short *ms;  // Micro-structure
     double         *v_r; //!< Residual vector
     double         *v_u;
+    double         *v_u_prev; //!< Previous displacement for extrapolation
     double         *buffer_padding;
 
     RealArray      v_r_real; // can't do the "classname()" intialization here, and Map doesn't have a default constructor
@@ -44,14 +45,15 @@ class Solver : private MixedBCController<howmany> {
     void iterateCubes(F f);
 
     void         solve();
-    virtual void internalSolve() {}; // important to have "{}" here, otherwise we get an error about undefined reference to vtable
+    void         extrapolateDisplacement(); //!< Linear extrapolation for next time step
+    virtual void internalSolve() {};        // important to have "{}" here, otherwise we get an error about undefined reference to vtable
 
     template <int padding, typename F>
     void compute_residual_basic(RealArray &r_matrix, RealArray &u_matrix, F f);
     template <int padding>
     void compute_residual(RealArray &r_matrix, RealArray &u_matrix);
 
-    void postprocess(Reader &reader, const char resultsFileName[], int load_idx, int time_idx); //!< Computes Strain and stress
+    void postprocess(Reader &reader, int load_idx, int time_idx); //!< Computes Strain and stress
 
     void   convolution();
     double compute_error(RealArray &r);
@@ -62,8 +64,6 @@ class Solver : private MixedBCController<howmany> {
 
     MatrixXd homogenized_tangent;
     MatrixXd get_homogenized_tangent(double pert_param);
-
-    char dataset_name[5096]; // Dataset name for postprocessing results
 
     void enableMixedBC(const MixedBC &mbc, size_t step)
     {
@@ -122,6 +122,7 @@ Solver<howmany, n_str>::Solver(Reader &reader, Matmodel<howmany, n_str> *mat)
 
       v_u(fftw_alloc_real((local_n0 + 1) * n_y * n_z * howmany)),
       v_u_real(v_u, n_z * howmany, local_n0 * n_y, OuterStride<>(n_z * howmany)),
+      v_u_prev(fftw_alloc_real(local_n0 * n_y * n_z * howmany)),
 
       rhat((std::complex<double> *) v_r, local_n1 * n_x * (n_z / 2 + 1) * howmany), // actual initialization is below
       buffer_padding(fftw_alloc_real(n_y * (n_z + 2) * howmany))
@@ -130,13 +131,11 @@ Solver<howmany, n_str>::Solver(Reader &reader, Matmodel<howmany, n_str> *mat)
     for (ptrdiff_t i = local_n0 * n_y * n_z * howmany; i < (local_n0 + 1) * n_y * n_z * howmany; i++) {
         this->v_u[i] = 0;
     }
+    std::memset(v_u_prev, 0, local_n0 * n_y * n_z * howmany * sizeof(double));
 
     matmodel->initializeInternalVariables(local_n0 * n_y * n_z, matmodel->n_gp);
 
     computeFundamentalSolution();
-
-    // Set dataset name as member variable of the Solver class
-    sprintf(dataset_name, "%s_results/%s", reader.ms_datasetname, reader.results_prefix);
 }
 
 template <int howmany, int n_str>
@@ -297,6 +296,17 @@ void Solver<howmany, n_str>::solve()
 }
 
 template <int howmany, int n_str>
+void Solver<howmany, n_str>::extrapolateDisplacement()
+{
+    const size_t n = local_n0 * n_y * n_z * howmany;
+    for (size_t i = 0; i < n; ++i) {
+        const double delta = v_u[i] - v_u_prev[i];
+        v_u_prev[i]        = v_u[i];
+        v_u[i] += delta; // v_u = v_u + (v_u - v_u_prev)
+    }
+}
+
+template <int howmany, int n_str>
 template <int padding, typename F>
 void Solver<howmany, n_str>::iterateCubes(F f)
 {
@@ -438,7 +448,7 @@ double Solver<howmany, n_str>::compute_error(RealArray &r)
 }
 
 template <int howmany, int n_str>
-void Solver<howmany, n_str>::postprocess(Reader &reader, const char resultsFileName[], int load_idx, int time_idx)
+void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_idx)
 {
     VectorXd strain         = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
     VectorXd stress         = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
@@ -567,54 +577,32 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, const char resultsFileN
         }
     }
 
-    // Write results to results h5 file
-    auto writeData = [&](const char *resultName, const char *resultPrefix, auto *data, hsize_t *dims, int ndims) {
-        if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), resultName) != reader.resultsToWrite.end()) {
-            char name[5096];
-            sprintf(name, "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, resultPrefix);
-            reader.WriteData(data, resultsFileName, name, dims, ndims);
-        }
-    };
-
-    auto writeSlab = [&](const char *resultName, const char *resultPrefix, auto *data, int size) {
-        if (std::find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), resultName) != reader.resultsToWrite.end()) {
-            char name[5096];
-            sprintf(name, "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, resultPrefix);
-            reader.WriteSlab(data, size, resultsFileName, name);
-        }
-    };
-
-    for (int i = 0; i < world_size; ++i) {
-        if (i == world_rank) {
-            if (world_rank == 0) {
-                hsize_t dims[1] = {static_cast<hsize_t>(n_str)};
-                writeData("stress_average", "stress_average", stress_average.data(), dims, 1);
-                writeData("strain_average", "strain_average", strain_average.data(), dims, 1);
-
-                for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
-                    char stress_name[512];
-                    char strain_name[512];
-                    sprintf(stress_name, "phase_stress_average_phase%d", mat_index);
-                    sprintf(strain_name, "phase_strain_average_phase%d", mat_index);
-                    writeData("phase_stress_average", stress_name, phase_stress_average[mat_index].data(), dims, 1);
-                    writeData("phase_strain_average", strain_name, phase_strain_average[mat_index].data(), dims, 1);
-                }
-                dims[0] = iter + 1;
-                writeData("absolute_error", "absolute_error", err_all.data(), dims, 1);
-            }
-            writeSlab("microstructure", "microstructure", ms, 1);
-            writeSlab("displacement_fluctuation", "displacement_fluctuation", v_u, howmany);
-            writeSlab("displacement", "displacement", u_total.data(), howmany);
-            writeSlab("residual", "residual", v_r, howmany);
-            writeSlab("strain", "strain", strain.data(), n_str);
-            writeSlab("stress", "stress", stress.data(), n_str);
-        }
-        MPI_Barrier(MPI_COMM_WORLD);
+    hsize_t dims[1] = {static_cast<hsize_t>(n_str)};
+    reader.writeData("stress_average", load_idx, time_idx, stress_average.data(), dims, 1);
+    reader.writeData("strain_average", load_idx, time_idx, strain_average.data(), dims, 1);
+    for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
+        char stress_name[512];
+        char strain_name[512];
+        sprintf(stress_name, "phase_stress_average_phase%d", mat_index);
+        sprintf(strain_name, "phase_strain_average_phase%d", mat_index);
+        reader.writeData(stress_name, load_idx, time_idx, phase_stress_average[mat_index].data(), dims, 1);
+        reader.writeData(strain_name, load_idx, time_idx, phase_strain_average[mat_index].data(), dims, 1);
     }
+    dims[0] = iter + 1;
+    reader.writeData("absolute_error", load_idx, time_idx, err_all.data(), dims, 1);
 
-    matmodel->postprocess(*this, reader, resultsFileName, load_idx, time_idx);
+    vector<int> rank_field(local_n0 * n_y * n_z, world_rank);
+    reader.writeSlab("mpi_rank", load_idx, time_idx, rank_field.data(), 1);
+    reader.writeSlab("microstructure", load_idx, time_idx, ms, 1);
+    reader.writeSlab("displacement_fluctuation", load_idx, time_idx, v_u, howmany);
+    reader.writeSlab("displacement", load_idx, time_idx, u_total.data(), howmany);
+    reader.writeSlab("residual", load_idx, time_idx, v_r, howmany);
+    reader.writeSlab("strain", load_idx, time_idx, strain.data(), n_str);
+    reader.writeSlab("stress", load_idx, time_idx, stress.data(), n_str);
 
-    // Compute homogenized tangent
+    matmodel->postprocess(*this, reader, load_idx, time_idx);
+
+    // Compute homogenized tangent only if requested
     if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "homogenized_tangent") != reader.resultsToWrite.end()) {
         homogenized_tangent = get_homogenized_tangent(1e-6);
         hsize_t dims[2]     = {static_cast<hsize_t>(n_str), static_cast<hsize_t>(n_str)};
@@ -622,9 +610,10 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, const char resultsFileN
             cout << "# Homogenized tangent: " << endl
                  << setprecision(12) << homogenized_tangent << endl
                  << endl;
-            writeData("homogenized_tangent", "homogenized_tangent", homogenized_tangent.data(), dims, 2);
+            reader.writeData("homogenized_tangent", load_idx, time_idx, homogenized_tangent.data(), dims, 2);
         }
     }
+    extrapolateDisplacement(); // prepare v_u for next time step
 }
 
 template <int howmany, int n_str>
@@ -704,6 +693,10 @@ Solver<howmany, n_str>::~Solver()
     if (v_u) {
         fftw_free(v_u);
         v_u = nullptr;
+    }
+    if (v_u_prev) {
+        fftw_free(v_u_prev);
+        v_u_prev = nullptr;
     }
     if (buffer_padding) {
         fftw_free(buffer_padding);

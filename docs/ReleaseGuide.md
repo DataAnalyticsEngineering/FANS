@@ -6,7 +6,7 @@ The release of the `FANS` repository is made directly from a release branch call
 
 1. Create a branch called `FANS-v1.2.3` from the latest commit of the `develop` branch.
 
-2. Bump the version in the `CHANGELOG.md`, the base `CMakeLists.txt`, `pixi.toml`, and in the file `FANS_Dashboard/pyproject.toml` on the branch `FANS-v1.2.3`.
+2. Bump the version in the `CHANGELOG.md`, the base `CMakeLists.txt`, and in the `pixi.toml` on the branch `FANS-v1.2.3`.
 
 3. Assuming you have Pixi installed, run the command `pixi lock` in the repository root to update the `pixi.lock` file. Then commit and push the `FANS-v1.2.3` branch to remote.
 

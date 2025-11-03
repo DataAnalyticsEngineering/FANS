@@ -31,16 +31,18 @@ class CompressibleNeoHookean : public LargeStrainMechModel {
             lambda[i] = bulk_modulus[i] - (2.0 / 3.0) * mu[i];
         }
 
-        // Compute reference tangent at F=I
-        kapparef_mat = Matrix<double, 9, 9>::Zero();
-        for (int mat_idx = 0; mat_idx < n_mat; ++mat_idx) {
-            Matrix3d             F_identity = Matrix3d::Identity();
-            Matrix3d             S          = compute_S(F_identity, mat_idx, 0);
-            Matrix<double, 6, 6> C_mandel   = compute_material_tangent(F_identity, mat_idx);
-            Matrix<double, 9, 9> A          = compute_spatial_tangent(F_identity, S, C_mandel);
-            kapparef_mat += A;
+        if (kapparef_mat.isZero()) {
+            // Compute reference tangent at F=I
+            kapparef_mat = Matrix<double, 9, 9>::Zero();
+            for (int mat_idx = 0; mat_idx < n_mat; ++mat_idx) {
+                Matrix3d             F_identity = Matrix3d::Identity();
+                Matrix3d             S          = compute_S(F_identity, mat_idx, 0);
+                Matrix<double, 6, 6> C_mandel   = compute_material_tangent(F_identity, mat_idx);
+                Matrix<double, 9, 9> A          = compute_spatial_tangent(F_identity, S, C_mandel);
+                kapparef_mat += A;
+            }
+            kapparef_mat /= static_cast<double>(n_mat);
         }
-        kapparef_mat /= static_cast<double>(n_mat);
     }
 
     Matrix3d compute_S(const Matrix3d &F, int mat_index, ptrdiff_t element_idx) override

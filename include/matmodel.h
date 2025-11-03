@@ -29,7 +29,7 @@ class Matmodel {
     void                                     getStrainStress(double *strain, double *stress, Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
     void                                     setGradient(vector<double> _g0);
 
-    virtual void postprocess(Solver<howmany, n_str> &solver, Reader &reader, const char resultsFileName[], int load_idx, int time_idx) {};
+    virtual void postprocess(Solver<howmany, n_str> &solver, Reader &reader, int load_idx, int time_idx) {};
 
     virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) {}
     virtual void updateInternalVariables() {}
@@ -85,6 +85,29 @@ Matmodel<howmany, n_str>::Matmodel(const Reader &reader)
     eps.resize(n_str * n_gp);
     g0.resize(n_str * n_gp);
     sigma.resize(n_str * n_gp);
+
+    kapparef_mat.setZero();
+
+    // Check for optional user-defined reference material
+    if (reader.materialProperties.contains("reference_material")) {
+        auto ref_mat = reader.materialProperties["reference_material"].get<vector<vector<double>>>();
+        if (ref_mat.size() != n_str || ref_mat[0].size() != n_str) {
+            throw std::invalid_argument("reference_material must be " + std::to_string(n_str) + "x" + std::to_string(n_str));
+        }
+        for (int i = 0; i < n_str; ++i) {
+            for (int j = 0; j < n_str; ++j) {
+                kapparef_mat(i, j) = ref_mat[i][j];
+            }
+        }
+        // Verify SPD using Cholesky decomposition
+        Eigen::LLT<Matrix<double, n_str, n_str>> llt(kapparef_mat);
+        if (llt.info() != Eigen::Success) {
+            throw std::invalid_argument("reference_material must be symmetric positive definite");
+        }
+        if (reader.world_rank == 0) {
+            cout << "# Using user-defined reference material for fundamental solution." << endl;
+        }
+    }
 }
 
 template <int howmany, int n_str>

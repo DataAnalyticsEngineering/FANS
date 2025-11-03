@@ -1,164 +1,227 @@
-# Fourier-Accelerated Nodal Solvers (FANS)
+<p align="center">
+  <img src="docs/images/FANS_logo.png" alt="Example Image" width="250" height="250">
+</p>
+
+<p align="center">
+  <a href="https://prefix.dev/channels/conda-forge/packages/fans"><img src="https://img.shields.io/github/v/release/DataAnalyticsEngineering/FANS?label=Release&color=004191" alt="GitHub Release"></a>
+  <a href="https://anaconda.org/conda-forge/fans"><img src="https://anaconda.org/conda-forge/fans/badges/platforms.svg" alt="Anaconda-Server Badge"></a>
+  <a href="https://github.com/DataAnalyticsEngineering/FANS/actions"><img src="https://github.com/DataAnalyticsEngineering/FANS/workflows/Build%20and%20test%20pixi-build/badge.svg" alt="Build and test pixi-build"></a>
+  <a href="https://anaconda.org/conda-forge/fans"><img src="https://anaconda.org/conda-forge/fans/badges/downloads.svg" alt="Anaconda-Server Badge"></a>
+  <a href="https://prefix.dev/channels/conda-forge/packages/fans"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json" alt="Pixi Badge"></a>
+  <img src="https://img.shields.io/github/last-commit/DataAnalyticsEngineering/FANS" alt="Last commit">
+  <a href="https://github.com/DataAnalyticsEngineering/FANS/blob/main/LICENSE"><img src="https://img.shields.io/github/license/DataAnalyticsEngineering/FANS" alt="License"></a>
+  <a href="https://github.com/DataAnalyticsEngineering/FANS/stargazers"><img src="https://img.shields.io/github/stars/DataAnalyticsEngineering/FANS?style=social" alt="Stars"></a>
+</p>
+
+# Fourier-Accelerated Nodal Solver (FANS)
 
 Fourier-Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver for microscale multiphysics problems. FANS is written in C++, built using CMake, and it has MPI parallelization.
 
-<p align="center">
-  <img src="docs/images/FANS_logo.png" alt="Example Image" width="300" height="300">
-</p>
+## Table of Contents
 
-## Table of contents
+- [Quick start](#quick-start)
+- [Build from source](#build-from-source)
+  - [Installing dependencies](#installing-dependencies)
+  - [Building FANS](#building-fans)
+- [Python environment for the FANS dashboard](#python-environment-for-the-fans-dashboard)
+- [Input file format](#input-file-format)
+  - [Microstructure definition](#microstructure-definition)
+  - [Problem type and material model](#problem-type-and-material-model)
+  - [Solver settings](#solver-settings)
+  - [Macroscale loading conditions](#macroscale-loading-conditions)
+  - [Results specification](#results-specification)
 
-- [Dependencies](#dependencies)
-- [Building](#building)
-- [Installing](#installing)
-- [Input File Format](#input-file-format)
+## Quick start
 
-## Dependencies
+**Want to get started immediately?**
 
-FANS has the following dependencies:
+FANS is available as a precompiled binary on [conda-forge](https://anaconda.org/conda-forge/fans). Package managers such as [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html), [mamba](https://mamba.readthedocs.io/en/latest/installation/mamba-installation.html), [micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html), and [Pixi](https://pixi.sh) can also be used to install FANS from the conda-forge channel.
 
-- A C++ compiler (e.g., GCC, Clang, etc.)
-- CMake (version 3.21 or higher)
-- Git (for cloning this repo)
-- MPI (mpicc and mpic++)
-- HDF5 with MPI support
-- Eigen3
-- FFTW3 with MPI support
-- nlohmann-json (for JSON input parsing)
+Use [Pixi](https://pixi.sh) (recommended):
+
+```bash
+# Install Pixi (if not already installed)
+curl -fsSL https://pixi.sh/install.sh | sh
+
+# Install FANS via Pixi
+pixi global install fans
+
+# Verify installation
+FANS --version
+```
+
+That's it! No dependencies to install, no compilation needed 🚀
+
+To get started immediately, we include ready to use example [input files](test/input_files/) and [microstructures](test/microstructures/) you can use as templates to create your own.
+
+---
+
+## Build from source
+
+**Recommended for:** Developers, contributors, HPC users, or those needing custom builds.
+
+FANS requires the following dependencies:
+
+| Dependency | Purpose |  |
+|------------|---------|------------------|
+| **C++ Compiler** | (GCC, Clang, etc.) | C++17 or newer |
+| **CMake** | Build system | ≥ 3.21 |
+| **MPI** | Parallel computing | (OpenMPI, MPICH, Intel MPI) |
+| **HDF5** | Data I/O | **with MPI support** |
+| **FFTW3** | FFT computations | **with MPI support** |
+| **Eigen3** | Linear algebra | ≥ 3.4 |
+| **nlohmann-json** | JSON parsing | ≥ 3.11 |
 
 ### Installing dependencies
 
-- On Debian-based systems, we recommend installing the dependencies using `apt`,
+<details>
 
-  ```bash
-  apt-get install \
-      libhdf5-dev \
-      libopenmpi-dev \
-      libeigen3-dev \
-      libfftw3-dev \
-      libfftw3-mpi-dev \
-      nlohmann-json3-dev
-  ```
+<summary><b> Using Pixi (Cross-platform - Easiest for source builds)</b></summary>
 
-- On macOS, you can obtain the dependencies using `brew` and set the environment variables:
-
-  ```zsh
-  brew install gnu-time cmake gcc@15
-  brew install open-mpi --build-from-source --cc=gcc-15
-  brew install hdf5-mpi --build-from-source --cc=gcc-15
-  brew install fftw eigen nlohmann-json
-
-  export CC=gcc-15 CXX=g++-15 MPICC=mpicc MPICXX=mpicxx
-  ```
-
-### Setting up a Python environment
-
-Also, we recommend setting up a Python virtual environment for the [`FANS_Dashboard.ipynb`](FANS_Dashboard/FANS_Dashboard.ipynb) via [pixi](https://pixi.sh/) with all required Python dependencies in an isolated environment:
+This uses the repository's [pixi.toml](pixi.toml) to define the `dev` environment.
 
 ```bash
-# Install Pixi if not done already,
-curl -fsSL https://pixi.sh/install.sh | sh
+# Clone the repository
+git clone https://github.com/DataAnalyticsEngineering/FANS.git
+cd FANS
 
-# Create and activate the environment
+# Enter development environment (all dependencies pre-installed!)
+pixi shell -e dev
+```
+
+</details>
+
+<details>
+<summary><b>Linux (Debian/Ubuntu)</b></summary>
+
+We recommend installing the dependencies using `apt`:
+
+```bash
+apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    file \
+    libhdf5-dev \
+    libhdf5-openmpi-dev \
+    libopenmpi-dev \
+    libeigen3-dev \
+    libfftw3-dev \
+    libfftw3-mpi-dev \
+    nlohmann-json3-dev
+```
+
+</details>
+
+<details>
+<summary><b>macOS</b></summary>
+
+We recommend installing the dependencies using [`brew`](https://brew.sh):
+
+```bash
+brew install gnu-time cmake gcc@15
+brew install open-mpi --build-from-source --cc=gcc-15
+brew install hdf5-mpi --build-from-source --cc=gcc-15
+brew install fftw eigen nlohmann-json
+
+# Set environment variables
+export CC=gcc-15 CXX=g++-15 MPICC=mpicc MPICXX=mpicxx
+```
+
+</details>
+
+<details>
+<summary><b> Using Spack (HPC environments)</b></summary>
+
+[Spack](https://spack.readthedocs.io/en/latest/) is a flexible package manager for building and managing software stacks in high-performance computing environments. Install Spack by following these [installation instructions](https://spack.readthedocs.io/en/latest/getting_started.html). Once Spack is set up, install the required dependencies:
+
+```bash
+spack install cmake
+spack install mpi
+spack install hdf5+cxx+mpi
+spack install eigen
+spack install fftw+mpi
+spack install nlohmann-json
+
+# Load dependencies
+spack load cmake mpi hdf5 eigen fftw nlohmann-json
+```
+
+Additionally, optimized FFTW implementations can be used depending on your system's architecture:
+
+- AMD systems: `spack install amdfftw+mpi`
+- Cray systems: `spack install cray-fftw+mpi`
+- Fujitsu systems: `spack install fujitsu-fftw+mpi`
+
+</details>
+
+<details>
+<summary><b>Docker images</b></summary>
+
+Pre-configured Docker images are available for containerized deployments. See [`docker/README.md`](docker/README.md) for further details.
+
+</details>
+
+### Building FANS
+
+```bash
+# Clone the repository
+git clone https://github.com/DataAnalyticsEngineering/FANS.git
+cd FANS
+
+# Create build directory
+mkdir build && cd build
+
+# Configure (basic)
+cmake ..
+
+# Build
+cmake --build . -j
+
+# Run tests with 8 mpi processes
+cd ../test
+./run_tests.sh -n 8
+```
+
+**Build options:**
+
+| CMake Option | Description | Default |
+|--------------|-------------|---------|
+| `CMAKE_BUILD_TYPE` | Build type: `Debug`, `Release`, `RelWithDebInfo` | `NONE` |
+| `CMAKE_INTERPROCEDURAL_OPTIMIZATION` | Enable link-time optimization (LTO) | `ON` (if supported) |
+| `FANS_BUILD_STATIC` | Build static library | `OFF` |
+| `CMAKE_INSTALL_PREFIX` | Installation directory | System default |
+| `FANS_LIBRARY_FOR_MICRO_MANAGER` | Build Python bindings using Pybind11 (needed) | `OFF` |
+| `FANS_ENABLE_SANITIZERS` | Enable runtime sanitizers (AddressSanitizer and LeakSanitizer) for memory debugging | `OFF` |
+
+---
+
+## Python environment for the FANS dashboard
+
+FANS includes [`FANS_Dashboard.ipynb`](FANS_Dashboard/FANS_Dashboard.ipynb), a comprehensive pipeline for post-processing, visualization, and analysis of simulation results. We recommend setting up a Python virtual environment via [Pixi](https://pixi.sh/) with all required Python dependencies in an isolated environment:
+
+```bash
+# Install and activate the dashboard environment
 pixi shell -e dashboard
 ```
 
-We also provide a set of Docker images. For further information, please refer to the [Docker README](docker/README.md).
+The `dashboard` environment includes:
 
-### Installing dependencies using Spack
+- Python
+- Jupyter notebook (`ipykernel`)
+- [MSUtils](https://github.com/DataAnalyticsEngineering/MSUtils) for FANS-specific utilities
+- Testing tools (`pytest`)
+- Code quality tools (`pre-commit`)
 
-Spack is a package manager designed for high-performance computing environments. It simplifies the installation of complex software stacks, making it ideal for setting up FANS on HPC systems.
+See [`FANS_Dashboard`](FANS_Dashboard/) for further details.
 
-1. **Install Spack** by following these [installation instructions](https://spack.readthedocs.io/en/latest/getting_started.html).
+---
 
-2. **Install Dependencies**: Once Spack is set up, install the required dependencies:
-
-    ```bash
-    spack install cmake
-    spack install mpi
-    spack install hdf5 +cxx +mpi
-    spack install eigen
-    spack install fftw +mpi
-    spack install nlohmann-json
-    ```
-
-    Additionally, optimized FFTW implementations can be used depending on your system's architecture, for example `amdfftw` (For AMD systems) or `cray-fftw` (For Cray systems), or `fujitsu-fftw` (For Fujitsu systems).
-
-3. **Load Dependencies** Once dependencies are installed, load them before building:
-
-    ```bash
-    spack load cmake mpi hdf5 eigen fftw nlohmann-json
-    ```
-
-## Building
-
-1. Clone the repository:
-
-    ```bash
-    git clone https://github.com/DataAnalyticsEngineering/FANS.git
-    cd FANS
-    ```
-
-2. Configure the build using CMake:
-
-    ```bash
-    mkdir build
-    cd build
-    cmake ..
-    ```
-
-3. Compile:
-
-    ```bash
-    cmake --build . -j
-    ```
-
-The compilation symlinks the generated `FANS` binary into the `test/` directory for convenience.
-
-### Configuring a build
-
-The following CMake configuration options exist:
-
-- `CMAKE_BUILD_TYPE`: Sets the build type. Common values are Debug, Release, RelWithDebInfo, and MinSizeRel.
-  - Default: NONE
-
-- `FANS_BUILD_STATIC`: Build static library instead of shared library.
-  - Default: OFF
-
-- `CMAKE_INTERPROCEDURAL_OPTIMIZATION`: Enable inter-procedural optimization (IPO) for all targets.
-  - Default: ON (if supported)
-  - Note: When you run the configure step for the first time, IPO support is automatically checked and enabled if available. A status message will indicate whether IPO is activated or not supported.
-
-## Installing
-
-Install FANS (system-wide) using the following options:
-
-1. Using CMake (sudo required if --prefix is omitted):
-
-    ```bash
-    cmake --install . [--prefix <install-dir>]
-    ```
-
-### Install using Conda
-
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/version.svg)](https://anaconda.org/conda-forge/fans)
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/platforms.svg)](https://anaconda.org/conda-forge/fans)
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/fans/badges/downloads.svg)](https://anaconda.org/conda-forge/fans)
-
-FANS is also available as a conda package on [conda-forge/fans](https://anaconda.org/conda-forge/fans). No dependencies have to be manually installed for it to work.
-It can be installed via
-
-```bash
-conda install conda-forge::fans
-```
-
-exposing the executable `FANS`.
-
-## Input File Format
+## Input file format
 
 FANS requires a JSON input file specifying the problem parameters. Example input files can be found in the [`test/input_files`](test/input_files) directory. It is recommended to use these files as a reference to create your input file.
 
-### Microstructure Definition
+### Microstructure definition
 
 ```json
 "microstructure": {
@@ -172,7 +235,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 - `datasetname`: This is the path within the HDF5 file to the specific dataset that represents the microstructure.
 - `L`: Microstructure length defines the physical dimensions of the microstructure in the $x$, $y$, and $z$ directions.
 
-### Problem Type and Material Model
+### Problem type and material model
 
 ```json
 "problem_type": "mechanical",
@@ -201,7 +264,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 - `strain_type`: This indicates whether the problem is formulated using infinitesimal (`small`) strain or finite (`large`) strain theory.
 - `material_properties`: This provides the necessary material parameters for the chosen material model. For thermal problems, you might specify `conductivity`, while mechanical problems might require `bulk_modulus`, `shear_modulus`, and more properties for advanced material models. These properties can be defined as arrays to represent multiple phases within the microstructure.
 
-### Solver Settings
+### Solver settings
 
 ```json
 "FE_type": "HEX8",
@@ -217,7 +280,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 - `FE_type`: This specifies the type of finite element to be used. Common options include:
   - `HEX8`: Standard trilinear hexahedral elements with full integration (8 Gauss points). Suitable for most problems but may exhibit volumetric locking for nearly incompressible materials (Poisson's ratio ~ 0.5).
   - `BBAR`: B-bar elements with selective reduced integration to mitigate volumetric locking. Recommended for materials with high Poisson's ratios (0.4 to 0.5).
-  - `HEX8R`: Reduced integration elements with a single Gauss point at the element center. Use with caution as they may lead to hourglassing and less accurate results.
+  - `HEX8R`: Reduced integration elements with a single Gauss point at the element center. Use with caution—these may produce less accurate field results and can cause local material issues such as negative Jacobian ($J < 0$), leading to nonphysical solutions (hourglassing).
 - `method`: This indicates the numerical method to be used for solving the system of equations. `cg` stands for the Conjugate Gradient method, and `fp` stands for the Fixed Point method.
 - `error_parameters`: This section defines the error parameters for the solver. Error control is applied to the finite element nodal residual of the problem.
   - `measure`: Specifies the norm used to measure the error. Options include `Linfinity`, `L1`, or `L2`.
@@ -225,7 +288,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
   - `tolerance`: Sets the tolerance level for the solver, defining the convergence criterion based on the chosen error measure. The solver iterates until the solution meets this tolerance.
 - `n_it`: Specifies the maximum number of iterations allowed for the FANS solver.
 
-### Macroscale Loading Conditions
+### Macroscale loading conditions
 
 ```json
 "macroscale_loading":   [
@@ -245,9 +308,9 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 ```
 
 - `macroscale_loading`: This defines the external loading applied to the microstructure. It is an array of arrays, where each sub-array represents a load path applied to the system. The format of the load path depends on the problem type:
-  - For `thermal` problems, the array typically has 3 components, representing the temperature gradients in the $x$, $y$, and $z$ directions.
-  - For `small` strain `mechanical` problems, the array must have 6 components, corresponding to the components of the strain tensor in Mandel notation (e.g., $[\varepsilon_{11}, \varepsilon_{22}, \varepsilon_{33}, \sqrt{2}\varepsilon_{12}, \sqrt{2}\varepsilon_{13}, \sqrt{2}\varepsilon_{23}]$).
-  - For `large` strain `mechanical` problems, the array must have 9 components, corresponding to the deformation gradient tensor components (e.g., $[F_{11}, F_{12}, F_{13}, F_{21}, F_{22}, F_{23}, F_{31}, F_{32}, F_{33}]$).
+  - For `thermal` problems, the array typically has 3 components, representing the macroscale temperature gradients in the $x$, $y$, and $z$ directions.
+  - For `small` strain `mechanical` problems, the array must have 6 components, corresponding to the macroscale strain tensor in Mandel notation: $[\varepsilon_{11},\ \varepsilon_{22},\ \varepsilon_{33},\ \sqrt{2}\,\varepsilon_{12},\ \sqrt{2}\,\varepsilon_{13},\ \sqrt{2}\,\varepsilon_{23}]$.
+  - For `large` strain `mechanical` problems, the array must have 9 components, corresponding to the macroscale deformation gradient tensor: $[F_{11},\ F_{12},\ F_{13},\ F_{21},\ F_{22},\ F_{23},\ F_{31},\ F_{32},\ F_{33}]$.
 
 In the case of path/time-dependent loading, as shown, for example, in plasticity problems, the `macroscale_loading` array can include multiple steps with corresponding loading conditions.
 
@@ -264,7 +327,7 @@ FANS also supports mixed boundary conditions, where some components can be strai
                           }]
 ```
 
-### Results Specification
+### Results specification
 
 ```json
 "results": ["stress_average", "strain_average", "absolute_error", "phase_stress_average", "phase_strain_average",

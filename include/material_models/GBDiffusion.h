@@ -95,7 +95,7 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
             throw std::runtime_error("Error in GBDiffusion initialization: " + std::string(e.what()));
         }
 
-        kapparef_mat = Matrix3d::Zero(3, 3);
+        Matrix3d kappa_temp = Matrix3d::Zero();
         Matrix3d phase_kappa;
         phase_stiffness = new Matrix<double, 8, 8>[n_mat];
 
@@ -112,12 +112,14 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
             } else {
                 throw std::runtime_error("GBDiffusion: Unknown material index");
             }
-            kapparef_mat += phase_kappa;
+            kappa_temp += phase_kappa;
             for (int p = 0; p < n_gp; ++p) {
                 phase_stiffness[i] += B_int[p].transpose() * phase_kappa * B_int[p] * v_e / n_gp;
             }
         }
-        kapparef_mat /= n_mat;
+        if (kapparef_mat.isZero()) {
+            kapparef_mat = kappa_temp / n_mat;
+        }
     }
     ~GBDiffusion()
     {
@@ -161,7 +163,7 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
         }
     }
 
-    void postprocess(Solver<1, 3> &solver, Reader &reader, const char *resultsFileName, int load_idx, int time_idx) override
+    void postprocess(Solver<1, 3> &solver, Reader &reader, int load_idx, int time_idx) override
     {
         // Write GBnormals to HDF5 file if requested
         if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "GBnormals") != reader.resultsToWrite.end()) {
@@ -174,14 +176,7 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
                     GBnormals_field[element_idx * 3 + 2] = GBnormals[3 * mat_index + 2];
                 }
             }
-            for (int i = 0; i < solver.world_size; ++i) {
-                if (i == solver.world_rank) {
-                    char name[5096];
-                    sprintf(name, "%s/load%i/time_step%i/GBnormals", solver.dataset_name, load_idx, time_idx);
-                    reader.WriteSlab<double>(GBnormals_field, 3, resultsFileName, name);
-                }
-                MPI_Barrier(MPI_COMM_WORLD);
-            }
+            reader.writeSlab("GBnormals", load_idx, time_idx, GBnormals_field, 3);
             FANS_free(GBnormals_field);
         }
     }

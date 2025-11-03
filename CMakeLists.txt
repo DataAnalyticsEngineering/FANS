@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.21)
 # ##############################################################################
 
 project(FANS
-        VERSION 0.5.0
+        VERSION 0.5.2
         LANGUAGES C CXX
 )
 
@@ -88,8 +88,8 @@ if ("$ENV{SETVARS_COMPLETED}" STREQUAL "1")
     )
 endif ()
 
-set(HDF5_ENABLE_PARALLEL ON)
-find_package(HDF5 REQUIRED COMPONENTS CXX)
+set(HDF5_PREFER_PARALLEL TRUE)
+find_package(HDF5 REQUIRED COMPONENTS C CXX)
 
 find_package(Eigen3 REQUIRED)
 
@@ -198,6 +198,7 @@ target_link_libraries(FANS_FANS PRIVATE m)
 # call to target_link_libraries(FANS_FANS PUBLIC HDF5::HDF5). But CMake 3.16
 # does not yet support this.
 target_include_directories(FANS_FANS PRIVATE ${HDF5_INCLUDE_DIRS})
+target_link_libraries(FANS_FANS PUBLIC ${HDF5_C_LIBRARIES})
 target_link_libraries(FANS_FANS PUBLIC ${HDF5_CXX_LIBRARIES})
 target_compile_definitions(FANS_FANS PUBLIC ${HDF5_DEFINITIONS})
 if (HDF5_IS_PARALLEL)

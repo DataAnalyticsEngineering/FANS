@@ -7,7 +7,7 @@
 #include "version.h"
 
 template <int howmany, int n_str>
-void runSolver(Reader &reader, const char *output_file_basename)
+void runSolver(Reader &reader)
 {
     reader.ReadMS(howmany);
 
@@ -15,7 +15,17 @@ void runSolver(Reader &reader, const char *output_file_basename)
         Matmodel<howmany, n_str> *matmodel = createMatmodel<howmany, n_str>(reader);
         Solver<howmany, n_str>   *solver   = createSolver(reader, matmodel);
 
+        if (reader.world_rank == 0) {
+            printf("\n╔════════════════════════════════════════════════════════════ Load case %zu/%zu: %zu time steps ════════════════════════════════════════════════════════════╗\n",
+                   load_path_idx + 1, reader.load_cases.size(), reader.load_cases[load_path_idx].n_steps);
+        }
+
         for (size_t time_step_idx = 0; time_step_idx < reader.load_cases[load_path_idx].n_steps; ++time_step_idx) {
+            if (reader.world_rank == 0) {
+                printf("║   ▶ Time step %zu/%zu (load case %zu/%zu) ◀ \n",
+                       time_step_idx + 1, reader.load_cases[load_path_idx].n_steps,
+                       load_path_idx + 1, reader.load_cases.size());
+            }
             if (reader.load_cases[load_path_idx].mixed) {
                 solver->enableMixedBC(reader.load_cases[load_path_idx].mbc, time_step_idx);
             } else {
@@ -23,10 +33,13 @@ void runSolver(Reader &reader, const char *output_file_basename)
                 matmodel->setGradient(g0);
             }
             solver->solve();
-            solver->postprocess(reader, output_file_basename, load_path_idx, time_step_idx);
+            solver->postprocess(reader, load_path_idx, time_step_idx);
         }
         delete solver;
         delete matmodel;
+        if (reader.world_rank == 0) {
+            printf("╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝\n");
+        }
     }
 }
 
@@ -47,16 +60,18 @@ int main(int argc, char *argv[])
 
     Reader reader;
     reader.ReadInputFile(argv[1]);
+    reader.OpenResultsFile(argv[2]);
 
     if (reader.problemType == "thermal") {
-        runSolver<1, 3>(reader, argv[2]);
+        runSolver<1, 3>(reader);
     } else if (reader.problemType == "mechanical" && reader.strain_type == "small") {
-        runSolver<3, 6>(reader, argv[2]);
+        runSolver<3, 6>(reader);
     } else if (reader.problemType == "mechanical" && reader.strain_type == "large") {
-        runSolver<3, 9>(reader, argv[2]);
+        runSolver<3, 9>(reader);
     } else {
         throw std::invalid_argument(reader.problemType + " is not a valid problem type");
     }
+    reader.CloseResultsFile();
 
     MPI_Finalize();
     return 0;

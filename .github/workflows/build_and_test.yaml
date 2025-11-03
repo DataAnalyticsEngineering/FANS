@@ -46,17 +46,17 @@ jobs:
           cmake --version
           cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CMakeCache
           path: ${{ env.FANS_BUILD_DIR }}/CMakeCache.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CMakeLogs
           path: '${{ env.FANS_BUILD_DIR }}/CMakeFiles/*.log'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CompileCommands
@@ -75,7 +75,7 @@ jobs:
         run: |
           su -c "ctest" ${{ env.FANS_MPI_USER }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} CTest logs
@@ -87,7 +87,7 @@ jobs:
       - name: Run pytest checks on HDF5 output
         run: pixi run -e dashboard pytest
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: ${{ format('Ubuntu {0}', matrix.UBUNTU_VERSION) }} PyTest logs

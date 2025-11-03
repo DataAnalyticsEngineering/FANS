@@ -17,17 +17,34 @@ fi
 
 mkdir -p output
 
-# Run the jobs serially
-command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_LinearThermal.json output/test_LinearThermal.h5 > output/test_LinearThermal.log 2>&1
+FANS_TEST_CASES=(
+    "J2Plasticity"
+    "LinearElastic"
+    "LinearThermal"
+    "PseudoPlastic"
+    "MixedBCs"
+    "CompressibleNeoHookean"
+    "MixedBCs_LargeStrain"
+)
+TOTAL_TESTS=${#FANS_TEST_CASES[@]}
+passed=0 failed=0 total_time=0 test_num=0
 
-command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_LinearElastic.json output/test_LinearElastic.h5 > output/test_LinearElastic.log 2>&1
+for test_case in "${FANS_TEST_CASES[@]}"; do
+    ((test_num++))
+    echo "    Start ${test_num}: ${test_case}"
+    start_time=$(date +%s.%N)
+    if command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_${test_case}.json output/test_${test_case}.h5 > output/test_${test_case}.log 2>&1; then
+        status="Passed" && ((passed++))
+    else
+        status="***Failed" && ((failed++))
+    fi
+    end_time=$(date +%s.%N)
+    elapsed=$(echo "$end_time - $start_time" | bc)
+    total_time=$(echo "$total_time + $elapsed" | bc)
+    printf "%d/%d Test #%d: %-30s %s %7.2f sec\n" $test_num $TOTAL_TESTS $test_num "$test_case" "$status" $elapsed
+done
 
-command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_PseudoPlastic.json output/test_PseudoPlastic.h5 > output/test_PseudoPlastic.log 2>&1
-
-command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_J2Plasticity.json output/test_J2Plasticity.h5 > output/test_J2Plasticity.log 2>&1
-
-command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_MixedBCs.json output/test_MixedBCs.h5 > output/test_MixedBCs.log 2>&1
-
-command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_CompressibleNeoHookean.json output/test_CompressibleNeoHookean.h5 > output/test_CompressibleNeoHookean.log 2>&1
-
-command time -v mpiexec -n $num_processes "$FANS_EXEC" input_files/test_MixedBCs_LargeStrain.json output/test_MixedBCs_LargeStrain.h5 > output/test_MixedBCs_LargeStrain.log 2>&1
+echo ""
+[ $failed -eq 0 ] && echo "100% tests passed, 0 tests failed out of $TOTAL_TESTS" || echo "$(echo "scale=0; 100 * $passed / $TOTAL_TESTS" | bc)% tests passed, $failed tests failed out of $TOTAL_TESTS"
+printf "\nTotal Test time (real) = %.2f sec\n" $total_time
+exit $failed

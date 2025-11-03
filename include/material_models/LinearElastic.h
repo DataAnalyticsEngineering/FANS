@@ -24,16 +24,18 @@ class LinearElasticIsotropic : public SmallStrainMechModel, public LinearModel<3
             lambda[i] = bulk_modulus[i] - (2.0 / 3.0) * mu[i];
         }
 
-        double lambda_ref = (*max_element(lambda.begin(), lambda.end()) +
-                             *min_element(lambda.begin(), lambda.end())) /
+        if (kapparef_mat.isZero()) {
+            double lambda_ref = (*max_element(lambda.begin(), lambda.end()) +
+                                 *min_element(lambda.begin(), lambda.end())) /
+                                2;
+            double mu_ref = (*max_element(mu.begin(), mu.end()) +
+                             *min_element(mu.begin(), mu.end())) /
                             2;
-        double mu_ref = (*max_element(mu.begin(), mu.end()) +
-                         *min_element(mu.begin(), mu.end())) /
-                        2;
 
-        kapparef_mat = Matrix<double, 6, 6>::Zero();
-        kapparef_mat.topLeftCorner(3, 3).setConstant(lambda_ref);
-        kapparef_mat += 2 * mu_ref * Matrix<double, 6, 6>::Identity();
+            kapparef_mat = Matrix<double, 6, 6>::Zero();
+            kapparef_mat.topLeftCorner(3, 3).setConstant(lambda_ref);
+            kapparef_mat += 2 * mu_ref * Matrix<double, 6, 6>::Identity();
+        }
 
         phase_stiffness = new Matrix<double, 24, 24>[n_mat];
         Matrix<double, 6, 6> phase_kappa;
@@ -105,7 +107,7 @@ class LinearElasticTriclinic : public SmallStrainMechModel, public LinearModel<3
 
         // Assemble stiffness matrices for each material
         C_mats.resize(n_mat);
-        kapparef_mat = Matrix<double, 6, 6>::Zero();
+        Matrix<double, 6, 6> kappa_temp = Matrix<double, 6, 6>::Zero();
 
         for (size_t i = 0; i < n_mat; ++i) {
             Matrix<double, 6, 6> C_i = Matrix<double, 6, 6>::Zero();
@@ -122,10 +124,12 @@ class LinearElasticTriclinic : public SmallStrainMechModel, public LinearModel<3
             C_i = C_i.selfadjointView<Eigen::Upper>();
 
             C_mats[i] = C_i;
-            kapparef_mat += C_i;
+            kappa_temp += C_i;
         }
 
-        kapparef_mat /= n_mat;
+        if (kapparef_mat.isZero()) {
+            kapparef_mat = kappa_temp / n_mat;
+        }
 
         // Compute phase stiffness matrices
         phase_stiffness = new Matrix<double, 24, 24>[n_mat];
