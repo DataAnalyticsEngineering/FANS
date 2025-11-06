@@ -610,8 +610,8 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
             cout << "# Homogenized tangent: " << endl
                  << setprecision(12) << homogenized_tangent << endl
                  << endl;
-            reader.writeData("homogenized_tangent", load_idx, time_idx, homogenized_tangent.data(), dims, 2);
         }
+        reader.writeData("homogenized_tangent", load_idx, time_idx, homogenized_tangent.data(), dims, 2);
     }
     extrapolateDisplacement(); // prepare v_u for next time step
 }
