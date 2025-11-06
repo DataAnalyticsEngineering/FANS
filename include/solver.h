@@ -3,6 +3,8 @@
 
 #include "matmodel.h"
 
+class J2Plasticity;
+
 typedef Map<Array<double, Dynamic, Dynamic>, Unaligned, OuterStride<>> RealArray;
 
 template <int howmany, int n_str>
@@ -610,8 +612,8 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
             cout << "# Homogenized tangent: " << endl
                  << setprecision(12) << homogenized_tangent << endl
                  << endl;
-            reader.writeData("homogenized_tangent", load_idx, time_idx, homogenized_tangent.data(), dims, 2);
         }
+        reader.writeData("homogenized_tangent", load_idx, time_idx, homogenized_tangent.data(), dims, 2);
     }
     extrapolateDisplacement(); // prepare v_u for next time step
 }
@@ -660,6 +662,9 @@ MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
     this->reader.errorParameters["type"] = "relative";
     this->TOL                            = max(1e-6, this->TOL);
 
+    if (dynamic_cast<J2Plasticity *>(this->matmodel) != nullptr) {
+        throw std::runtime_error("Homogenized tangent computation not implemented for J2Plasticity models.");
+    }
     // TODO: a deep copy of the solver object is needed here to avoid modifying the history of the solver object
 
     for (int i = 0; i < n_str; i++) {
