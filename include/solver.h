@@ -666,8 +666,10 @@ MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
     this->reader.errorParameters["type"] = "relative";
     this->TOL                            = max(1e-6, this->TOL);
 
-    if (dynamic_cast<J2Plasticity *>(this->matmodel) != nullptr) {
-        throw std::runtime_error("Homogenized tangent computation not implemented for J2Plasticity models.");
+    for (auto *model : matmanager->models) {
+        if (dynamic_cast<J2Plasticity *>(model) != nullptr) {
+            throw std::runtime_error("Homogenized tangent computation not implemented for J2Plasticity models.");
+        }
     }
     // TODO: a deep copy of the solver object is needed here to avoid modifying the history of the solver object
 
