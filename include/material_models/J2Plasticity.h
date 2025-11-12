@@ -22,15 +22,6 @@ class J2Plasticity : public SmallStrainMechModel {
         }
         n_mat = bulk_modulus.size();
 
-        if (kapparef_mat.isZero()) {
-            const double Kbar      = std::accumulate(bulk_modulus.begin(), bulk_modulus.end(), 0.0) / static_cast<double>(n_mat);
-            const double Gbar      = std::accumulate(shear_modulus.begin(), shear_modulus.end(), 0.0) / static_cast<double>(n_mat);
-            const double lambdabar = Kbar - 2.0 * Gbar / 3.0;
-            kapparef_mat.setZero();
-            kapparef_mat.topLeftCorner(3, 3).setConstant(lambdabar);
-            kapparef_mat.diagonal().array() += 2.0 * Gbar;
-        }
-
         // Allocate the member matrices/vectors for performance optimization
         sqrt_two_over_three = sqrt(2.0 / 3.0);
         sigma_trial_n1.setZero();
@@ -119,6 +110,18 @@ class J2Plasticity : public SmallStrainMechModel {
     // Virtual methods for derived classes to implement different behaviors
     virtual double compute_q_trial(double psi_val, int mat_index)                             = 0;
     virtual double compute_gamma(double f_trial, int mat_index, int i, ptrdiff_t element_idx) = 0;
+
+    Matrix<double, 6, 6> get_reference_stiffness() const override
+    {
+        const double Kbar      = std::accumulate(bulk_modulus.begin(), bulk_modulus.end(), 0.0) / static_cast<double>(n_mat);
+        const double Gbar      = std::accumulate(shear_modulus.begin(), shear_modulus.end(), 0.0) / static_cast<double>(n_mat);
+        const double lambdabar = Kbar - 2.0 * Gbar / 3.0;
+
+        Matrix<double, 6, 6> kappa_ref = Matrix<double, 6, 6>::Zero();
+        kappa_ref.topLeftCorner(3, 3).setConstant(lambdabar);
+        kappa_ref.diagonal().array() += 2.0 * Gbar;
+        return kappa_ref;
+    }
 
     void postprocess(Solver<3, 6> &solver, Reader &reader, int load_idx, int time_idx) override;
 

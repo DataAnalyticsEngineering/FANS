@@ -2,13 +2,14 @@
 #define SOLVER_H
 
 #include "matmodel.h"
+#include "MaterialManager.h"
 
 typedef Map<Array<double, Dynamic, Dynamic>, Unaligned, OuterStride<>> RealArray;
 
 template <int howmany, int n_str>
 class Solver : private MixedBCController<howmany> {
   public:
-    Solver(Reader &reader, Matmodel<howmany, n_str> *matmodel);
+    Solver(Reader &reader, MaterialManager<howmany, n_str> *matmanager);
     virtual ~Solver();
 
     Reader &reader;
@@ -24,9 +25,9 @@ class Solver : private MixedBCController<howmany> {
     const ptrdiff_t local_n1;
     const ptrdiff_t local_1_start;
 
-    const int                 n_it;     //!< Max number of FANS iterations
-    double                    TOL;      //!< Tolerance on relative error norm
-    Matmodel<howmany, n_str> *matmodel; //!< Material Model
+    const int                        n_it;       //!< Max number of FANS iterations
+    double                           TOL;        //!< Tolerance on relative error norm
+    MaterialManager<howmany, n_str> *matmanager; //!< Material Manager
 
     unsigned short *ms;  // Micro-structure
     double         *v_r; //!< Residual vector
@@ -100,9 +101,9 @@ class Solver : private MixedBCController<howmany> {
 };
 
 template <int howmany, int n_str>
-Solver<howmany, n_str>::Solver(Reader &reader, Matmodel<howmany, n_str> *mat)
+Solver<howmany, n_str>::Solver(Reader &reader, MaterialManager<howmany, n_str> *matmgr)
     : reader(reader),
-      matmodel(mat),
+      matmanager(matmgr),
       world_rank(reader.world_rank),
       world_size(reader.world_size),
       n_x(reader.dims[0]),
@@ -133,7 +134,7 @@ Solver<howmany, n_str>::Solver(Reader &reader, Matmodel<howmany, n_str> *mat)
     }
     std::memset(v_u_prev, 0, local_n0 * n_y * n_z * howmany * sizeof(double));
 
-    matmodel->initializeInternalVariables(local_n0 * n_y * n_z, matmodel->n_gp);
+    matmanager->initialize_internal_variables(local_n0 * n_y * n_z, matmanager->models[0]->n_gp);
 
     computeFundamentalSolution();
 }
@@ -146,7 +147,7 @@ void Solver<howmany, n_str>::computeFundamentalSolution()
     }
     clock_t tot_time = clock();
 
-    Matrix<double, howmany * 8, howmany * 8> Ker0 = matmodel->Compute_Reference_ElementStiffness();
+    Matrix<double, howmany * 8, howmany * 8> Ker0 = matmanager->models[0]->Compute_Reference_ElementStiffness(matmanager->kapparef_mat);
 
     complex<double> tpi = 2 * acos(-1) * complex<double>(0, 1); //=2*pi*i
 
@@ -270,8 +271,9 @@ template <int howmany, int n_str>
 template <int padding>
 void Solver<howmany, n_str>::compute_residual(RealArray &r_matrix, RealArray &u_matrix)
 {
-    compute_residual_basic<padding>(r_matrix, u_matrix, [&](Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx) -> Matrix<double, howmany * 8, 1> & {
-        return matmodel->element_residual(ue, mat_index, element_idx);
+    compute_residual_basic<padding>(r_matrix, u_matrix, [&](Matrix<double, howmany * 8, 1> &ue, int phase_id, ptrdiff_t element_idx) -> Matrix<double, howmany * 8, 1> & {
+        const MaterialInfo<howmany, n_str> &info = matmanager->get_info(phase_id);
+        return info.model->element_residual(ue, info.local_mat_id, element_idx);
     });
 }
 
@@ -292,7 +294,7 @@ void Solver<howmany, n_str>::solve()
         printf("# Total Time ...................   %2.6f sec\n", double(tot_time) / CLOCKS_PER_SEC);
         printf("# FFT contribution to total time   %2.6f %% \n", 100. * double(fft_time) / double(tot_time));
     }
-    matmodel->updateInternalVariables();
+    matmanager->update_internal_variables();
 }
 
 template <int howmany, int n_str>
@@ -465,22 +467,23 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
                  v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     Matrix<double, howmany * 8, 1> ue;
-    int                            mat_index;
+    int                            phase_id;
     iterateCubes<0>([&](ptrdiff_t *idx, ptrdiff_t *idxPadding) {
         for (int i = 0; i < 8; ++i) {
             for (int j = 0; j < howmany; ++j) {
                 ue(howmany * i + j, 0) = v_u[howmany * idx[i] + j];
             }
         }
-        mat_index = ms[idx[0]];
+        phase_id = ms[idx[0]];
 
-        matmodel->getStrainStress(strain.segment(n_str * idx[0], n_str).data(), stress.segment(n_str * idx[0], n_str).data(), ue, mat_index, idx[0]);
+        const MaterialInfo<howmany, n_str> &info = matmanager->get_info(phase_id);
+        info.model->getStrainStress(strain.segment(n_str * idx[0], n_str).data(), stress.segment(n_str * idx[0], n_str).data(), ue, info.local_mat_id, idx[0]);
         stress_average += stress.segment(n_str * idx[0], n_str);
         strain_average += strain.segment(n_str * idx[0], n_str);
 
-        phase_stress_average[mat_index] += stress.segment(n_str * idx[0], n_str);
-        phase_strain_average[mat_index] += strain.segment(n_str * idx[0], n_str);
-        phase_counts[mat_index]++;
+        phase_stress_average[phase_id] += stress.segment(n_str * idx[0], n_str);
+        phase_strain_average[phase_id] += strain.segment(n_str * idx[0], n_str);
+        phase_counts[phase_id]++;
     });
 
     MPI_Allreduce(MPI_IN_PLACE, stress_average.data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -600,7 +603,7 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     reader.writeSlab("strain", load_idx, time_idx, strain.data(), n_str);
     reader.writeSlab("stress", load_idx, time_idx, stress.data(), n_str);
 
-    matmodel->postprocess(*this, reader, load_idx, time_idx);
+    matmanager->postprocess(*this, reader, load_idx, time_idx);
 
     // Compute homogenized tangent only if requested
     if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "homogenized_tangent") != reader.resultsToWrite.end()) {
@@ -628,16 +631,17 @@ VectorXd Solver<howmany, n_str>::get_homogenized_stress()
                  v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     Matrix<double, howmany * 8, 1> ue;
-    int                            mat_index;
+    int                            phase_id;
     iterateCubes<0>([&](ptrdiff_t *idx, ptrdiff_t *idxPadding) {
         for (int i = 0; i < 8; ++i) {
             for (int j = 0; j < howmany; ++j) {
                 ue(howmany * i + j, 0) = v_u[howmany * idx[i] + j];
             }
         }
-        mat_index = ms[idx[0]];
+        phase_id = ms[idx[0]];
 
-        matmodel->getStrainStress(strain.segment(n_str * idx[0], n_str).data(), stress.segment(n_str * idx[0], n_str).data(), ue, mat_index, idx[0]);
+        const MaterialInfo<howmany, n_str> &info = matmanager->get_info(phase_id);
+        info.model->getStrainStress(strain.segment(n_str * idx[0], n_str).data(), stress.segment(n_str * idx[0], n_str).data(), ue, info.local_mat_id, idx[0]);
         homogenized_stress += stress.segment(n_str * idx[0], n_str);
     });
 
@@ -654,8 +658,8 @@ MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
     VectorXd       unperturbed_stress = get_homogenized_stress();
     VectorXd       perturbed_stress;
     vector<double> pert_strain(n_str, 0.0);
-    vector<double> g0       = this->matmodel->macroscale_loading;
-    bool           islinear = dynamic_cast<LinearModel<howmany, n_str> *>(this->matmodel) != nullptr;
+    vector<double> g0       = matmanager->get_info(0).model->macroscale_loading;
+    bool           islinear = matmanager->all_linear;
 
     this->reader.errorParameters["type"] = "relative";
     this->TOL                            = max(1e-6, this->TOL);
@@ -671,7 +675,7 @@ MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
             pert_strain[i] += pert_param;
         }
 
-        matmodel->setGradient(pert_strain);
+        matmanager->set_gradient(pert_strain);
         disableMixedBC();
         solve();
         perturbed_stress = get_homogenized_stress();

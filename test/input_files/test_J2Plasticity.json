@@ -6,20 +6,32 @@
     },
 
     "problem_type": "mechanical",
-    "matmodel": "J2ViscoPlastic_NonLinearIsotropicHardening",
     "strain_type": "small",
-    "material_properties":{
-        "bulk_modulus": [62.5000, 222.222],
-        "shear_modulus": [28.8462, 166.6667],
-        "yield_stress": [0.1, 10000],
-        "isotropic_hardening_parameter": [0.0, 0.0],
-        "kinematic_hardening_parameter": [0.0, 0.0],
-        "viscosity": [1, 1],
-        "time_step": 0.01,
-
-        "saturation_stress": [0.15, 10000],
-        "saturation_exponent": [1000, 1000]
-    },
+    "materials": [
+        {
+            "phases": [0],
+            "matmodel": "J2ViscoPlastic_NonLinearIsotropicHardening",
+            "material_properties":{
+                "bulk_modulus": [62.5000],
+                "shear_modulus": [28.8462],
+                "yield_stress": [0.1],
+                "isotropic_hardening_parameter": [0.0],
+                "kinematic_hardening_parameter": [0.0],
+                "viscosity": [1],
+                "time_step": 0.01,
+                "saturation_stress": [0.15],
+                "saturation_exponent": [1000]
+            }
+        },
+        {
+            "phases": [1],
+            "matmodel": "LinearElasticIsotropic",
+            "material_properties": {
+                "bulk_modulus": [222.222],
+                "shear_modulus": [166.6667]
+            }
+        }
+    ],
 
     "FE_type": "HEX8",
     "method": "cg",

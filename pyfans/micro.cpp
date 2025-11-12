@@ -33,8 +33,8 @@ MicroSimulation::MicroSimulation(int sim_id, char *input_file)
     reader.ReadInputFile(input_file);
 
     reader.ReadMS(3);
-    matmodel = createMatmodel<3, 6>(reader);
-    solver   = createSolver<3, 6>(reader, matmodel);
+    matmanager = createMaterialManager<3, 6>(reader);
+    solver     = createSolver<3, 6>(reader, matmanager);
 }
 
 py::dict MicroSimulation::solve(py::dict macro_data, double dt)
@@ -50,7 +50,7 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 
     VectorXd homogenized_stress;
 
-    matmodel->setGradient(g0);
+    matmanager->set_gradient(g0);
 
     solver->solve();
 

@@ -16,24 +16,20 @@ class LinearThermalIsotropic : public ThermalModel, public LinearModel<1, 3> {
         }
         n_mat = conductivity.size();
 
-        if (kapparef_mat.isZero()) {
-            double kappa_ref = (*max_element(conductivity.begin(), conductivity.end()) +
-                                *min_element(conductivity.begin(), conductivity.end())) /
-                               2;
-            kapparef_mat = kappa_ref * Matrix3d::Identity();
-        }
-
         Matrix3d phase_kappa;
+        kappa_average   = Matrix3d::Zero();
         phase_stiffness = new Matrix<double, 8, 8>[n_mat];
 
         for (size_t i = 0; i < n_mat; ++i) {
             phase_stiffness[i] = Matrix<double, 8, 8>::Zero();
             phase_kappa        = conductivity[i] * Matrix3d::Identity();
+            kappa_average += phase_kappa;
 
             for (int p = 0; p < n_gp; ++p) {
                 phase_stiffness[i] += B_int[p].transpose() * phase_kappa * B_int[p] * v_e / n_gp;
             }
         }
+        kappa_average /= n_mat;
     }
 
     void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override
@@ -43,8 +39,14 @@ class LinearThermalIsotropic : public ThermalModel, public LinearModel<1, 3> {
         sigma(i + 2, 0) = conductivity[mat_index] * eps(i + 2, 0);
     }
 
+    Matrix3d get_reference_stiffness() const override
+    {
+        return kappa_average;
+    }
+
   private:
     vector<double> conductivity;
+    Matrix3d       kappa_average;
 };
 
 class LinearThermalTriclinic : public ThermalModel, public LinearModel<1, 3> {
@@ -80,28 +82,23 @@ class LinearThermalTriclinic : public ThermalModel, public LinearModel<1, 3> {
 
         // Assemble conductivity matrices for each material
         K_mats.resize(n_mat);
-        kapparef_mat = Matrix3d::Zero();
+        kappa_average   = Matrix3d::Zero();
+        phase_stiffness = new Matrix<double, 8, 8>[n_mat];
 
         for (size_t i = 0; i < n_mat; ++i) {
             Matrix3d K_i;
             K_i << K_constants(0, i), K_constants(1, i), K_constants(2, i),
                 K_constants(1, i), K_constants(3, i), K_constants(4, i),
                 K_constants(2, i), K_constants(4, i), K_constants(5, i);
-
             K_mats[i] = K_i;
-            kapparef_mat += K_i;
-        }
+            kappa_average += K_i;
 
-        kapparef_mat /= n_mat;
-
-        // Compute phase stiffness matrices
-        phase_stiffness = new Matrix<double, 8, 8>[n_mat];
-        for (size_t i = 0; i < n_mat; ++i) {
             phase_stiffness[i] = Matrix<double, 8, 8>::Zero();
             for (int p = 0; p < n_gp; ++p) {
                 phase_stiffness[i] += B_int[p].transpose() * K_mats[i] * B_int[p] * v_e / n_gp;
             }
         }
+        kappa_average /= n_mat;
     }
 
     void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override
@@ -109,9 +106,15 @@ class LinearThermalTriclinic : public ThermalModel, public LinearModel<1, 3> {
         sigma.segment<3>(i) = K_mats[mat_index] * eps.segment<3>(i);
     }
 
+    Matrix3d get_reference_stiffness() const override
+    {
+        return kappa_average;
+    }
+
   private:
     std::vector<Matrix3d, Eigen::aligned_allocator<Matrix3d>> K_mats;
     MatrixXd                                                  K_constants;
+    Matrix3d                                                  kappa_average;
 };
 
 #endif // LINEARTHERMAL_H

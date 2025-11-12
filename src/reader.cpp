@@ -70,6 +70,7 @@ void Reader ::ReadInputFile(char input_fn[])
         ifstream i(input_fn);
         json     j;
         i >> j;
+        inputJson = j; // Store complete input JSON for MaterialManager
 
         microstructure = j["microstructure"];
         strcpy(ms_filename, microstructure["filepath"].get<string>().c_str());
@@ -90,7 +91,6 @@ void Reader ::ReadInputFile(char input_fn[])
         n_it            = j["n_it"].get<int>();
 
         problemType = j["problem_type"].get<string>();
-        matmodel    = j["matmodel"].get<string>();
         method      = j["method"].get<string>();
 
         // Parse strain_type (optional, defaults to "small")
@@ -113,7 +113,6 @@ void Reader ::ReadInputFile(char input_fn[])
             FE_type = "HEX8"; // Default to full integration
         }
 
-        json j_mat     = j["material_properties"];
         resultsToWrite = j["results"].get<vector<string>>(); // Read the results_to_write field
 
         load_cases.clear();
@@ -161,32 +160,6 @@ void Reader ::ReadInputFile(char input_fn[])
                 errorParameters["measure"].get<string>().c_str());
             printf("# FANS Tolerance: \t %10.5e\n", errorParameters["tolerance"].get<double>());
             printf("# Max iterations: \t %6i\n", n_it);
-        }
-
-        for (auto it = j_mat.begin(); it != j_mat.end(); ++it) {
-            materialProperties[it.key()] = it.value();
-
-            if (world_rank == 0) {
-                cout << "# " << it.key() << ":\t ";
-                if (it.value().is_array()) {
-                    for (const auto &elem : it.value()) {
-                        if (elem.is_number()) {
-                            printf("   %10.5f", elem.get<double>());
-                        } else if (elem.is_string()) {
-                            cout << "   " << elem.get<string>();
-                        } else {
-                            cout << "   " << elem;
-                        }
-                    }
-                } else if (it.value().is_number()) {
-                    printf("   %10.5f", it.value().get<double>());
-                } else if (it.value().is_string()) {
-                    cout << "   " << it.value().get<string>();
-                } else {
-                    cout << "   " << it.value();
-                }
-                printf("\n");
-            }
         }
 
     } catch (const std::exception &e) {

@@ -6,14 +6,27 @@
     },
 
     "problem_type": "mechanical",
-    "matmodel": "PseudoPlasticLinearHardening",
     "strain_type": "small",
-    "material_properties":{
-        "bulk_modulus": [62.5000, 222.222],
-        "shear_modulus": [28.8462, 166.6667],
-        "yield_stress": [0.1, 100000],
-        "hardening_parameter": [0.0, 0.0]
-    },
+    "materials": [
+        {
+            "phases": [0],
+            "matmodel": "PseudoPlasticLinearHardening",
+            "material_properties": {
+                "bulk_modulus": [62.5000],
+                "shear_modulus": [28.8462],
+                "yield_stress": [0.1],
+                "hardening_parameter": [0.0]
+            }
+        },
+        {
+            "phases": [1],
+            "matmodel": "LinearElasticIsotropic",
+            "material_properties": {
+                "bulk_modulus": [222.222],
+                "shear_modulus": [166.6667]
+            }
+        }
+    ],
 
     "FE_type": "HEX8",
     "method": "cg",
