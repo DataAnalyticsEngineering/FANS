@@ -6,11 +6,17 @@
     },
 
     "problem_type": "mechanical",
-    "matmodel": "LinearElasticIsotropic",
-    "material_properties":{
-        "bulk_modulus": [62.5000, 222.222],
-        "shear_modulus": [28.8462, 166.6667]
-    },
+    "strain_type": "small",
+    "materials": [
+        {
+            "phases": [0,1],
+            "matmodel": "LinearElasticIsotropic",
+            "material_properties": {
+                "bulk_modulus": [62.5000, 222.222],
+                "shear_modulus": [28.8462, 166.6667]
+            }
+        }
+    ],
 
     "method": "cg",
     "error_parameters":{
