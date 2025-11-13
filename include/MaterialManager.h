@@ -37,7 +37,34 @@ class MaterialManager {
 
     MaterialManager(const Reader &reader)
     {
-        const auto &mats = reader.inputJson.at("materials");
+        // Check for old format (backward compatibility)
+        json materials_json;
+        if (reader.inputJson.contains("matmodel") && reader.inputJson.contains("material_properties")) {
+            // Old format: convert to new format
+            json mat_group;
+            mat_group["matmodel"]            = reader.inputJson["matmodel"];
+            mat_group["material_properties"] = reader.inputJson["material_properties"];
+
+            // Infer phases from material_properties array length
+            auto props  = reader.inputJson["material_properties"];
+            int  n_mats = 0;
+            for (auto it = props.begin(); it != props.end(); ++it) {
+                if (it.value().is_array()) {
+                    n_mats = it.value().size();
+                    break;
+                }
+            }
+            vector<int> phases(n_mats);
+            for (int i = 0; i < n_mats; ++i)
+                phases[i] = i;
+            mat_group["phases"] = phases;
+
+            materials_json = json::array({mat_group});
+        } else {
+            materials_json = reader.inputJson.at("materials");
+        }
+
+        const auto &mats = materials_json;
         if (!mats.is_array() || mats.empty())
             throw std::runtime_error("MaterialManager: 'materials' must be non-empty array");
 
