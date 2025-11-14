@@ -12,8 +12,8 @@ void runSolver(Reader &reader)
     reader.ReadMS(howmany);
 
     for (size_t load_path_idx = 0; load_path_idx < reader.load_cases.size(); ++load_path_idx) {
-        Matmodel<howmany, n_str> *matmodel = createMatmodel<howmany, n_str>(reader);
-        Solver<howmany, n_str>   *solver   = createSolver(reader, matmodel);
+        MaterialManager<howmany, n_str> *matmanager = createMaterialManager<howmany, n_str>(reader);
+        Solver<howmany, n_str>          *solver     = createSolver(reader, matmanager);
 
         if (reader.world_rank == 0) {
             printf("\n╔════════════════════════════════════════════════════════════ Load case %zu/%zu: %zu time steps ════════════════════════════════════════════════════════════╗\n",
@@ -30,13 +30,13 @@ void runSolver(Reader &reader)
                 solver->enableMixedBC(reader.load_cases[load_path_idx].mbc, time_step_idx);
             } else {
                 const auto &g0 = reader.load_cases[load_path_idx].g0_path[time_step_idx];
-                matmodel->setGradient(g0);
+                matmanager->set_gradient(g0);
             }
             solver->solve();
             solver->postprocess(reader, load_path_idx, time_step_idx);
         }
         delete solver;
-        delete matmodel;
+        delete matmanager;
         if (reader.world_rank == 0) {
             printf("╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝\n");
         }

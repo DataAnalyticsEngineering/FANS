@@ -24,7 +24,7 @@ class Matmodel {
 
     Matmodel(const Reader &reader);
 
-    Matrix<double, howmany * 8, howmany * 8> Compute_Reference_ElementStiffness();
+    Matrix<double, howmany * 8, howmany * 8> Compute_Reference_ElementStiffness(const Matrix<double, n_str, n_str> &kapparef_mat);
     Matrix<double, howmany * 8, 1>          &element_residual(Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
     void                                     getStrainStress(double *strain, double *stress, Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
     void                                     setGradient(vector<double> _g0);
@@ -34,8 +34,8 @@ class Matmodel {
     virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) {}
     virtual void updateInternalVariables() {}
 
-    vector<double>               macroscale_loading;
-    Matrix<double, n_str, n_str> kapparef_mat; // Reference stiffness/conductivity matrix for the fundamental solution
+    vector<double>                       macroscale_loading;
+    virtual Matrix<double, n_str, n_str> get_reference_stiffness() const = 0;
 
     virtual ~Matmodel() = default;
 
@@ -85,29 +85,6 @@ Matmodel<howmany, n_str>::Matmodel(const Reader &reader)
     eps.resize(n_str * n_gp);
     g0.resize(n_str * n_gp);
     sigma.resize(n_str * n_gp);
-
-    kapparef_mat.setZero();
-
-    // Check for optional user-defined reference material
-    if (reader.materialProperties.contains("reference_material")) {
-        auto ref_mat = reader.materialProperties["reference_material"].get<vector<vector<double>>>();
-        if (ref_mat.size() != n_str || ref_mat[0].size() != n_str) {
-            throw std::invalid_argument("reference_material must be " + std::to_string(n_str) + "x" + std::to_string(n_str));
-        }
-        for (int i = 0; i < n_str; ++i) {
-            for (int j = 0; j < n_str; ++j) {
-                kapparef_mat(i, j) = ref_mat[i][j];
-            }
-        }
-        // Verify SPD using Cholesky decomposition
-        Eigen::LLT<Matrix<double, n_str, n_str>> llt(kapparef_mat);
-        if (llt.info() != Eigen::Success) {
-            throw std::invalid_argument("reference_material must be symmetric positive definite");
-        }
-        if (reader.world_rank == 0) {
-            cout << "# Using user-defined reference material for fundamental solution." << endl;
-        }
-    }
 }
 
 template <int howmany, int n_str>
@@ -244,7 +221,7 @@ void Matmodel<howmany, n_str>::setGradient(vector<double> _g0)
     }
 }
 template <int howmany, int n_str>
-Matrix<double, howmany * 8, howmany * 8> Matmodel<howmany, n_str>::Compute_Reference_ElementStiffness()
+Matrix<double, howmany * 8, howmany * 8> Matmodel<howmany, n_str>::Compute_Reference_ElementStiffness(const Matrix<double, n_str, n_str> &kapparef_mat)
 {
     Matrix<double, howmany * 8, howmany * 8> Reference_ElementStiffness = Matrix<double, howmany * 8, howmany * 8>::Zero();
     Matrix<double, howmany * 8, howmany * 8> tmp                        = Matrix<double, howmany * 8, howmany * 8>::Zero();

@@ -14,7 +14,7 @@ class SolverFP : public Solver<howmany, n_str> {
     using Solver<howmany, n_str>::v_u_real;
     using Solver<howmany, n_str>::v_r_real;
 
-    SolverFP(Reader &reader, Matmodel<howmany, n_str> *matmodel);
+    SolverFP(Reader &reader, MaterialManager<howmany, n_str> *matmanager);
 
     void internalSolve();
 
@@ -23,8 +23,8 @@ class SolverFP : public Solver<howmany, n_str> {
 };
 
 template <int howmany, int n_str>
-SolverFP<howmany, n_str>::SolverFP(Reader &reader, Matmodel<howmany, n_str> *matmodel)
-    : Solver<howmany, n_str>(reader, matmodel)
+SolverFP<howmany, n_str>::SolverFP(Reader &reader, MaterialManager<howmany, n_str> *matmanager)
+    : Solver<howmany, n_str>(reader, matmanager)
 {
     this->CreateFFTWPlans(this->v_r, (fftw_complex *) this->v_r, this->v_r);
 }

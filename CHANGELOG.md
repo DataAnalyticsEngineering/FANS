@@ -1,5 +1,10 @@
 # FANS Changelog
 
+## v0.6.0
+
+- Introduce MaterialManager abstraction class to handle multiple material models within the microstructure [#115](https://github.com/DataAnalyticsEngineering/FANS/pull/115)
+- Bugfix: `homogenized_tangent` was computed but not written to HDF5 output [#113](https://github.com/DataAnalyticsEngineering/FANS/pull/113)
+
 ## v0.5.2
 
 - Bugfix: Fix bad initial guess for time steps > 0 [#109](https://github.com/DataAnalyticsEngineering/FANS/pull/109)

@@ -30,19 +30,6 @@ class CompressibleNeoHookean : public LargeStrainMechModel {
             mu[i]     = shear_modulus[i];
             lambda[i] = bulk_modulus[i] - (2.0 / 3.0) * mu[i];
         }
-
-        if (kapparef_mat.isZero()) {
-            // Compute reference tangent at F=I
-            kapparef_mat = Matrix<double, 9, 9>::Zero();
-            for (int mat_idx = 0; mat_idx < n_mat; ++mat_idx) {
-                Matrix3d             F_identity = Matrix3d::Identity();
-                Matrix3d             S          = compute_S(F_identity, mat_idx, 0);
-                Matrix<double, 6, 6> C_mandel   = compute_material_tangent(F_identity, mat_idx);
-                Matrix<double, 9, 9> A          = compute_spatial_tangent(F_identity, S, C_mandel);
-                kapparef_mat += A;
-            }
-            kapparef_mat /= static_cast<double>(n_mat);
-        }
     }
 
     Matrix3d compute_S(const Matrix3d &F, int mat_index, ptrdiff_t element_idx) override
@@ -102,6 +89,22 @@ class CompressibleNeoHookean : public LargeStrainMechModel {
                                          (mu[mat_index] - lambda[mat_index] * logJ) * PP2;
 
         return C_tangent;
+    }
+
+    Matrix<double, 9, 9> get_reference_stiffness() const override
+    {
+        // Compute reference tangent at F=I
+        auto                *self       = const_cast<CompressibleNeoHookean *>(this);
+        Matrix<double, 9, 9> kapparef   = Matrix<double, 9, 9>::Zero();
+        Matrix3d             F_identity = Matrix3d::Identity();
+
+        for (int mat_idx = 0; mat_idx < n_mat; ++mat_idx) {
+            Matrix3d             S        = self->compute_S(F_identity, mat_idx, 0);
+            Matrix<double, 6, 6> C_mandel = self->compute_material_tangent(F_identity, mat_idx);
+            Matrix<double, 9, 9> A        = compute_spatial_tangent(F_identity, S, C_mandel);
+            kapparef += A;
+        }
+        return kapparef / static_cast<double>(n_mat);
     }
 
   private:
