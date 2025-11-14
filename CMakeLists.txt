@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.21)
 # ##############################################################################
 
 project(FANS
-        VERSION 0.5.2
+        VERSION 0.6.0
         LANGUAGES C CXX
 )
 
