@@ -70,13 +70,19 @@ Matmodel<3, 9> *createMatmodel<3, 9>(const Reader &reader)
 }
 
 template <int howmany, int n_str>
-Solver<howmany, n_str> *createSolver(Reader &reader, Matmodel<howmany, n_str> *matmodel)
+Solver<howmany, n_str> *createSolver(Reader &reader, MaterialManager<howmany, n_str> *matmanager)
 {
     if (reader.method == "fp") {
-        return new SolverFP<howmany, n_str>(reader, matmodel);
+        return new SolverFP<howmany, n_str>(reader, matmanager);
     } else if (reader.method == "cg") {
-        return new SolverCG<howmany, n_str>(reader, matmodel);
+        return new SolverCG<howmany, n_str>(reader, matmanager);
     } else {
         throw std::invalid_argument(reader.method + " is not a valid method");
     }
+}
+
+template <int howmany, int n_str>
+MaterialManager<howmany, n_str> *createMaterialManager(const Reader &reader)
+{
+    return new MaterialManager<howmany, n_str>(reader);
 }

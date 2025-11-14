@@ -6,11 +6,16 @@
     },
 
     "problem_type": "thermal",
-    "matmodel": "LinearThermalIsotropic",
     "strain_type": "small",
-    "material_properties":{
-        "conductivity": [1, 10]
-    },
+    "materials": [
+        {
+            "phases": [0,1],
+            "matmodel": "LinearThermalIsotropic",
+            "material_properties": {
+                "conductivity": [1, 10]
+            }
+        }
+    ],
 
     "FE_type": "HEX8R",
     "method": "cg",

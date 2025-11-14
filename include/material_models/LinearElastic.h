@@ -24,19 +24,6 @@ class LinearElasticIsotropic : public SmallStrainMechModel, public LinearModel<3
             lambda[i] = bulk_modulus[i] - (2.0 / 3.0) * mu[i];
         }
 
-        if (kapparef_mat.isZero()) {
-            double lambda_ref = (*max_element(lambda.begin(), lambda.end()) +
-                                 *min_element(lambda.begin(), lambda.end())) /
-                                2;
-            double mu_ref = (*max_element(mu.begin(), mu.end()) +
-                             *min_element(mu.begin(), mu.end())) /
-                            2;
-
-            kapparef_mat = Matrix<double, 6, 6>::Zero();
-            kapparef_mat.topLeftCorner(3, 3).setConstant(lambda_ref);
-            kapparef_mat += 2 * mu_ref * Matrix<double, 6, 6>::Identity();
-        }
-
         phase_stiffness = new Matrix<double, 24, 24>[n_mat];
         Matrix<double, 6, 6> phase_kappa;
 
@@ -63,6 +50,22 @@ class LinearElasticIsotropic : public SmallStrainMechModel, public LinearModel<3
         sigma(i + 3, 0) = buf2 * eps(i + 3, 0);
         sigma(i + 4, 0) = buf2 * eps(i + 4, 0);
         sigma(i + 5, 0) = buf2 * eps(i + 5, 0);
+    }
+
+    Matrix<double, 6, 6> get_reference_stiffness() const override
+    {
+        // Return the reference stiffness computed in constructor
+        double lambda_ref = (*std::max_element(lambda.begin(), lambda.end()) +
+                             *std::min_element(lambda.begin(), lambda.end())) /
+                            2;
+        double mu_ref = (*std::max_element(mu.begin(), mu.end()) +
+                         *std::min_element(mu.begin(), mu.end())) /
+                        2;
+
+        Matrix<double, 6, 6> kappa_ref = Matrix<double, 6, 6>::Zero();
+        kappa_ref.topLeftCorner(3, 3).setConstant(lambda_ref);
+        kappa_ref += 2 * mu_ref * Matrix<double, 6, 6>::Identity();
+        return kappa_ref;
     }
 
   private:
@@ -107,7 +110,6 @@ class LinearElasticTriclinic : public SmallStrainMechModel, public LinearModel<3
 
         // Assemble stiffness matrices for each material
         C_mats.resize(n_mat);
-        Matrix<double, 6, 6> kappa_temp = Matrix<double, 6, 6>::Zero();
 
         for (size_t i = 0; i < n_mat; ++i) {
             Matrix<double, 6, 6> C_i = Matrix<double, 6, 6>::Zero();
@@ -124,11 +126,6 @@ class LinearElasticTriclinic : public SmallStrainMechModel, public LinearModel<3
             C_i = C_i.selfadjointView<Eigen::Upper>();
 
             C_mats[i] = C_i;
-            kappa_temp += C_i;
-        }
-
-        if (kapparef_mat.isZero()) {
-            kapparef_mat = kappa_temp / n_mat;
         }
 
         // Compute phase stiffness matrices
@@ -144,6 +141,16 @@ class LinearElasticTriclinic : public SmallStrainMechModel, public LinearModel<3
     void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override
     {
         sigma.segment<6>(i) = C_mats[mat_index] * eps.segment<6>(i);
+    }
+
+    Matrix<double, 6, 6> get_reference_stiffness() const override
+    {
+        // Simple average of all stiffness matrices
+        Matrix<double, 6, 6> avg = Matrix<double, 6, 6>::Zero();
+        for (const auto &C : C_mats) {
+            avg += C;
+        }
+        return avg / n_mat;
     }
 
   private:

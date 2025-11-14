@@ -239,30 +239,47 @@ FANS requires a JSON input file specifying the problem parameters. Example input
 
 ```json
 "problem_type": "mechanical",
-"matmodel": "LinearElasticIsotropic",
 "strain_type": "small",
-"material_properties": {
-                         "bulk_modulus": [62.5000, 222.222],
-                         "shear_modulus": [28.8462, 166.6667]
-                       }
+"materials": [
+    {
+        "phases": [0],
+        "matmodel": "PseudoPlasticLinearHardening",
+        "material_properties": {
+            "bulk_modulus": [62.5000],
+            "shear_modulus": [28.8462],
+            "yield_stress": [0.1],
+            "hardening_parameter": [0.0]
+        }
+    },
+    {
+        "phases": [1],
+        "matmodel": "LinearElasticIsotropic",
+        "material_properties": {
+            "bulk_modulus": [222.222],
+            "shear_modulus": [166.6667]
+        }
+    }
+]
 ```
 
-- `problem_type`: This defines the type of physical problem you are solving. Common options include `thermal` problems and `mechanical` problems.
-- `matmodel`: This specifies the material model to be used in the simulation. Examples include
-
-  - `LinearThermalIsotropic` for linear isotropic conductive material model.
-  - `LinearThermalTriclinic` for linear triclinic conductive material model.
-  - `GBDiffusion` for diffusion model with transversely isotropic grain boundary and isotropic bulk for polycrystalline materials.
-
-  - `LinearElasticIsotropic` for linear isotropic elastic material model.
-  - `LinearElasticTriclinic` for linear triclinic elastic material model.
-  - `PseudoPlasticLinearHardening` / `PseudoPlasticNonLinearHardening` for plasticity mimicking model with linear/nonlinear hardening.
-  - `J2ViscoPlastic_LinearIsotropicHardening` / `J2ViscoPlastic_NonLinearIsotropicHardening` for rate-independent / dependent J2 plasticity model with kinematic and linear/nonlinear isotropic hardening.
-  - `SaintVenantKirchhoff` for the hyperelastic Saint Venant-Kirchhoff material model.
-  - `CompressibleNeoHookean` for the compressible Neo-Hookean material model.
-
+- `problem_type`: This defines the type of physical problem you are solving. Options include `thermal` problems and `mechanical` problems.
 - `strain_type`: This indicates whether the problem is formulated using infinitesimal (`small`) strain or finite (`large`) strain theory.
-- `material_properties`: This provides the necessary material parameters for the chosen material model. For thermal problems, you might specify `conductivity`, while mechanical problems might require `bulk_modulus`, `shear_modulus`, and more properties for advanced material models. These properties can be defined as arrays to represent multiple phases within the microstructure.
+- `materials`: An array of material groups, where each group assigns one or more phases to a specific material model. Each material group contains:
+  - `phases`: An array of phase IDs (material labels) from the microstructure that use this material model.
+  - `matmodel`: The constitutive model for this material group. Available models include:
+
+    - `LinearThermalIsotropic` for linear isotropic conductive material model.
+    - `LinearThermalTriclinic` for linear triclinic conductive material model.
+    - `GBDiffusion` for diffusion model with transversely isotropic grain boundary and isotropic bulk for polycrystalline materials.
+
+    - `LinearElasticIsotropic` for linear isotropic elastic material model.
+    - `LinearElasticTriclinic` for linear triclinic elastic material model.
+    - `PseudoPlasticLinearHardening` / `PseudoPlasticNonLinearHardening` for plasticity mimicking model with linear/nonlinear hardening.
+    - `J2ViscoPlastic_LinearIsotropicHardening` / `J2ViscoPlastic_NonLinearIsotropicHardening` for rate-independent / dependent J2 plasticity model with kinematic and linear/nonlinear isotropic hardening.
+    - `SaintVenantKirchhoff` for the hyperelastic Saint Venant-Kirchhoff material model.
+    - `CompressibleNeoHookean` for the compressible Neo-Hookean material model.
+
+  - `material_properties`: Material parameters specific to the chosen model. Properties are defined as arrays, where each element corresponds to one of the phases listed in the `phases` array.
 
 ### Solver settings
 

@@ -31,15 +31,6 @@ class PseudoPlastic : public SmallStrainMechModel {
             throw std::runtime_error("Missing material properties for the requested material model.");
         }
         n_mat = bulk_modulus.size();
-
-        if (kapparef_mat.isZero()) {
-            const double Kbar      = std::accumulate(bulk_modulus.begin(), bulk_modulus.end(), 0.0) / static_cast<double>(n_mat);
-            const double Gbar      = std::accumulate(shear_modulus.begin(), shear_modulus.end(), 0.0) / static_cast<double>(n_mat);
-            const double lambdabar = Kbar - 2.0 * Gbar / 3.0;
-            kapparef_mat.setZero();
-            kapparef_mat.topLeftCorner(3, 3).setConstant(lambdabar);
-            kapparef_mat.diagonal().array() += 2.0 * Gbar;
-        }
     }
 
     void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) override
@@ -48,6 +39,18 @@ class PseudoPlastic : public SmallStrainMechModel {
     }
 
     virtual void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override = 0; // Pure virtual method
+
+    Matrix<double, 6, 6> get_reference_stiffness() const override
+    {
+        const double Kbar      = std::accumulate(bulk_modulus.begin(), bulk_modulus.end(), 0.0) / static_cast<double>(n_mat);
+        const double Gbar      = std::accumulate(shear_modulus.begin(), shear_modulus.end(), 0.0) / static_cast<double>(n_mat);
+        const double lambdabar = Kbar - 2.0 * Gbar / 3.0;
+
+        Matrix<double, 6, 6> kappa_ref = Matrix<double, 6, 6>::Zero();
+        kappa_ref.topLeftCorner(3, 3).setConstant(lambdabar);
+        kappa_ref.diagonal().array() += 2.0 * Gbar;
+        return kappa_ref;
+    }
 
     void postprocess(Solver<3, 6> &solver, Reader &reader, int load_idx, int time_idx) override
     {

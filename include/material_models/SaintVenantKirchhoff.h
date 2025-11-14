@@ -28,19 +28,6 @@ class SaintVenantKirchhoff : public LargeStrainMechModel {
             mu[i]     = shear_modulus[i];
             lambda[i] = bulk_modulus[i] - (2.0 / 3.0) * mu[i];
         }
-
-        if (kapparef_mat.isZero()) {
-            // Compute reference tangent at F=I
-            kapparef_mat = Matrix<double, 9, 9>::Zero();
-            for (int mat_idx = 0; mat_idx < n_mat; ++mat_idx) {
-                Matrix3d             F_identity = Matrix3d::Identity();
-                Matrix3d             S          = compute_S(F_identity, mat_idx, 0);
-                Matrix<double, 6, 6> C_mandel   = compute_material_tangent(F_identity, mat_idx);
-                Matrix<double, 9, 9> A          = compute_spatial_tangent(F_identity, S, C_mandel);
-                kapparef_mat += A;
-            }
-            kapparef_mat /= static_cast<double>(n_mat);
-        }
     }
 
     Matrix3d compute_S(const Matrix3d &F, int mat_index, ptrdiff_t element_idx) override
@@ -56,6 +43,24 @@ class SaintVenantKirchhoff : public LargeStrainMechModel {
         C.topLeftCorner(3, 3).setConstant(lambda[mat_index]);
         C += 2.0 * mu[mat_index] * Matrix<double, 6, 6>::Identity();
         return C;
+    }
+
+    Matrix<double, 9, 9> get_reference_stiffness() const override
+    {
+        // Compute reference tangent at F=I
+        Matrix<double, 9, 9> kapparef = Matrix<double, 9, 9>::Zero();
+        for (int mat_idx = 0; mat_idx < n_mat; ++mat_idx) {
+            Matrix3d             F_identity = Matrix3d::Identity();
+            Matrix3d             E          = 0.5 * (F_identity.transpose() * F_identity - Matrix3d::Identity());
+            double               trE        = E.trace();
+            Matrix3d             S          = lambda[mat_idx] * trE * Matrix3d::Identity() + 2.0 * mu[mat_idx] * E;
+            Matrix<double, 6, 6> C          = Matrix<double, 6, 6>::Zero();
+            C.topLeftCorner(3, 3).setConstant(lambda[mat_idx]);
+            C += 2.0 * mu[mat_idx] * Matrix<double, 6, 6>::Identity();
+            Matrix<double, 9, 9> A = compute_spatial_tangent(F_identity, S, C);
+            kapparef += A;
+        }
+        return kapparef / static_cast<double>(n_mat);
     }
 
   private:

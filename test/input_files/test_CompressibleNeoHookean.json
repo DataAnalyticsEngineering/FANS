@@ -6,12 +6,17 @@
     },
 
     "problem_type": "mechanical",
-    "matmodel": "CompressibleNeoHookean",
     "strain_type": "large",
-    "material_properties":{
-        "bulk_modulus": [62.5000, 222.222],
-        "shear_modulus": [28.8462, 166.6667]
-    },
+    "materials": [
+        {
+            "phases": [0,1],
+            "matmodel": "CompressibleNeoHookean",
+            "material_properties": {
+                "bulk_modulus": [62.5000, 222.222],
+                "shear_modulus": [28.8462, 166.6667]
+            }
+        }
+    ],
 
     "FE_type": "HEX8",
     "method": "cg",

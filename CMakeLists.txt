@@ -151,6 +151,7 @@ target_include_directories(FANS_FANS PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SO
 set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/general.h
         include/matmodel.h
+        include/MaterialManager.h
         include/reader.h
         include/solverCG.h
         include/solverFP.h

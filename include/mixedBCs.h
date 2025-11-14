@@ -174,7 +174,7 @@ struct MixedBCController {
         }
 
         vector<double> gvec(g0_vec.data(), g0_vec.data() + g0_vec.size());
-        solver.matmodel->setGradient(gvec);
+        solver.matmanager->set_gradient(gvec);
     }
 
     template <typename SolverType>
@@ -183,9 +183,9 @@ struct MixedBCController {
         mixed_active = true;
         mbc_local    = mbc_in;
         step_idx     = t;
-        mbc_local.finalize(solver.matmodel->kapparef_mat);
+        mbc_local.finalize(solver.matmanager->kapparef_mat);
 
-        int n_str = solver.matmodel->num_str;
+        int n_str = solver.matmanager->get_info(0).model->num_str;
 
         // Only initialize on the FIRST step (t=0)
         if (t == 0) {
@@ -219,7 +219,7 @@ struct MixedBCController {
         }
 
         vector<double> gvec(g0_vec.data(), g0_vec.data() + n_str);
-        solver.matmodel->setGradient(gvec);
+        solver.matmanager->set_gradient(gvec);
 
         // Do one update to adjust stress-controlled components
         solver.updateMixedBC();

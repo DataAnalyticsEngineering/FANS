@@ -14,7 +14,7 @@ class SolverCG : public Solver<howmany, n_str> {
     using Solver<howmany, n_str>::v_u_real;
     using Solver<howmany, n_str>::v_r_real;
 
-    SolverCG(Reader &reader, Matmodel<howmany, n_str> *matmodel);
+    SolverCG(Reader &reader, MaterialManager<howmany, n_str> *matmanager);
     virtual ~SolverCG();
 
     double   *s;
@@ -33,8 +33,8 @@ class SolverCG : public Solver<howmany, n_str> {
 };
 
 template <int howmany, int n_str>
-SolverCG<howmany, n_str>::SolverCG(Reader &reader, Matmodel<howmany, n_str> *mat)
-    : Solver<howmany, n_str>(reader, mat),
+SolverCG<howmany, n_str>::SolverCG(Reader &reader, MaterialManager<howmany, n_str> *matmgr)
+    : Solver<howmany, n_str>(reader, matmgr),
 
       s(fftw_alloc_real(reader.alloc_local * 2)),
       s_real(s, n_z * howmany, local_n0 * n_y, OuterStride<>((n_z + 2) * howmany)),
@@ -63,8 +63,7 @@ void SolverCG<howmany, n_str>::internalSolve()
     if (this->world_rank == 0)
         printf("\n# Start FANS - Conjugate Gradient Solver \n");
 
-    LinearModel<howmany, n_str> *linearModel = dynamic_cast<LinearModel<howmany, n_str> *>(this->matmodel);
-    bool                         islinear    = (linearModel == NULL) ? false : true;
+    bool islinear = this->matmanager->all_linear;
 
     s_real.setZero();
     d_real.setZero();
@@ -95,8 +94,9 @@ void SolverCG<howmany, n_str>::internalSolve()
         if (islinear && !this->isMixedBCActive()) {
             Matrix<double, howmany * 8, 1> res_e;
             this->template compute_residual_basic<0>(rnew_real, d_real,
-                                                     [&](Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx) -> Matrix<double, howmany * 8, 1> & {
-                                                         res_e.noalias() = linearModel->phase_stiffness[mat_index] * ue;
+                                                     [&](Matrix<double, howmany * 8, 1> &ue, int phase_id, ptrdiff_t element_idx) -> Matrix<double, howmany * 8, 1> & {
+                                                         const MaterialInfo<howmany, n_str> &info = this->matmanager->get_info(phase_id);
+                                                         res_e.noalias()                          = info.linear_model->phase_stiffness[info.local_mat_id] * ue;
                                                          return res_e;
                                                      });
 
