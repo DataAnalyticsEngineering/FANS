@@ -12,6 +12,7 @@
 
 #include "general.h"
 #include "matmodel.h"
+#include "MaterialManager.h"
 #include "solver.h"
 
 namespace py = pybind11;
@@ -25,7 +26,7 @@ class MicroSimulation {
     int    _sim_id;
     Reader reader;
     // Hardcoding mechanical models because these definitions need information from the input file.
-    Matmodel<3, 6> *matmodel;
-    Solver<3, 6>   *solver;
-    double          pert_param = 1e-6; // scalar strain perturbation parameter
+    MaterialManager<3, 6> *matmanager;
+    Solver<3, 6>          *solver;
+    double                 pert_param = 1e-6; // scalar strain perturbation parameter
 };
