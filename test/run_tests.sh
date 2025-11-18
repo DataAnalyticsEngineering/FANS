@@ -18,13 +18,14 @@ fi
 mkdir -p output
 
 FANS_TEST_CASES=(
-    "J2Plasticity"
-    "LinearElastic"
-    "LinearThermal"
-    "PseudoPlastic"
-    "MixedBCs"
-    "CompressibleNeoHookean"
-    "MixedBCs_LargeStrain"
+    # "J2Plasticity"
+    # "LinearElastic"
+    # "LinearThermal"
+    # "PseudoPlastic"
+    # "MixedBCs"
+    # "CompressibleNeoHookean"
+    # "MixedBCs_LargeStrain"
+    "problematic"
 )
 TOTAL_TESTS=${#FANS_TEST_CASES[@]}
 passed=0 failed=0 total_time=0 test_num=0

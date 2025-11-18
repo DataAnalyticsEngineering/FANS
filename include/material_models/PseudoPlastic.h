@@ -59,7 +59,7 @@ class PseudoPlastic : public SmallStrainMechModel {
             element_plastic_flag(elem_idx) = plastic_flag[elem_idx].cast<float>().mean();
         }
 
-        reader.writeSlab("plastic_flag", load_idx, time_idx, element_plastic_flag.data(), 1);
+        reader.writeSlab("plastic_flag", load_idx, time_idx, element_plastic_flag.data(), {1});
     }
 
   protected:

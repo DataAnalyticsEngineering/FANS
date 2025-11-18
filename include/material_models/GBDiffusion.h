@@ -179,7 +179,7 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
                     GBnormals_field[element_idx * 3 + 2] = GBnormals[3 * mat_index + 2];
                 }
             }
-            reader.writeSlab("GBnormals", load_idx, time_idx, GBnormals_field, 3);
+            reader.writeSlab("GBnormals", load_idx, time_idx, GBnormals_field, {3});
             FANS_free(GBnormals_field);
         }
     }
