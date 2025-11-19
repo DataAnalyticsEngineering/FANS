@@ -62,8 +62,8 @@ To get started immediately, we include ready to use example [input files](test/i
 
 FANS requires the following dependencies:
 
-| Dependency | Purpose |  |
-|------------|---------|------------------|
+| Dependency | Purpose | |
+| ------------ | --------- | ------------------ |
 | **C++ Compiler** | (GCC, Clang, etc.) | C++17 or newer |
 | **CMake** | Build system | ≥ 3.21 |
 | **MPI** | Parallel computing | (OpenMPI, MPICH, Intel MPI) |
@@ -186,7 +186,7 @@ cd ../test
 **Build options:**
 
 | CMake Option | Description | Default |
-|--------------|-------------|---------|
+| -------------- | ------------- | --------- |
 | `CMAKE_BUILD_TYPE` | Build type: `Debug`, `Release`, `RelWithDebInfo` | `NONE` |
 | `CMAKE_INTERPROCEDURAL_OPTIMIZATION` | Enable link-time optimization (LTO) | `ON` (if supported) |
 | `FANS_BUILD_STATIC` | Build static library | `OFF` |
