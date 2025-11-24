@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Create markdownlint config
         run: |
           cat > .markdownlint.json << 'EOF'
@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Create markdown-link-check config
         run: |
           cat > .markdown-link-check-config.json << 'EOF'
@@ -59,7 +59,7 @@ jobs:
     name: pre-commit checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Setup python
         uses: actions/setup-python@v6
         with:
