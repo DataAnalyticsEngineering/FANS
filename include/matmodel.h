@@ -29,6 +29,20 @@ class Matmodel {
     void                                     getStrainStress(double *strain, double *stress, Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
     void                                     setGradient(vector<double> _g0);
 
+    // Accessors for internal Gauss point data (populated after getStrainStress call)
+    inline const double *get_eps_data() const
+    {
+        return eps.data();
+    }
+    inline const double *get_sigma_data() const
+    {
+        return sigma.data();
+    }
+    inline int get_n_gp() const
+    {
+        return n_gp;
+    }
+
     virtual void postprocess(Solver<howmany, n_str> &solver, Reader &reader, int load_idx, int time_idx) {};
 
     virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) {}

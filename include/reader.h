@@ -73,10 +73,10 @@ class Reader {
     void writeData(const char *fieldName, int load_idx, int time_idx, T *data, hsize_t *dims, int ndims);
 
     template <typename T>
-    void writeSlab(const char *fieldName, int load_idx, int time_idx, T *data, int size);
+    void writeSlab(const char *fieldName, int load_idx, int time_idx, T *data, const std::vector<int> &extra_dims);
 
     template <typename T>
-    void WriteSlab(T *data, int _howmany, const char *dset_name);
+    void WriteSlab(T *data, const std::vector<int> &extra_dims, const char *dset_name);
 
     template <typename T>
     void WriteData(T *data, const char *dset_name, hsize_t *dims, int rank);
@@ -157,22 +157,25 @@ void Reader::WriteData(T *data, const char *dset_name, hsize_t *dims, int rank)
 
 // this function has to be here because of the template
 /* ---------------------------------------------------------------------------
- * Write a 4-D slab (local_n0 × Ny × Nz × howmany) from THIS MPI rank into an
- * HDF5 dataset whose global layout on disk is
+ * Write an N-D slab (local_n0 × Ny × Nz × d1 × d2 × ...) from THIS MPI rank
+ * into an HDF5 dataset whose global layout on disk is
  *
- *            Z  Y  X  k   (i.e. "zyx" + extra dim k)
+ *            Z  Y  X  d1  d2  ...   (i.e. "zyx" + extra dims)
  *
  * The caller supplies the data in logical order
- *            X  Y  Z  k .
+ *            X  Y  Z  d1  d2  ... .
  *
- * We therefore transpose in-memory once per write call.
+ * We therefore transpose the first 3 dimensions once per write call.
  * --------------------------------------------------------------------------*/
 template <typename T>
 void Reader::WriteSlab(
-    T          *data,     // in:  local slab, layout [X][Y][Z][k]
-    int         _howmany, // global size of the 4th axis (k)
-    const char *dset_name)
+    T                      *data,       // in:  local slab, layout [X][Y][Z][d1][d2]...
+    const std::vector<int> &extra_dims, // sizes of extra dimensions [d1, d2, ...]
+    const char             *dset_name)
 {
+    if (extra_dims.empty()) {
+        throw std::invalid_argument("WriteSlab: extra_dims cannot be empty");
+    }
     /*------------------------------------------------------------------*/
     /* 0. map C++ type -> native HDF5 type                              */
     /*------------------------------------------------------------------*/
@@ -194,7 +197,6 @@ void Reader::WriteSlab(
     /* 1. open or create the HDF5 file                                  */
     /*------------------------------------------------------------------*/
     hid_t file_id = results_file_id;
-    hid_t plist_id;
     if (file_id < 0) {
         throw std::runtime_error("WriteSlab: results file is not open");
     }
@@ -202,15 +204,20 @@ void Reader::WriteSlab(
     void *old_client_data;
 
     /*------------------------------------------------------------------*/
-    /* 2. create the dataset (global dims =  Z Y X k ) if necessary     */
+    /* 2. create the dataset (global dims = Z Y X d1 d2 ...) if needed  */
     /*------------------------------------------------------------------*/
-    const hsize_t Nx   = static_cast<hsize_t>(dims[0]);
-    const hsize_t Ny   = static_cast<hsize_t>(dims[1]);
-    const hsize_t Nz   = static_cast<hsize_t>(dims[2]);
-    const hsize_t kDim = static_cast<hsize_t>(_howmany);
+    const hsize_t Nx = static_cast<hsize_t>(dims[0]);
+    const hsize_t Ny = static_cast<hsize_t>(dims[1]);
+    const hsize_t Nz = static_cast<hsize_t>(dims[2]);
 
-    const int rank        = 4;
-    hsize_t   dimsf[rank] = {Nz, Ny, Nx, kDim}; /* <<< Z Y X k */
+    const int            rank = 3 + extra_dims.size();
+    std::vector<hsize_t> dimsf(rank);
+    dimsf[0] = Nz;
+    dimsf[1] = Ny;
+    dimsf[2] = Nx;
+    for (size_t i = 0; i < extra_dims.size(); ++i) {
+        dimsf[3 + i] = static_cast<hsize_t>(extra_dims[i]);
+    }
 
     safe_create_group(file_id, dset_name);
 
@@ -222,7 +229,7 @@ void Reader::WriteSlab(
     H5Eset_auto(H5E_DEFAULT, old_func, old_client_data); /* restore */
 
     if (dset_id < 0) {
-        hid_t filespace = H5Screate_simple(rank, dimsf, nullptr);
+        hid_t filespace = H5Screate_simple(rank, dimsf.data(), nullptr);
         dset_id         = H5Dcreate2(file_id, dset_name, data_type,
                                      filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         H5Sclose(filespace);
@@ -245,20 +252,40 @@ void Reader::WriteSlab(
     /*------------------------------------------------------------------*/
     /* 3. build FILE hyperslab  (slice along file-dim 2 = X axis)       */
     /*------------------------------------------------------------------*/
-    hsize_t fcount[4]  = {Nz, Ny, static_cast<hsize_t>(local_n0), kDim};
-    hsize_t foffset[4] = {0, 0, static_cast<hsize_t>(local_0_start), 0};
+    std::vector<hsize_t> fcount(rank);
+    std::vector<hsize_t> foffset(rank);
+
+    fcount[0] = Nz;
+    fcount[1] = Ny;
+    fcount[2] = static_cast<hsize_t>(local_n0);
+    for (size_t i = 0; i < extra_dims.size(); ++i) {
+        fcount[3 + i] = static_cast<hsize_t>(extra_dims[i]);
+    }
+
+    foffset[0] = 0;
+    foffset[1] = 0;
+    foffset[2] = static_cast<hsize_t>(local_0_start);
+    for (size_t i = 0; i < extra_dims.size(); ++i) {
+        foffset[3 + i] = 0;
+    }
 
     hid_t filespace = H5Dget_space(dset_id);
-    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, foffset, nullptr, fcount, nullptr);
+    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, foffset.data(), nullptr, fcount.data(), nullptr);
 
     /*------------------------------------------------------------------*/
-    /* 4. transpose local slab  [X][Y][Z][k]  ->  [Z][Y][X][k]          */
+    /* 4. transpose local slab  [X][Y][Z][d1][d2]...  ->  [Z][Y][X][d1][d2]... */
     /*------------------------------------------------------------------*/
-    const Eigen::Index NxLoc     = static_cast<Eigen::Index>(local_n0);
-    const Eigen::Index NyLoc     = static_cast<Eigen::Index>(Ny);
-    const Eigen::Index NzLoc     = static_cast<Eigen::Index>(Nz);
-    const Eigen::Index kLoc      = static_cast<Eigen::Index>(kDim);
-    const size_t       slabElems = static_cast<size_t>(NxLoc * NyLoc * NzLoc * kLoc);
+    const Eigen::Index NxLoc = static_cast<Eigen::Index>(local_n0);
+    const Eigen::Index NyLoc = static_cast<Eigen::Index>(Ny);
+    const Eigen::Index NzLoc = static_cast<Eigen::Index>(Nz);
+
+    // Flatten extra dimensions into one for Eigen Tensor (which supports up to rank 4)
+    size_t extra_size = 1;
+    for (int d : extra_dims)
+        extra_size *= d;
+    const Eigen::Index extraLoc = static_cast<Eigen::Index>(extra_size);
+
+    const size_t slabElems = static_cast<size_t>(NxLoc * NyLoc * NzLoc * extraLoc);
 
     T *tmp = static_cast<T *>(fftw_malloc(slabElems * sizeof(T)));
     if (!tmp) {
@@ -266,21 +293,21 @@ void Reader::WriteSlab(
     }
 
     Eigen::TensorMap<Eigen::Tensor<const T, 4, Eigen::RowMajor>>
-        input_tensor(data, NxLoc, NyLoc, NzLoc, kLoc);
+        input_tensor(data, NxLoc, NyLoc, NzLoc, extraLoc);
 
     Eigen::TensorMap<Eigen::Tensor<T, 4, Eigen::RowMajor>>
-        output_tensor(tmp, NzLoc, NyLoc, NxLoc, kLoc);
+        output_tensor(tmp, NzLoc, NyLoc, NxLoc, extraLoc);
 
-    // Permute dimensions: (0,1,2,3) -> (2,1,0,3) swaps X and Z
+    // Permute dimensions: (0,1,2,3) -> (2,1,0,3) swaps X and Z, keeps extra dims
     Eigen::array<Eigen::Index, 4> shuffle_dims = {2, 1, 0, 3};
     output_tensor                              = input_tensor.shuffle(shuffle_dims);
 
     /*------------------------------------------------------------------*/
     /* 5. MEMORY dataspace matches FILE slab exactly                    */
     /*------------------------------------------------------------------*/
-    hid_t memspace = H5Screate_simple(4, fcount, nullptr);
+    hid_t memspace = H5Screate_simple(rank, fcount.data(), nullptr);
 
-    plist_id = H5Pcreate(H5P_DATASET_XFER);
+    hid_t plist_id = H5Pcreate(H5P_DATASET_XFER);
     H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
 
     herr_t status = H5Dwrite(dset_id, data_type,
@@ -310,14 +337,14 @@ void Reader::writeData(const char *fieldName, int load_idx, int time_idx, T *dat
 }
 
 template <typename T>
-void Reader::writeSlab(const char *fieldName, int load_idx, int time_idx, T *data, int size)
+void Reader::writeSlab(const char *fieldName, int load_idx, int time_idx, T *data, const std::vector<int> &extra_dims)
 {
     if (std::find(resultsToWrite.begin(), resultsToWrite.end(), fieldName) == resultsToWrite.end()) {
         return;
     }
     char name[5096];
     snprintf(name, sizeof(name), "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, fieldName);
-    WriteSlab(data, size, name);
+    WriteSlab(data, extra_dims, name);
 }
 
 #endif
