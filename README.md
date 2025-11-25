@@ -359,9 +359,10 @@ FANS also supports mixed boundary conditions, where some components can be strai
   - `microstructure`: The original microstructure data.
   - `displacement`: The displacement field (for mechanical problems) and temperature field (for thermal problems) at each voxel in the microstructure.
   - `displacement_fluctuation`: The periodic displacement fluctuation field (for mechanical problems) and periodic temperature fluctuation field (for thermal problems at each voxel in the microstructure).
-  - `stress` and `strain`: The stress and strain fields at each voxel in the microstructure.
+  - `stress` and `strain`: The stress and strain fields (element-averaged) at each voxel in the microstructure.
+  - `stress_gp` and `strain_gp`: The stress and strain fields at all Gauss points within each element.
 
-- Additional material model-specific results can be included depending on the problem type and material model.
+- Additional material model-specific results can be included depending on the problem type and material model. For plasticity models, internal variables such as `plastic_strain`, `isotropic_hardening_variable`, etc., are available. Append `_gp` to these field names (e.g., `plastic_strain_gp`) to output data at all Gauss points.
 
 ## Acknowledgements
 
