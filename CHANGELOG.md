@@ -1,6 +1,6 @@
 # FANS Changelog
 
-## latest
+## v0.6.1
 
 - Adds support to write integration point data to disk [#117](https://github.com/DataAnalyticsEngineering/FANS/pull/117)
 

@@ -6118,7 +6118,7 @@ packages:
   timestamp: 1756729456476
 - conda: .
   name: fans
-  version: 0.6.0
+  version: 0.6.1
   build: h04f5b5a_0
   subdir: linux-64
   depends:
@@ -6128,11 +6128,11 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: f3e543bdf79d4b2ea9d76aab17fb5b2a7d4d18fdae0590bb845fe4b6fc7beb94
+    hash: 81734781fed742a3ee906fd6767759243525440b3f419cd0622b90e4d0f107fe
     globs: []
 - conda: .
   name: fans
-  version: 0.6.0
+  version: 0.6.1
   build: hbf21a9e_0
   subdir: linux-aarch64
   depends:
@@ -6142,11 +6142,11 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: a04ddbf72cc8bb8185b38d6e003e7b0645bb4cb5d620f596cbb4db467887d2eb
+    hash: 8ad54598e221efef736cec65db9e327856f556e55f81445cda5620e181ef8813
     globs: []
 - conda: .
   name: fans
-  version: 0.6.0
+  version: 0.6.1
   build: hbf21a9e_0
   subdir: osx-64
   depends:
@@ -6155,11 +6155,11 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: a04ddbf72cc8bb8185b38d6e003e7b0645bb4cb5d620f596cbb4db467887d2eb
+    hash: 8ad54598e221efef736cec65db9e327856f556e55f81445cda5620e181ef8813
     globs: []
 - conda: .
   name: fans
-  version: 0.6.0
+  version: 0.6.1
   build: hbf21a9e_0
   subdir: osx-arm64
   depends:
@@ -6168,7 +6168,7 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: a04ddbf72cc8bb8185b38d6e003e7b0645bb4cb5d620f596cbb4db467887d2eb
+    hash: 8ad54598e221efef736cec65db9e327856f556e55f81445cda5620e181ef8813
     globs: []
 - conda: https://conda.anaconda.org/conda-forge/linux-64/fftw-3.3.10-mpi_openmpi_h99e62ba_10.conda
   sha256: 59a1fd0daa71bd5529e19b4da8aae2ded4d4ef05e5e31d80c39cbe2fc7664b6a
