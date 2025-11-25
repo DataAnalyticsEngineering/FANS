@@ -244,21 +244,81 @@ class J2ViscoPlastic_NonLinearIsotropicHardening : public J2Plasticity {
 
 inline void J2Plasticity::postprocess(Solver<3, 6> &solver, Reader &reader, int load_idx, int time_idx)
 {
-    int      n_str                             = 6; // The plastic strain and stress vectors have 6 components each
-    VectorXd mean_plastic_strain               = VectorXd::Zero(solver.local_n0 * solver.n_y * solver.n_z * n_str);
-    VectorXd mean_isotropic_hardening_variable = VectorXd::Zero(solver.local_n0 * solver.n_y * solver.n_z);
-    VectorXd mean_kinematic_hardening_variable = VectorXd::Zero(solver.local_n0 * solver.n_y * solver.n_z * n_str);
+    int n_str = 6;
+    int n_gp  = plasticStrain_t[0].cols();
 
-    // Compute the mean values for each element
+    // Check what user requested
+    auto &results                = reader.resultsToWrite;
+    bool  need_plastic_strain    = std::find(results.begin(), results.end(), "plastic_strain") != results.end();
+    bool  need_plastic_strain_gp = std::find(results.begin(), results.end(), "plastic_strain_gp") != results.end();
+    bool  need_iso_hard          = std::find(results.begin(), results.end(), "isotropic_hardening_variable") != results.end();
+    bool  need_iso_hard_gp       = std::find(results.begin(), results.end(), "isotropic_hardening_variable_gp") != results.end();
+    bool  need_kin_hard          = std::find(results.begin(), results.end(), "kinematic_hardening_variable") != results.end();
+    bool  need_kin_hard_gp       = std::find(results.begin(), results.end(), "kinematic_hardening_variable_gp") != results.end();
+
+    // Conditional allocation
+    VectorXd *plastic_strain_elem = need_plastic_strain ? new VectorXd(solver.local_n0 * solver.n_y * solver.n_z * n_str) : nullptr;
+    VectorXd *plastic_strain_gp   = need_plastic_strain_gp ? new VectorXd(solver.local_n0 * solver.n_y * solver.n_z * n_gp * n_str) : nullptr;
+    VectorXd *iso_hard_elem       = need_iso_hard ? new VectorXd(solver.local_n0 * solver.n_y * solver.n_z) : nullptr;
+    VectorXd *iso_hard_gp         = need_iso_hard_gp ? new VectorXd(solver.local_n0 * solver.n_y * solver.n_z * n_gp) : nullptr;
+    VectorXd *kin_hard_elem       = need_kin_hard ? new VectorXd(solver.local_n0 * solver.n_y * solver.n_z * n_str) : nullptr;
+    VectorXd *kin_hard_gp         = need_kin_hard_gp ? new VectorXd(solver.local_n0 * solver.n_y * solver.n_z * n_gp * n_str) : nullptr;
+
     for (ptrdiff_t elem_idx = 0; elem_idx < solver.local_n0 * solver.n_y * solver.n_z; ++elem_idx) {
-        mean_plastic_strain.segment(n_str * elem_idx, n_str)               = plasticStrain_t[elem_idx].rowwise().mean();
-        mean_isotropic_hardening_variable(elem_idx)                        = psi_t[elem_idx].mean();
-        mean_kinematic_hardening_variable.segment(n_str * elem_idx, n_str) = psi_bar_t[elem_idx].rowwise().mean();
+        // Element averages
+        if (need_plastic_strain) {
+            (*plastic_strain_elem).segment(n_str * elem_idx, n_str) = plasticStrain_t[elem_idx].rowwise().mean();
+        }
+        if (need_iso_hard) {
+            (*iso_hard_elem)(elem_idx) = psi_t[elem_idx].mean();
+        }
+        if (need_kin_hard) {
+            (*kin_hard_elem).segment(n_str * elem_idx, n_str) = psi_bar_t[elem_idx].rowwise().mean();
+        }
+
+        // All Gauss point data
+        if (need_plastic_strain_gp || need_iso_hard_gp || need_kin_hard_gp) {
+            for (int gp = 0; gp < n_gp; ++gp) {
+                if (need_plastic_strain_gp) {
+                    (*plastic_strain_gp).segment(n_str * n_gp * elem_idx + n_str * gp, n_str) = plasticStrain_t[elem_idx].col(gp);
+                }
+                if (need_iso_hard_gp) {
+                    (*iso_hard_gp)(n_gp *elem_idx + gp) = psi_t[elem_idx](gp);
+                }
+                if (need_kin_hard_gp) {
+                    (*kin_hard_gp).segment(n_str * n_gp * elem_idx + n_str * gp, n_str) = psi_bar_t[elem_idx].col(gp);
+                }
+            }
+        }
     }
 
-    reader.writeSlab("plastic_strain", load_idx, time_idx, mean_plastic_strain.data(), n_str);
-    reader.writeSlab("isotropic_hardening_variable", load_idx, time_idx, mean_isotropic_hardening_variable.data(), 1);
-    reader.writeSlab("kinematic_hardening_variable", load_idx, time_idx, mean_kinematic_hardening_variable.data(), n_str);
+    // Write only what was requested
+    if (need_plastic_strain)
+        reader.writeSlab("plastic_strain", load_idx, time_idx, plastic_strain_elem->data(), {n_str});
+    if (need_plastic_strain_gp)
+        reader.writeSlab("plastic_strain_gp", load_idx, time_idx, plastic_strain_gp->data(), {n_gp, n_str});
+    if (need_iso_hard)
+        reader.writeSlab("isotropic_hardening_variable", load_idx, time_idx, iso_hard_elem->data(), {1});
+    if (need_iso_hard_gp)
+        reader.writeSlab("isotropic_hardening_variable_gp", load_idx, time_idx, iso_hard_gp->data(), {n_gp});
+    if (need_kin_hard)
+        reader.writeSlab("kinematic_hardening_variable", load_idx, time_idx, kin_hard_elem->data(), {n_str});
+    if (need_kin_hard_gp)
+        reader.writeSlab("kinematic_hardening_variable_gp", load_idx, time_idx, kin_hard_gp->data(), {n_gp, n_str});
+
+    // Cleanup
+    if (plastic_strain_elem)
+        delete plastic_strain_elem;
+    if (plastic_strain_gp)
+        delete plastic_strain_gp;
+    if (iso_hard_elem)
+        delete iso_hard_elem;
+    if (iso_hard_gp)
+        delete iso_hard_gp;
+    if (kin_hard_elem)
+        delete kin_hard_elem;
+    if (kin_hard_gp)
+        delete kin_hard_gp;
 }
 
 #endif // J2PLASTICITY_H

@@ -62,8 +62,8 @@ To get started immediately, we include ready to use example [input files](test/i
 
 FANS requires the following dependencies:
 
-| Dependency | Purpose |  |
-|------------|---------|------------------|
+| Dependency | Purpose | |
+| ------------ | --------- | ------------------ |
 | **C++ Compiler** | (GCC, Clang, etc.) | C++17 or newer |
 | **CMake** | Build system | ≥ 3.21 |
 | **MPI** | Parallel computing | (OpenMPI, MPICH, Intel MPI) |
@@ -186,7 +186,7 @@ cd ../test
 **Build options:**
 
 | CMake Option | Description | Default |
-|--------------|-------------|---------|
+| -------------- | ------------- | --------- |
 | `CMAKE_BUILD_TYPE` | Build type: `Debug`, `Release`, `RelWithDebInfo` | `NONE` |
 | `CMAKE_INTERPROCEDURAL_OPTIMIZATION` | Enable link-time optimization (LTO) | `ON` (if supported) |
 | `FANS_BUILD_STATIC` | Build static library | `OFF` |
@@ -359,9 +359,10 @@ FANS also supports mixed boundary conditions, where some components can be strai
   - `microstructure`: The original microstructure data.
   - `displacement`: The displacement field (for mechanical problems) and temperature field (for thermal problems) at each voxel in the microstructure.
   - `displacement_fluctuation`: The periodic displacement fluctuation field (for mechanical problems) and periodic temperature fluctuation field (for thermal problems at each voxel in the microstructure).
-  - `stress` and `strain`: The stress and strain fields at each voxel in the microstructure.
+  - `stress` and `strain`: The stress and strain fields (element-averaged) at each voxel in the microstructure.
+  - `stress_gp` and `strain_gp`: The stress and strain fields at all Gauss points within each element.
 
-- Additional material model-specific results can be included depending on the problem type and material model.
+- Additional material model-specific results can be included depending on the problem type and material model. For plasticity models, internal variables such as `plastic_strain`, `isotropic_hardening_variable`, etc., are available. Append `_gp` to these field names (e.g., `plastic_strain_gp`) to output data at all Gauss points.
 
 ## Acknowledgements
 

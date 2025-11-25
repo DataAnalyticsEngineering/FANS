@@ -454,8 +454,37 @@ double Solver<howmany, n_str>::compute_error(RealArray &r)
 template <int howmany, int n_str>
 void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_idx)
 {
-    VectorXd strain         = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
-    VectorXd stress         = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
+    int n_gp = matmanager->models[0]->n_gp;
+
+    // Check what user requested
+    auto &results        = reader.resultsToWrite;
+    bool  need_stress    = std::find(results.begin(), results.end(), "stress") != results.end();
+    bool  need_stress_gp = std::find(results.begin(), results.end(), "stress_gp") != results.end();
+    bool  need_strain    = std::find(results.begin(), results.end(), "strain") != results.end();
+    bool  need_strain_gp = std::find(results.begin(), results.end(), "strain_gp") != results.end();
+
+    bool need_global_avg = std::find(results.begin(), results.end(), "stress_average") != results.end() ||
+                           std::find(results.begin(), results.end(), "strain_average") != results.end();
+
+    bool need_phase_avg = false;
+    for (int mat_idx = 0; mat_idx < reader.n_mat; ++mat_idx) {
+        char name[512];
+        sprintf(name, "phase_stress_average_phase%d", mat_idx);
+        if (std::find(results.begin(), results.end(), name) != results.end()) {
+            need_phase_avg = true;
+            break;
+        }
+    }
+
+    // Determine if we need to compute stress/strain at all
+    bool need_compute = need_stress || need_stress_gp || need_strain || need_strain_gp || need_global_avg || need_phase_avg;
+
+    // Conditional allocation
+    VectorXd *strain_elem = need_strain ? new VectorXd(local_n0 * n_y * n_z * n_str) : nullptr;
+    VectorXd *stress_elem = need_stress ? new VectorXd(local_n0 * n_y * n_z * n_str) : nullptr;
+    VectorXd *strain_gp   = need_strain_gp ? new VectorXd(local_n0 * n_y * n_z * n_gp * n_str) : nullptr;
+    VectorXd *stress_gp   = need_stress_gp ? new VectorXd(local_n0 * n_y * n_z * n_gp * n_str) : nullptr;
+
     VectorXd stress_average = VectorXd::Zero(n_str);
     VectorXd strain_average = VectorXd::Zero(n_str);
 
@@ -470,23 +499,61 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
 
     Matrix<double, howmany * 8, 1> ue;
     int                            phase_id;
-    iterateCubes<0>([&](ptrdiff_t *idx, ptrdiff_t *idxPadding) {
-        for (int i = 0; i < 8; ++i) {
-            for (int j = 0; j < howmany; ++j) {
-                ue(howmany * i + j, 0) = v_u[howmany * idx[i] + j];
+
+    if (need_compute) {
+        iterateCubes<0>([&](ptrdiff_t *idx, ptrdiff_t *idxPadding) {
+            for (int i = 0; i < 8; ++i) {
+                for (int j = 0; j < howmany; ++j) {
+                    ue(howmany * i + j, 0) = v_u[howmany * idx[i] + j];
+                }
             }
-        }
-        phase_id = ms[idx[0]];
+            phase_id = ms[idx[0]];
 
-        const MaterialInfo<howmany, n_str> &info = matmanager->get_info(phase_id);
-        info.model->getStrainStress(strain.segment(n_str * idx[0], n_str).data(), stress.segment(n_str * idx[0], n_str).data(), ue, info.local_mat_id, idx[0]);
-        stress_average += stress.segment(n_str * idx[0], n_str);
-        strain_average += strain.segment(n_str * idx[0], n_str);
+            const MaterialInfo<howmany, n_str> &info = matmanager->get_info(phase_id);
 
-        phase_stress_average[phase_id] += stress.segment(n_str * idx[0], n_str);
-        phase_strain_average[phase_id] += strain.segment(n_str * idx[0], n_str);
-        phase_counts[phase_id]++;
-    });
+            // Temporary storage for element averages
+            double elem_strain_avg[n_str];
+            double elem_stress_avg[n_str];
+
+            // Compute once - populates internal eps/sigma
+            info.model->getStrainStress(elem_strain_avg, elem_stress_avg, ue, info.local_mat_id, idx[0]);
+
+            // Store element averages if requested
+            if (need_stress) {
+                for (int c = 0; c < n_str; ++c) {
+                    (*stress_elem)(idx[0] * n_str + c) = elem_stress_avg[c];
+                }
+            }
+            if (need_strain) {
+                for (int c = 0; c < n_str; ++c) {
+                    (*strain_elem)(idx[0] * n_str + c) = elem_strain_avg[c];
+                }
+            }
+
+            // Copy all GP data if requested
+            if (need_stress_gp) {
+                memcpy(&(*stress_gp)(idx[0] * n_gp * n_str),
+                       info.model->get_sigma_data(),
+                       n_gp * n_str * sizeof(double));
+            }
+            if (need_strain_gp) {
+                memcpy(&(*strain_gp)(idx[0] * n_gp * n_str),
+                       info.model->get_eps_data(),
+                       n_gp * n_str * sizeof(double));
+            }
+
+            // Accumulate for global and phase averages
+            if (need_global_avg || need_phase_avg) {
+                for (int c = 0; c < n_str; ++c) {
+                    stress_average(c) += elem_stress_avg[c];
+                    strain_average(c) += elem_strain_avg[c];
+                    phase_stress_average[phase_id](c) += elem_stress_avg[c];
+                    phase_strain_average[phase_id](c) += elem_strain_avg[c];
+                }
+                phase_counts[phase_id]++;
+            }
+        });
+    }
 
     MPI_Allreduce(MPI_IN_PLACE, stress_average.data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     MPI_Allreduce(MPI_IN_PLACE, strain_average.data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
@@ -597,15 +664,32 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     reader.writeData("absolute_error", load_idx, time_idx, err_all.data(), dims, 1);
 
     vector<int> rank_field(local_n0 * n_y * n_z, world_rank);
-    reader.writeSlab("mpi_rank", load_idx, time_idx, rank_field.data(), 1);
-    reader.writeSlab("microstructure", load_idx, time_idx, ms, 1);
-    reader.writeSlab("displacement_fluctuation", load_idx, time_idx, v_u, howmany);
-    reader.writeSlab("displacement", load_idx, time_idx, u_total.data(), howmany);
-    reader.writeSlab("residual", load_idx, time_idx, v_r, howmany);
-    reader.writeSlab("strain", load_idx, time_idx, strain.data(), n_str);
-    reader.writeSlab("stress", load_idx, time_idx, stress.data(), n_str);
+    reader.writeSlab("mpi_rank", load_idx, time_idx, rank_field.data(), {1});
+    reader.writeSlab("microstructure", load_idx, time_idx, ms, {1});
+    reader.writeSlab("displacement_fluctuation", load_idx, time_idx, v_u, {howmany});
+    reader.writeSlab("displacement", load_idx, time_idx, u_total.data(), {howmany});
+    reader.writeSlab("residual", load_idx, time_idx, v_r, {howmany});
+
+    if (need_strain)
+        reader.writeSlab("strain", load_idx, time_idx, strain_elem->data(), {n_str});
+    if (need_stress)
+        reader.writeSlab("stress", load_idx, time_idx, stress_elem->data(), {n_str});
+    if (need_strain_gp)
+        reader.writeSlab("strain_gp", load_idx, time_idx, strain_gp->data(), {n_gp, n_str});
+    if (need_stress_gp)
+        reader.writeSlab("stress_gp", load_idx, time_idx, stress_gp->data(), {n_gp, n_str});
 
     matmanager->postprocess(*this, reader, load_idx, time_idx);
+
+    // Cleanup
+    if (strain_elem)
+        delete strain_elem;
+    if (stress_elem)
+        delete stress_elem;
+    if (strain_gp)
+        delete strain_gp;
+    if (stress_gp)
+        delete stress_gp;
 
     // Compute homogenized tangent only if requested
     if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "homogenized_tangent") != reader.resultsToWrite.end()) {

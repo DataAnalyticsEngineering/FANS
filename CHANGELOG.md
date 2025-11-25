@@ -1,5 +1,9 @@
 # FANS Changelog
 
+## v0.6.1
+
+- Adds support to write integration point data to disk [#117](https://github.com/DataAnalyticsEngineering/FANS/pull/117)
+
 ## v0.6.0
 
 - Introduce MaterialManager abstraction class to handle multiple material models within the microstructure [#115](https://github.com/DataAnalyticsEngineering/FANS/pull/115)

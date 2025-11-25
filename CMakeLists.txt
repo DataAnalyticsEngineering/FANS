@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.21)
 # ##############################################################################
 
 project(FANS
-        VERSION 0.6.0
+        VERSION 0.6.1
         LANGUAGES C CXX
 )
 
@@ -165,6 +165,7 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/material_models/LinearElastic.h
         include/material_models/PseudoPlastic.h
         include/material_models/J2Plasticity.h
+        include/material_models/J2PlasticityNew.h
 
         include/material_models/SaintVenantKirchhoff.h
         include/material_models/CompressibleNeoHookean.h

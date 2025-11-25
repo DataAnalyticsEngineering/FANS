@@ -9,6 +9,7 @@
 #include "material_models/LinearElastic.h"
 #include "material_models/PseudoPlastic.h"
 #include "material_models/J2Plasticity.h"
+#include "material_models/J2PlasticityNew.h"
 
 // Large strain mechanical models
 #include "material_models/SaintVenantKirchhoff.h"
@@ -51,6 +52,8 @@ Matmodel<3, 6> *createMatmodel<3, 6>(const Reader &reader)
         return new J2ViscoPlastic_LinearIsotropicHardening(reader);
     } else if (reader.matmodel == "J2ViscoPlastic_NonLinearIsotropicHardening") {
         return new J2ViscoPlastic_NonLinearIsotropicHardening(reader);
+    } else if (reader.matmodel == "J2PlasticityNew_LinearIsotropicHardening") {
+        return new J2PlasticityNew_LinearIsotropicHardening(reader);
 
     } else {
         throw std::invalid_argument(reader.matmodel + " is not a valid small strain material model");
