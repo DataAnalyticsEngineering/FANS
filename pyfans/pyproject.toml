@@ -1,0 +1,22 @@
+[build-system]
+build-backend = "scikit_build_core.build"
+requires = ["scikit-build-core", "pybind11"]
+
+[project]
+classifiers = [
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
+description = "FANS bindings for Python"
+name = "pyfans"
+requires-python = ">=3.10"
+version = "0.6.1"
+
+[tool.scikit-build]
+cmake.source-dir = ".."
+sdist.exclude = [".pixi"]
+wheel.packages = ["pyfans"]
+cmake.args = ["-DFANS_LIBRARY_FOR_MICRO_MANAGER=ON"]

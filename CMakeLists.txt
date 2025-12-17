@@ -100,12 +100,13 @@ find_package(FFTW3 REQUIRED COMPONENTS DOUBLE MPI)
 option(FANS_LIBRARY_FOR_MICRO_MANAGER "Building FANS as a library to be used by the Micro Manager." OFF)
 
 if (FANS_LIBRARY_FOR_MICRO_MANAGER)
-    include(FetchContent)
-    FetchContent_Declare(
-        pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11.git
-        GIT_TAG v2.12.0
-    )
-    FetchContent_MakeAvailable(pybind11)
+#     include(FetchContent)
+#     FetchContent_Declare(
+#         pybind11 GIT_REPOSITORY https://github.com/pybind/pybind11.git
+#         GIT_TAG v2.12.0
+#     )
+#     FetchContent_MakeAvailable(pybind11)
+        find_package(pybind11 REQUIRED)
 endif()
 find_package(nlohmann_json REQUIRED)
 # ##############################################################################
@@ -137,7 +138,12 @@ add_custom_command(
 )
 
 if (FANS_LIBRARY_FOR_MICRO_MANAGER)
-    add_subdirectory(pyfans)
+#     add_subdirectory(pyfans)
+        pybind11_add_module(PyFANS pyfans/micro.hpp pyfans/micro.cpp)
+        target_include_directories(PyFANS PRIVATE ${HDF5_INCLUDE_DIRS})
+        target_link_libraries(PyFANS PRIVATE FANS::FANS)
+
+        install(TARGETS PyFANS DESTINATION .)
 endif ()
 
 # ##############################################################################
