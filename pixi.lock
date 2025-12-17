@@ -2947,7 +2947,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstandard-0.25.0-py314h9d33bd4_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zstd-1.5.7-h6491c7d_2.conda
       - conda: .
-        subdir: osx-arm64
+        build: hcb8d3e5_0
   dev:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
@@ -6169,15 +6169,18 @@ packages:
 - conda: .
   name: fans
   version: 0.6.1
-  build: hbf21a9e_0
+  build: hcb8d3e5_0
   subdir: osx-arm64
+  variants:
+    cxx_compiler: clangxx
+    target_platform: osx-arm64
   depends:
   - libcxx >=21
   - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: 8ad54598e221efef736cec65db9e327856f556e55f81445cda5620e181ef8813
+    hash: 16dd9c1131985cbcdb3bb37c6672fa20ea368188987b8d42da1b2ebd02bd9fbf
     globs: []
 - conda: https://conda.anaconda.org/conda-forge/linux-64/fftw-3.3.10-mpi_openmpi_h99e62ba_10.conda
   sha256: 59a1fd0daa71bd5529e19b4da8aae2ded4d4ef05e5e31d80c39cbe2fc7664b6a
