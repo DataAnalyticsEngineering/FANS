@@ -58,6 +58,7 @@ extra-args = [
     ]
 
 [workspace.target.osx-arm64.build-variants]
+cxx_compiler = ["clangxx"]
 
 [workspace.target.linux-64.build-variants]
 cxx_compiler = ["clangxx"]
