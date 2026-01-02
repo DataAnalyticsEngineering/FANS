@@ -35,6 +35,7 @@ jobs:
       - name: Set up pixi
         uses: prefix-dev/setup-pixi@v0.9.3
         with:
+          pixi-version: v0.62.2
           environments: dashboard
 
       - name: Generate build directory
@@ -85,7 +86,7 @@ jobs:
       # Pytest checks
       # ────────────────────────────────────────────────────────────────
       - name: Run pytest checks on HDF5 output
-        run: pixi run -e dashboard pytest
+        run: pixi run -e dashboard pytest -v -s
 
       - uses: actions/upload-artifact@v6
         if: failure()
