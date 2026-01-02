@@ -36,11 +36,7 @@ MicroSimulation::MicroSimulation(int sim_id, char *input_file)
     reader.force_single_rank = true;
     reader.communicator = MPI_COMM_SELF;
 
-    int rank = -1;
-    MPI_Comm_rank(reader.communicator, &rank);
-
     reader.ReadMS(3);
-    printf(">>read input%d id %d\n", rank, sim_id);
 
     if (reader.strain_type == "small") {
         matmanager = createMaterialManager<3, 6>(reader);
@@ -50,7 +46,6 @@ MicroSimulation::MicroSimulation(int sim_id, char *input_file)
         matmanager = createMaterialManager<3, 9>(reader);
         solver     = createSolver<3, 9>(reader, std::get<MaterialManager<3, 9>*>(matmanager));
     }
-    printf(">>constructed %d id %d\n", rank, sim_id);
 }
 
 py::dict MicroSimulation::solve(py::dict macro_data, double dt)
