@@ -34,23 +34,22 @@ MicroSimulation::MicroSimulation(int sim_id, char *input_file)
     reader.ReadInputFile(input_file);
 
     reader.force_single_rank = true;
-    reader.communicator = MPI_COMM_SELF;
+    reader.communicator      = MPI_COMM_SELF;
 
     reader.ReadMS(3);
 
     if (reader.strain_type == "small") {
         matmanager = createMaterialManager<3, 6>(reader);
-        solver     = createSolver<3, 6>(reader, std::get<MaterialManager<3, 6>*>(matmanager));
-    }
-    else {
+        solver     = createSolver<3, 6>(reader, std::get<MaterialManager<3, 6> *>(matmanager));
+    } else {
         matmanager = createMaterialManager<3, 9>(reader);
-        solver     = createSolver<3, 9>(reader, std::get<MaterialManager<3, 9>*>(matmanager));
+        solver     = createSolver<3, 9>(reader, std::get<MaterialManager<3, 9> *>(matmanager));
     }
 }
 
 py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 {
-    const bool is_small_strain = std::holds_alternative<MaterialManager<3, 6>*>(matmanager);
+    const bool is_small_strain = std::holds_alternative<MaterialManager<3, 6> *>(matmanager);
     // Time step value dt is not used currently, but is available for future use
 
     // Create a pybind style Numpy array from macro_write_data["micro_vector_data"], which is a Numpy array
@@ -60,20 +59,20 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
     py::array_t<double> strain = merge_arrays(strain1, strain2);
     if (not is_small_strain) {
         py::array_t<double> strain3 = macro_data["strains7to9"].cast<py::array_t<double>>();
-        strain = merge_arrays(strain, strain3);
+        strain                      = merge_arrays(strain, strain3);
     }
 
-    std::vector<double> g0     = std::vector<double>(strain.data(), strain.data() + strain.size()); // convert numpy array to std::vector.
+    std::vector<double> g0 = std::vector<double>(strain.data(), strain.data() + strain.size()); // convert numpy array to std::vector.
 
     VectorXd homogenized_stress;
 
-    std::visit([&](auto& mm){mm->set_gradient(g0);}, matmanager);
+    std::visit([&](auto &mm) { mm->set_gradient(g0); }, matmanager);
 
-    std::visit([](auto& s){s->solve();}, solver);
+    std::visit([](auto &s) { s->solve(); }, solver);
 
-    homogenized_stress = std::visit([](auto& s) -> VectorXd { return s->get_homogenized_stress();}, solver);
+    homogenized_stress = std::visit([](auto &s) -> VectorXd { return s->get_homogenized_stress(); }, solver);
 
-    auto C = std::visit([&](auto& s) -> MatrixXd {return s->get_homogenized_tangent(pert_param);}, solver);
+    auto C = std::visit([&](auto &s) -> MatrixXd { return s->get_homogenized_tangent(pert_param); }, solver);
 
     // Convert data to a py::dict again to send it back to the Micro Manager
     py::dict micro_write_data;
@@ -98,8 +97,7 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
         micro_write_data["cmat6"]        = C_6;
         std::vector<double> C_7          = {C(4, 4), C(4, 5), C(5, 5)};
         micro_write_data["cmat7"]        = C_7;
-    }
-    else {
+    } else {
         std::vector<double> stress13     = {homogenized_stress[0], homogenized_stress[1], homogenized_stress[2]};
         micro_write_data["stresses1to3"] = stress13;
         std::vector<double> stress46     = {homogenized_stress[3], homogenized_stress[4], homogenized_stress[5]};

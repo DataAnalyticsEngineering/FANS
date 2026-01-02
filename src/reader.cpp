@@ -70,11 +70,10 @@ void Reader ::ReadInputFile(char input_fn[])
 
         if (j.contains("no_mpi")) {
             force_single_rank = true;
-            communicator = MPI_COMM_SELF;
-        }
-        else {
+            communicator      = MPI_COMM_SELF;
+        } else {
             force_single_rank = false;
-            communicator = MPI_COMM_WORLD;
+            communicator      = MPI_COMM_WORLD;
         }
 
         MPI_Comm_rank(communicator, &world_rank);

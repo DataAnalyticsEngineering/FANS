@@ -18,7 +18,7 @@ class Solver : private MixedBCController<howmany> {
 
     const int world_rank;
     const int world_size;
-    MPI_Comm communicator;
+    MPI_Comm  communicator;
 
     const ptrdiff_t n_x, n_y, n_z;
     // NOTE: the order in the declaration is very important because it is the same order in which the later initialization via member initializer lists takes place

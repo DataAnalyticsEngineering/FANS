@@ -27,9 +27,9 @@ class MicroSimulation {
     int    _sim_id;
     Reader reader;
     // Hardcoding mechanical models because these definitions need information from the input file.
-    using matmanager_t = std::variant<MaterialManager<3, 6>*, MaterialManager<3, 9>*>;
-    using solver_t     = std::variant<Solver<3, 6>*, Solver<3, 9>*>;
-    matmanager_t          matmanager;
-    solver_t              solver;
-    double                 pert_param = 1e-6; // scalar strain perturbation parameter
+    using matmanager_t = std::variant<MaterialManager<3, 6> *, MaterialManager<3, 9> *>;
+    using solver_t     = std::variant<Solver<3, 6> *, Solver<3, 9> *>;
+    matmanager_t matmanager;
+    solver_t     solver;
+    double       pert_param = 1e-6; // scalar strain perturbation parameter
 };

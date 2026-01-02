@@ -22,8 +22,8 @@ class Reader {
     ~Reader();
 
     // MPI controlls
-    bool             force_single_rank;
-    MPI_Comm         communicator;
+    bool     force_single_rank;
+    MPI_Comm communicator;
 
     // contents of input file:
     char             ms_filename[4096]{};    // Name of Micro-structure hdf5 file
