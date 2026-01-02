@@ -3,8 +3,6 @@ environments:
   dashboard:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
-    options:
-      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -1456,8 +1454,6 @@ environments:
   default:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
-    options:
-      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -2951,8 +2947,6 @@ environments:
   dev:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
-    options:
-      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -6127,9 +6121,6 @@ packages:
   version: 0.6.1
   build: h1235946_0
   subdir: linux-64
-  variants:
-    cxx_compiler: clangxx
-    target_platform: linux-64
   depends:
   - libstdcxx >=15
   - libgcc >=15
@@ -6137,7 +6128,7 @@ packages:
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: 16dd9c1131985cbcdb3bb37c6672fa20ea368188987b8d42da1b2ebd02bd9fbf
+    hash: 81734781fed742a3ee906fd6767759243525440b3f419cd0622b90e4d0f107fe
     globs: []
 - conda: .
   name: fans
@@ -6171,16 +6162,13 @@ packages:
   version: 0.6.1
   build: hcb8d3e5_0
   subdir: osx-arm64
-  variants:
-    cxx_compiler: clangxx
-    target_platform: osx-arm64
   depends:
   - libcxx >=21
   - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
   input:
-    hash: 16dd9c1131985cbcdb3bb37c6672fa20ea368188987b8d42da1b2ebd02bd9fbf
+    hash: 81734781fed742a3ee906fd6767759243525440b3f419cd0622b90e4d0f107fe
     globs: []
 - conda: https://conda.anaconda.org/conda-forge/linux-64/fftw-3.3.10-mpi_openmpi_h99e62ba_10.conda
   sha256: 59a1fd0daa71bd5529e19b4da8aae2ded4d4ef05e5e31d80c39cbe2fc7664b6a
