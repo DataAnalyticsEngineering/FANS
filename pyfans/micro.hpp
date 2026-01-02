@@ -5,6 +5,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <variant>
 
 #include "pybind11/pybind11.h"
 #include "pybind11/numpy.h" // numpy arrays
@@ -26,7 +27,9 @@ class MicroSimulation {
     int    _sim_id;
     Reader reader;
     // Hardcoding mechanical models because these definitions need information from the input file.
-    MaterialManager<3, 6> *matmanager;
-    Solver<3, 6>          *solver;
+    using matmanager_t = std::variant<MaterialManager<3, 6>*, MaterialManager<3, 9>*>;
+    using solver_t     = std::variant<Solver<3, 6>*, Solver<3, 9>*>;
+    matmanager_t          matmanager;
+    solver_t              solver;
     double                 pert_param = 1e-6; // scalar strain perturbation parameter
 };
