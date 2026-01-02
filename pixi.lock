@@ -6139,6 +6139,9 @@ packages:
   version: 0.6.1
   build: h1235946_0
   subdir: linux-64
+  variants:
+    cxx_compiler: clangxx
+    target_platform: linux-64
   depends:
   - libstdcxx >=15
   - libgcc >=15
@@ -6150,6 +6153,9 @@ packages:
   version: 0.6.1
   build: hcb8d3e5_0
   subdir: osx-arm64
+  variants:
+    cxx_compiler: clangxx
+    target_platform: osx-arm64
   depends:
   - libcxx >=21
   - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
