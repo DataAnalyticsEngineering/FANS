@@ -5,7 +5,6 @@ import pytest
 from pathlib import Path
 
 # tmp_path leads to all file being cleaned up
-@pytest.mark.integration
 def test_datasetname_without_leading_slash(tmp_path):
     """
     Regression test:
