@@ -53,7 +53,7 @@ double SolverCG<howmany, n_str>::dotProduct(RealArray &a, RealArray &b)
 {
     double local_value = (a * b).sum();
     double result;
-    MPI_Allreduce(&local_value, &result, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(&local_value, &result, 1, MPI_DOUBLE, MPI_SUM, this->communicator);
     return result;
 }
 
