@@ -3,6 +3,8 @@ environments:
   dashboard:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
+    options:
+      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -1454,6 +1456,8 @@ environments:
   default:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
+    options:
+      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -2249,7 +2253,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/zstandard-0.25.0-py314h2e8dab5_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-aarch64/zstd-1.5.7-hbcf94c1_2.conda
       - conda: .
-        subdir: linux-aarch64
+        build: he8cfe8b_0
       osx-64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/_python_abi3_support-1.0-hd8ed1ab_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/aiobotocore-2.25.2-pyhcf101f3_0.conda
@@ -2596,7 +2600,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-64/zstandard-0.25.0-py314hd1e8ddb_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/zstd-1.5.7-h8210216_2.conda
       - conda: .
-        subdir: osx-64
+        build: h0dc7051_0
       osx-arm64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/_python_abi3_support-1.0-hd8ed1ab_2.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/aiobotocore-2.25.2-pyhcf101f3_0.conda
@@ -2947,6 +2951,8 @@ environments:
   dev:
     channels:
     - url: https://conda.anaconda.org/conda-forge/
+    options:
+      pypi-prerelease-mode: if-necessary-or-explicit
     packages:
       linux-64:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -6119,6 +6125,18 @@ packages:
 - conda: .
   name: fans
   version: 0.6.1
+  build: h0dc7051_0
+  subdir: osx-64
+  variants:
+    target_platform: osx-64
+  depends:
+  - libcxx >=21
+  - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
+  - fftw >=3.3.10,<4.0a0
+  - fftw * mpi_openmpi_*
+- conda: .
+  name: fans
+  version: 0.6.1
   build: h1235946_0
   subdir: linux-64
   depends:
@@ -6127,36 +6145,6 @@ packages:
   - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
-  input:
-    hash: 81734781fed742a3ee906fd6767759243525440b3f419cd0622b90e4d0f107fe
-    globs: []
-- conda: .
-  name: fans
-  version: 0.6.1
-  build: hbf21a9e_0
-  subdir: linux-aarch64
-  depends:
-  - libstdcxx >=15
-  - libgcc >=15
-  - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
-  - fftw >=3.3.10,<4.0a0
-  - fftw * mpi_openmpi_*
-  input:
-    hash: 8ad54598e221efef736cec65db9e327856f556e55f81445cda5620e181ef8813
-    globs: []
-- conda: .
-  name: fans
-  version: 0.6.1
-  build: hbf21a9e_0
-  subdir: osx-64
-  depends:
-  - libcxx >=21
-  - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
-  - fftw >=3.3.10,<4.0a0
-  - fftw * mpi_openmpi_*
-  input:
-    hash: 8ad54598e221efef736cec65db9e327856f556e55f81445cda5620e181ef8813
-    globs: []
 - conda: .
   name: fans
   version: 0.6.1
@@ -6167,9 +6155,19 @@ packages:
   - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
   - fftw >=3.3.10,<4.0a0
   - fftw * mpi_openmpi_*
-  input:
-    hash: 81734781fed742a3ee906fd6767759243525440b3f419cd0622b90e4d0f107fe
-    globs: []
+- conda: .
+  name: fans
+  version: 0.6.1
+  build: he8cfe8b_0
+  subdir: linux-aarch64
+  variants:
+    target_platform: linux-aarch64
+  depends:
+  - libstdcxx >=15
+  - libgcc >=15
+  - hdf5 >=1.14.6,<1.14.7.0a0 mpi_openmpi_*
+  - fftw >=3.3.10,<4.0a0
+  - fftw * mpi_openmpi_*
 - conda: https://conda.anaconda.org/conda-forge/linux-64/fftw-3.3.10-mpi_openmpi_h99e62ba_10.conda
   sha256: 59a1fd0daa71bd5529e19b4da8aae2ded4d4ef05e5e31d80c39cbe2fc7664b6a
   md5: 3fcbf2ef5f3a8f0ed5683f60fe08293b
