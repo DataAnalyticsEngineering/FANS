@@ -2,6 +2,7 @@
 
 ## v0.6.1
 
+- Add pyFANS support for large strain [#124](https://github.com/DataAnalyticsEngineering/FANS/pull/124)
 - Adds support to write integration point data to disk [#117](https://github.com/DataAnalyticsEngineering/FANS/pull/117)
 
 ## v0.6.0
