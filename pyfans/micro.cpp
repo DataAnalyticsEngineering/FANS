@@ -36,7 +36,6 @@ MicroSimulation::MicroSimulation(int sim_id, char *input_file)
     matmanager = createMaterialManager<3, 6>(reader);
     solver     = createSolver<3, 6>(reader, matmanager);
 
-    g0.resize(6, 0);
 }
 
 MicroSimulation::~MicroSimulation()
@@ -53,7 +52,7 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
     py::array_t<double> strain2 = macro_data["strains4to6"].cast<py::array_t<double>>();
 
     py::array_t<double> strain = merge_arrays(strain1, strain2);
-    std::copy(strain.begin(), strain.end(), g0.begin()); // convert numpy array to std::vector.
+    std::vector<double> g0     = std::vector<double>(strain.data(), strain.data() + strain.size()); // convert numpy array to std::vector.
 
     VectorXd homogenized_stress;
 
