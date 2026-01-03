@@ -20,6 +20,7 @@ namespace py = pybind11;
 class MicroSimulation {
   public:
     MicroSimulation(int sim_id, char *input_file = "input.json");
+    ~MicroSimulation();
     py::dict solve(py::dict macro_write_data, double dt);
 
   private:

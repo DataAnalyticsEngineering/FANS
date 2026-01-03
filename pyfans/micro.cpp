@@ -37,6 +37,11 @@ MicroSimulation::MicroSimulation(int sim_id, char *input_file)
     solver     = createSolver<3, 6>(reader, matmanager);
 }
 
+MicroSimulation::~MicroSimulation()
+{
+    Log::finalize();
+}
+
 py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 {
     // Time step value dt is not used currently, but is available for future use

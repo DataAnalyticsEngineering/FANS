@@ -60,8 +60,7 @@ double SolverCG<howmany, n_str>::dotProduct(RealArray &a, RealArray &b)
 template <int howmany, int n_str>
 void SolverCG<howmany, n_str>::internalSolve()
 {
-    if (this->world_rank == 0)
-        printf("\n# Start FANS - Conjugate Gradient Solver \n");
+    Log::solver->info() << "\n# Start FANS - Conjugate Gradient Solver \n";
 
     bool islinear = this->matmanager->all_linear;
 
@@ -110,8 +109,8 @@ void SolverCG<howmany, n_str>::internalSolve()
         iter++;
         err_rel = this->compute_error(v_r_real);
     }
-    if (this->world_rank == 0)
-        printf("# Complete FANS - Conjugate Gradient Solver \n");
+
+    Log::solver->info() << "# Complete FANS - Conjugate Gradient Solver \n";
 }
 
 template <int howmany, int n_str>
@@ -142,8 +141,10 @@ void SolverCG<howmany, n_str>::LineSearchSecant()
     }
     v_u_real += d_real * (alpha_new - alpha_old);
     v_r_real = rnew_real;
-    if (this->world_rank == 0)
-        printf("line search iter %i, alpha %f - error %e - ", _iter, alpha_new, err);
+
+    Log::solver->info() << "line search iter " << _iter
+                        << ", alpha "  << std::fixed << std::setprecision(6) << alpha_new  << std::defaultfloat
+                        << " - error " << std::fixed << std::setprecision(6) << err        << std::defaultfloat << " - ";
 }
 
 template <int howmany, int n_str>
