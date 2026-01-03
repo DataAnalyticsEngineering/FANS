@@ -35,6 +35,8 @@ MicroSimulation::MicroSimulation(int sim_id, char *input_file)
     reader.ReadMS(3);
     matmanager = createMaterialManager<3, 6>(reader);
     solver     = createSolver<3, 6>(reader, matmanager);
+
+    g0.resize(6, 0);
 }
 
 MicroSimulation::~MicroSimulation()
@@ -51,17 +53,17 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
     py::array_t<double> strain2 = macro_data["strains4to6"].cast<py::array_t<double>>();
 
     py::array_t<double> strain = merge_arrays(strain1, strain2);
-    std::vector<double> g0     = std::vector<double>(strain.data(), strain.data() + strain.size()); // convert numpy array to std::vector.
+    std::copy(strain.begin(), strain.end(), g0.begin()); // convert numpy array to std::vector.
 
     VectorXd homogenized_stress;
 
-    matmanager->set_gradient(g0);
+    matmanager->set_gradient(g0); // TODO done
 
     solver->solve();
 
     homogenized_stress = solver->get_homogenized_stress();
 
-    auto C = solver->get_homogenized_tangent(pert_param);
+    MatrixXd C = solver->get_homogenized_tangent(pert_param);
 
     // Convert data to a py::dict again to send it back to the Micro Manager
     py::dict micro_write_data;

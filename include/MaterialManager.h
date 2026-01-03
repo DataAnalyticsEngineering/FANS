@@ -210,7 +210,7 @@ class MaterialManager {
     }
 
     // Set macroscale loading gradient for all models
-    void set_gradient(vector<double> g0)
+    void set_gradient(const vector<double>& g0)
     {
         for (auto *model : models) {
             model->setGradient(g0);

@@ -30,4 +30,6 @@ class MicroSimulation {
     MaterialManager<3, 6> *matmanager;
     Solver<3, 6>          *solver;
     double                 pert_param = 1e-6; // scalar strain perturbation parameter
+
+    std::vector<double>    g0; // gradient buffer, alloc once
 };
