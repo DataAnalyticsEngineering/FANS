@@ -57,12 +57,24 @@ void Reader::ComputeVolumeFractions()
     }
 }
 
-void Reader ::ReadInputFile(char input_fn[])
+void Reader::ReadInputFile(char input_fn[])
 {
     try {
         ifstream i(input_fn);
         json     j;
         i >> j;
+        ReadJson(j);
+
+    } catch (const std::exception &e) {
+        Log::io->error() << "ERROR trying to read input file '" << input_fn << "' for FANS\n";
+        Log::finalize();
+        exit(10);
+    }
+}
+
+void Reader::ReadJson(json j)
+{
+    try {
         inputJson = j; // Store complete input JSON for MaterialManager
 
         if (j.contains("no_mpi")) {
@@ -75,7 +87,8 @@ void Reader ::ReadInputFile(char input_fn[])
 
         MPI_Comm_rank(communicator, &world_rank);
         MPI_Comm_size(communicator, &world_size);
-        Log::init(world_rank, world_size);
+        Log::init(world_rank, world_size, communicator);
+        Log::io->trace() << "Running with total ranks=" << world_size << ", rank=" << world_rank << "\n";
 
         microstructure = j["microstructure"];
         strcpy(ms_filename, microstructure["filepath"].get<string>().c_str());
@@ -165,7 +178,7 @@ void Reader ::ReadInputFile(char input_fn[])
         Log::io->info() << "# Max iterations: \t " << n_it << "\n";
 
     } catch (const std::exception &e) {
-        Log::io->error() << "ERROR trying to read input file '" << input_fn << "' for FANS\n";
+        Log::io->error() << "ERROR trying to read input json for FANS\n";
         Log::finalize();
         exit(10);
     }
@@ -381,6 +394,7 @@ void Reader ::ReadMS(int hm)
         FANS_free(tmp);
     } else {
         /* XYZ case: the slab is already in correct order */
+        FANS_free(ms); // dealloc mem
         ms = tmp; // steal the buffer; no copy
     }
 
@@ -394,6 +408,80 @@ void Reader ::ReadMS(int hm)
     H5Fclose(file_id);
 
     this->ComputeVolumeFractions();
+}
+
+Reader::length_t Reader::serialize_override(buffer_t &buffer, length_t offset)
+{
+    // write JSON
+    std::string j_str = inputJson.dump();
+    length_t block_size = (j_str.size()+1) * sizeof(char);
+    buffer.add_size(block_size + header_len);
+    *reinterpret_cast<length_t*>(std::data(buffer) + offset) = block_size;
+    offset += header_len;
+    std::memcpy(std::data(buffer) + offset, j_str.c_str(), block_size);
+    offset += block_size;
+
+    // write ms
+    block_size =     sizeof(bool)      +
+                 3 * sizeof(int)       +
+                 3 * sizeof(double)    +
+                 5 * sizeof(ptrdiff_t) +
+                     sizeof(int);
+    buffer.add_size(block_size);
+    *reinterpret_cast<bool*>(std::data(buffer) + offset) = is_zyx; offset += sizeof(bool);
+    std::memcpy(std::data(buffer) + offset, std::data(dims), sizeof(int)*3); offset += sizeof(int) * 3;
+    std::memcpy(std::data(buffer) + offset, std::data(l_e), sizeof(double)*3); offset += sizeof(double) * 3;
+    *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset) = alloc_local; offset += sizeof(ptrdiff_t);
+    *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset) = local_n0; offset += sizeof(ptrdiff_t);
+    *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset) = local_0_start; offset += sizeof(ptrdiff_t);
+    *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset) = local_n1; offset += sizeof(ptrdiff_t);
+    *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset) = local_1_start; offset += sizeof(ptrdiff_t);
+    *reinterpret_cast<int*>(std::data(buffer) + offset) = n_mat; offset += sizeof(int);
+
+    block_size = local_n0 * dims[1] * dims[2] * sizeof(unsigned short);
+    buffer.add_size(block_size);
+    std::memcpy(std::data(buffer) + offset, ms, block_size);
+    offset += block_size;
+
+    return offset;
+}
+
+Reader::length_t Reader::deserialize_override(buffer_t &buffer, length_t offset)
+{
+    // write JSON
+    length_t block_size = *reinterpret_cast<length_t*>(std::data(buffer) + offset);
+    offset += header_len;
+    std::string tmp("");
+    tmp.resize(block_size / sizeof(char), '\0');
+    std::memcpy(std::data(tmp), std::data(buffer) + offset, block_size);
+    offset += block_size;
+
+    std::istringstream iss(tmp);
+    json               j;
+    iss >> j;
+    ReadJson(j);
+
+    // write ms
+    is_zyx = *reinterpret_cast<bool*>(std::data(buffer) + offset); offset += sizeof(bool);
+    dims.resize(3);
+    std::memcpy(std::data(dims), std::data(buffer) + offset, sizeof(int)*3); offset += sizeof(int) * 3;
+    l_e.resize(3);
+    std::memcpy(std::data(l_e), std::data(buffer) + offset, sizeof(double)*3); offset += sizeof(double) * 3;
+    alloc_local   = *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset); offset += sizeof(ptrdiff_t);
+    local_n0      = *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset); offset += sizeof(ptrdiff_t);
+    local_0_start = *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset); offset += sizeof(ptrdiff_t);
+    local_n1      = *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset); offset += sizeof(ptrdiff_t);
+    local_1_start = *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset); offset += sizeof(ptrdiff_t);
+    n_mat         = *reinterpret_cast<int*>(std::data(buffer) + offset);       offset += sizeof(int);
+
+    block_size = local_n0 * dims[1] * dims[2] * sizeof(unsigned short);
+    ms = FANS_malloc<unsigned short>(static_cast<unsigned long>(local_n0) *
+                                     static_cast<unsigned long>(dims[1]) *
+                                     static_cast<unsigned long>(dims[2]));
+    std::memcpy(ms, std::data(buffer) + offset, block_size);
+    offset += block_size;
+
+    return offset;
 }
 
 void Reader::OpenResultsFile(const char *output_fn)

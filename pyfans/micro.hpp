@@ -15,14 +15,20 @@
 #include "matmodel.h"
 #include "MaterialManager.h"
 #include "solver.h"
+#include "serialization.h"
 
 namespace py = pybind11;
 
 class MicroSimulation {
   public:
-    MicroSimulation(int sim_id, char *input_file = "input.json");
+    MicroSimulation(int sim_id, bool late_init = false, char *input_file = "input.json");
     ~MicroSimulation();
     py::dict solve(py::dict macro_write_data, double dt);
+
+    py::dict get_state();
+    void set_state(py::dict &state);
+
+    int get_id();
 
   private:
     int    _sim_id;

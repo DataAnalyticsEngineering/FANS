@@ -4,7 +4,9 @@
 #include <chrono>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <memory>
+#include "mpi.h"
 
 namespace Log {
 
@@ -20,9 +22,33 @@ enum Level {
 
 extern Level active_level;
 
+class Logger;
+class MPI_TraceSync {
+  public:
+    explicit MPI_TraceSync(Logger &log, bool append);
+    ~MPI_TraceSync();
+
+    template <class T>
+    MPI_TraceSync &operator<<(const T &v);
+    MPI_TraceSync &operator<<(std::ostream &(*m)(std::ostream &) );
+
+  private:
+    Logger            &_log;
+    bool               _append;
+    std::ostringstream _buffer;
+};
+
+template <class T>
+MPI_TraceSync &MPI_TraceSync::operator<<(const T &v)
+{
+    _buffer << v;
+    return *this;
+}
+
 class Logger {
   public:
-    explicit Logger(std::string prefix, int comm_rank, int comm_size);
+    friend class MPI_TraceSync;
+    explicit Logger(std::string prefix, int comm_rank, int comm_size, const MPI_Comm& comm);
 
     /// error > info > warn > debug > trace
     std::ostream& error(bool append=false);
@@ -33,11 +59,12 @@ class Logger {
     /// error > info > warn > debug > trace
     std::ostream& debug(bool append=false);
     /// error > info > warn > debug > trace
-    std::ostream& trace(bool append=false);
+    MPI_TraceSync trace(bool append=false);
     /// progress bar
     void progress(const std::string& prefix, int step, int max);
 
   private:
+    std::ostream& trace_impl(bool append=false);
     /// starting time
     std::chrono::steady_clock::time_point _start_time;
     /// what the logger should always print first
@@ -48,13 +75,14 @@ class Logger {
     int _comm_rank;
     /// MPI comm size
     int _comm_size;
-
+    /// communicator
+    MPI_Comm _comm;
 };
 
 /**
  * Creates all loggers and sets the level
  * */
-void init(int comm_rank, int comm_size);
+void init(int comm_rank, int comm_size, const MPI_Comm& comm);
 
 /**
  * Frees all memory

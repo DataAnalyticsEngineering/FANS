@@ -4,6 +4,7 @@
 #include "general.h"
 #include "logging.h"
 #include "matmodel.h"
+#include "serialization.h"
 
 template <int howmany, int n_str>
 Matmodel<howmany, n_str> *createMatmodel(const Reader &reader);
@@ -26,7 +27,7 @@ struct MaterialInfo {
  *
  */
 template <int howmany, int n_str>
-class MaterialManager {
+class MaterialManager : public Serializable {
   private:
     MaterialInfo<howmany, n_str> *phase_to_info{nullptr}; // [n_phases] - HOT DATA
     int                           n_phases;
@@ -198,6 +199,20 @@ class MaterialManager {
                 kapparef_mat += model->get_reference_stiffness();
             }
             kapparef_mat /= static_cast<double>(models.size());
+        }
+    }
+
+    void register_serialization(registry_t &r) override
+    {
+        for (auto *model : models) {
+            model->register_serialization(r);
+        }
+    }
+
+    void init_deserialization() override
+    {
+        for (auto *model : models) {
+            model->init_deserialization();
         }
     }
 

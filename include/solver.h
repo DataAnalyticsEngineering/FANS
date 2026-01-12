@@ -4,15 +4,16 @@
 #include "matmodel.h"
 #include "MaterialManager.h"
 #include "logging.h"
+#include "serialization.h"
 
 class J2Plasticity;
 
 typedef Map<Array<double, Dynamic, Dynamic>, Unaligned, OuterStride<>> RealArray;
 
 template <int howmany, int n_str>
-class Solver : private MixedBCController<howmany> {
+class Solver : MixedBCController<howmany>, public Serializable {
   public:
-    Solver(Reader &reader, MaterialManager<howmany, n_str> *matmanager);
+    explicit Solver(Reader &reader, MaterialManager<howmany, n_str> *matmanager=nullptr);
     virtual ~Solver();
 
     Reader &reader;
@@ -45,6 +46,10 @@ class Solver : private MixedBCController<howmany> {
 
     ArrayXd                          err_all; //!< Absolute error history
     Matrix<double, howmany, Dynamic> fundamentalSolution;
+    void init_fundamentalSolutionBuffer()
+    {
+        fundamentalSolution = Matrix<double, howmany, Dynamic>(howmany, (local_n1 * n_x * (n_z / 2 + 1) * (howmany + 1)) / 2);
+    }
 
     template <int padding, typename F>
     void iterateCubes(F f);
@@ -63,6 +68,8 @@ class Solver : private MixedBCController<howmany> {
     void   convolution();
     double compute_error(RealArray &r);
     void   CreateFFTWPlans(double *in, fftw_complex *transformed, double *out);
+
+    void register_serialization(registry_t &r) override;
 
     VectorXd homogenized_stress;
     VectorXd get_homogenized_stress();
@@ -133,15 +140,19 @@ Solver<howmany, n_str>::Solver(Reader &reader, MaterialManager<howmany, n_str> *
       rhat((std::complex<double> *) v_r, local_n1 * n_x * (n_z / 2 + 1) * howmany), // actual initialization is below
       buffer_padding(fftw_alloc_real(n_y * (n_z + 2) * howmany))
 {
+    Log::solver->trace() << "Start constructing solver\n";
+
     v_u_real.setZero();
     for (ptrdiff_t i = local_n0 * n_y * n_z * howmany; i < (local_n0 + 1) * n_y * n_z * howmany; i++) {
         this->v_u[i] = 0;
     }
     std::memset(v_u_prev, 0, local_n0 * n_y * n_z * howmany * sizeof(double));
 
-    matmanager->initialize_internal_variables(local_n0 * n_y * n_z, matmanager->models[0]->n_gp);
-
-    computeFundamentalSolution();
+    if (matmanager != nullptr) {
+        Log::solver->trace() << "Init internal vars.\n";
+        matmanager->initialize_internal_variables(local_n0 * n_y * n_z, matmanager->models[0]->n_gp);
+        computeFundamentalSolution();
+    }
 }
 
 template <int howmany, int n_str>
@@ -162,7 +173,7 @@ void Solver<howmany, n_str>::computeFundamentalSolution()
     Matrix<complex<double>, 8, 1>    A;
     Matrix<double, 8, 8>             AA;
     Matrix<double, howmany, howmany> block;
-    fundamentalSolution = Matrix<double, howmany, Dynamic>(howmany, (local_n1 * n_x * (n_z / 2 + 1) * (howmany + 1)) / 2);
+    init_fundamentalSolutionBuffer();
     fundamentalSolution.setZero();
 
     for (int i_y = 0; i_y < local_n1; ++i_y) {
@@ -206,6 +217,7 @@ void Solver<howmany, n_str>::computeFundamentalSolution()
 template <int howmany, int n_str>
 void Solver<howmany, n_str>::CreateFFTWPlans(double *in, fftw_complex *transformed, double *out)
 {
+    Log::solver->trace() << "Solver::CreateFFTWPlans() begin \n";
     int       rank   = 3;
     ptrdiff_t iblock = FFTW_MPI_DEFAULT_BLOCK;
     ptrdiff_t oblock = FFTW_MPI_DEFAULT_BLOCK;
@@ -223,6 +235,21 @@ void Solver<howmany, n_str>::CreateFFTWPlans(double *in, fftw_complex *transform
 
     // see https://eigen.tuxfamily.org/dox/group__TutorialMapClass.html#title3
     new (&rhat) Map<VectorXcd>((std::complex<double> *) transformed, local_n1 * n_x * (n_z / 2 + 1) * howmany);
+}
+
+template <int howmany, int n_str>
+void Solver<howmany, n_str>::register_serialization(registry_t &r)
+{
+    Log::io->trace() << "Solver::register_serialization v_r size=" << std::max(reader.alloc_local * 2, (local_n0 + 1) * n_y * (n_z + 2) * howmany) * sizeof(double) << "\n";
+    r.emplace_back(v_r, std::max(reader.alloc_local * 2, (local_n0 + 1) * n_y * (n_z + 2) * howmany) * sizeof(double), true);
+    Log::io->trace() << "Solver::register_serialization v_u size=" << (local_n0 * n_y * n_z * howmany) * sizeof(double) << "\n";
+    r.emplace_back(v_u, (local_n0 * n_y * n_z * howmany) * sizeof(double), true);
+    Log::io->trace() << "Solver::register_serialization v_u_prev size=" << (local_n0 * n_y * n_z * howmany) * sizeof(double) << "\n";
+    r.emplace_back(v_u_prev, (local_n0 * n_y * n_z * howmany) * sizeof(double), true);
+    Log::io->trace() << "Solver::register_serialization rhat size=" << (local_n1 * n_x * (n_z / 2 + 1) * howmany) * sizeof(std::complex<double>) << "\n";
+    r.emplace_back(std::data(rhat), (local_n1 * n_x * (n_z / 2 + 1) * howmany) * sizeof(std::complex<double>), true);
+    Log::io->trace() << "Solver::register_serialization fundamentalSolution size=" << ((local_n1 * n_x * (n_z / 2 + 1) * (howmany + 1)) / 2) * sizeof(double) << "\n";
+    r.emplace_back(std::data(fundamentalSolution), ((local_n1 * n_x * (n_z / 2 + 1) * (howmany + 1)) / 2) * sizeof(double), true);
 }
 
 // TODO: possibly circumvent the padding problem by accessing r as a matrix?
