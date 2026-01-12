@@ -4,6 +4,7 @@
 #include "solver.h"
 
 // Version
+#include "logging.h"
 #include "version.h"
 
 template <int howmany, int n_str>
@@ -15,17 +16,13 @@ void runSolver(Reader &reader)
         MaterialManager<howmany, n_str> *matmanager = createMaterialManager<howmany, n_str>(reader);
         Solver<howmany, n_str>          *solver     = createSolver(reader, matmanager);
 
-        if (reader.world_rank == 0) {
-            printf("\n╔════════════════════════════════════════════════════════════ Load case %zu/%zu: %zu time steps ════════════════════════════════════════════════════════════╗\n",
-                   load_path_idx + 1, reader.load_cases.size(), reader.load_cases[load_path_idx].n_steps);
-        }
+        Log::general->info() << "\n╔════════════════════════════════════════════════════════════ Load case "
+                             << load_path_idx + 1 << "/" << reader.load_cases.size() << ": " << reader.load_cases[load_path_idx].n_steps
+                             << " time steps ════════════════════════════════════════════════════════════╗\n";
 
         for (size_t time_step_idx = 0; time_step_idx < reader.load_cases[load_path_idx].n_steps; ++time_step_idx) {
-            if (reader.world_rank == 0) {
-                printf("║   ▶ Time step %zu/%zu (load case %zu/%zu) ◀ \n",
-                       time_step_idx + 1, reader.load_cases[load_path_idx].n_steps,
-                       load_path_idx + 1, reader.load_cases.size());
-            }
+            Log::general->info() << "║   ▶ Time step " << time_step_idx + 1 << "/" << reader.load_cases[load_path_idx].n_steps
+                                 << " (load case " << load_path_idx + 1 << "/" << reader.load_cases.size() << ") ◀ \n";
             if (reader.load_cases[load_path_idx].mixed) {
                 solver->enableMixedBC(reader.load_cases[load_path_idx].mbc, time_step_idx);
             } else {
@@ -37,9 +34,7 @@ void runSolver(Reader &reader)
         }
         delete solver;
         delete matmanager;
-        if (reader.world_rank == 0) {
-            printf("╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝\n");
-        }
+        Log::general->info() << "╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝\n";
     }
 }
 
@@ -73,6 +68,7 @@ int main(int argc, char *argv[])
     }
     reader.CloseResultsFile();
 
+    Log::finalize();
     MPI_Finalize();
     return 0;
 }

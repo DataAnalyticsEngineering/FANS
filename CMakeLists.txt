@@ -112,6 +112,9 @@ find_package(nlohmann_json REQUIRED)
 # TARGETS
 # ##############################################################################
 
+set(FANS_VERBOSITY 5 CACHE STRING "Set verbosity level: 0 none, 5 all")
+add_definitions(-DVERBOSITY=${FANS_VERBOSITY})
+
 option(FANS_BUILD_STATIC "Build static library" OFF)
 if (FANS_BUILD_STATIC)
     add_library(FANS_FANS STATIC)
@@ -150,6 +153,7 @@ target_include_directories(FANS_FANS PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SO
 # FANS.h header that consuming projects can use
 set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/general.h
+        include/logging.h
         include/matmodel.h
         include/MaterialManager.h
         include/reader.h
@@ -184,6 +188,7 @@ target_include_directories(FANS_main PRIVATE "${PROJECT_BINARY_DIR}/include")
 
 target_sources(FANS_FANS PRIVATE
         src/reader.cpp
+        src/logging.cpp
 )
 
 target_sources(FANS_main PRIVATE

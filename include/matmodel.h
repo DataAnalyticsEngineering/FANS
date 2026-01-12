@@ -27,7 +27,7 @@ class Matmodel {
     Matrix<double, howmany * 8, howmany * 8> Compute_Reference_ElementStiffness(const Matrix<double, n_str, n_str> &kapparef_mat);
     Matrix<double, howmany * 8, 1>          &element_residual(Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
     void                                     getStrainStress(double *strain, double *stress, Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
-    void                                     setGradient(vector<double> _g0);
+    void                                     setGradient(const vector<double> &_g0);
 
     // Accessors for internal Gauss point data (populated after getStrainStress call)
     inline const double *get_eps_data() const
@@ -225,11 +225,13 @@ void Matmodel<howmany, n_str>::getStrainStress(double *strain, double *stress, M
 }
 
 template <int howmany, int n_str>
-void Matmodel<howmany, n_str>::setGradient(vector<double> _g0)
+void Matmodel<howmany, n_str>::setGradient(const vector<double> &_g0)
 {
+    // _g0 is smaller than g0, can stay in cache
+    // if j loop inner, then not using cache-lines well
     macroscale_loading = _g0;
-    for (int i = 0; i < n_str; i++) {
-        for (int j = 0; j < n_gp; ++j) {
+    for (int j = 0; j < n_gp; ++j) {
+        for (int i = 0; i < n_str; i++) {
             g0(n_str * j + i, 0) = _g0[i];
         }
     }

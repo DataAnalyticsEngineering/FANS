@@ -47,6 +47,11 @@ MicroSimulation::MicroSimulation(int sim_id, char *input_file)
     }
 }
 
+MicroSimulation::~MicroSimulation()
+{
+    Log::finalize();
+}
+
 py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 {
     const bool is_small_strain = std::holds_alternative<MaterialManager<3, 6> *>(matmanager);
@@ -72,7 +77,7 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 
     homogenized_stress = std::visit([](auto &s) -> VectorXd { return s->get_homogenized_stress(); }, solver);
 
-    auto C = std::visit([&](auto &s) -> MatrixXd { return s->get_homogenized_tangent(pert_param); }, solver);
+    MatrixXd C = std::visit([&](auto &s) -> MatrixXd { return s->get_homogenized_tangent(pert_param); }, solver);
 
     // Convert data to a py::dict again to send it back to the Micro Manager
     py::dict micro_write_data;

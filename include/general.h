@@ -58,6 +58,4 @@ inline void FANS_free(V *p)
 }
 #endif // FANS_MALLOC_H
 
-#define VERBOSITY 0
-
 // #define EIGEN_RUNTIME_NO_MALLOC
