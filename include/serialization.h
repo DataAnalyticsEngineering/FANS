@@ -10,36 +10,77 @@
 #include <vector>
 #include <type_traits>
 
-template<typename T, typename Base = std::vector<T>, typename r = std::conditional_t<sizeof(T)<=4, std::true_type, void>>
-class SerializationBuffer : public Base {
-    // Buffer always has size multiple of 4 byte
+template<
+    typename T,
+    typename Alloc_Base = int,
+    std::size_t Alloc_Base_Size = sizeof(Alloc_Base),
+    typename r0 = std::conditional_t<sizeof(T)<=Alloc_Base_Size, std::true_type, void>,
+    typename r1 = std::conditional_t<std::is_same_v<int, Alloc_Base>, std::true_type, void>
+>
+class SerializationBuffer {
 public:
-    using Base::Base;
-    using size_type = typename Base::size_type;
+    using data_t = std::vector<Alloc_Base>;
+    using size_type = typename data_t::size_type;
+
+    SerializationBuffer() : _requested_size(0), _data() {}
+    explicit SerializationBuffer(const data_t& data) : _requested_size(-1), _data(data) {}
+    explicit SerializationBuffer(data_t&& data) : _requested_size(-1), _data(std::move(data)) {}
+    SerializationBuffer(const SerializationBuffer& s) : _requested_size(s._requested_size), _data(s._data) {}
+    SerializationBuffer& operator=(const SerializationBuffer& s) = default;
+    SerializationBuffer(SerializationBuffer&& s) = default;
+    SerializationBuffer& operator=(SerializationBuffer&& s) = default;
+
+    /**
+     * Resizes this buffer to contain at least new_size elements of T
+     * Size will be met, or padded to reach Alloc_Base size.
+     * @param new_size minimum target count
+     */
     void resize(size_type new_size)
     {
+        _requested_size = new_size;
         const auto num_bytes = new_size * data_size;
-        const auto delta_bytes = (4 - (num_bytes % 4)) % 4;
-        new_size += delta_bytes / data_size;
-        Base::resize(new_size);
+        const auto delta_bytes = (Alloc_Base_Size - (num_bytes % Alloc_Base_Size)) % Alloc_Base_Size;
+        _data.resize((num_bytes + delta_bytes) / Alloc_Base_Size);
     }
 
+    /**
+     * Resizes this buffer to contain at least new_size elements of T
+     * Size will be met, or padded to reach Alloc_Base size.
+     * @param new_size minimum target count
+     * @param value fill value
+     */
     void resize(size_type new_size, const T& value)
     {
+        _requested_size = new_size;
         const auto num_bytes = new_size * data_size;
-        const auto delta_bytes = (4 - (num_bytes % 4)) % 4;
-        new_size += delta_bytes / data_size;
-        Base::resize(new_size, value);
+        const auto delta_bytes = (Alloc_Base_Size - (num_bytes % Alloc_Base_Size)) % Alloc_Base_Size;
+        _data.resize((num_bytes + delta_bytes) / Alloc_Base_Size, value);
     }
 
-    void add_size(size_type delta) { resize(Base::size() + delta); }
+    void add_size(size_type delta) { resize(_requested_size + delta); }
 
-    std::vector<int>& as_int_vector() { return *reinterpret_cast<std::vector<int>*>(this); }
+    T* data() { return reinterpret_cast<T*>(std::data(_data)); }
 
-    static SerializationBuffer& from_int_vector(std::vector<int>& vec) { return *reinterpret_cast<SerializationBuffer*>(&vec); }
+    /**
+     * @return buffer size, not true store amount
+     */
+    [[nodiscard]] size_type size() const { return _data.size(); }
+
+    /**
+     * @return amount of stored elements
+     */
+    [[nodiscard]] size_type true_size() const { return _requested_size; }
+
+    std::vector<int>& as_int_vector() { return _data; }
+    static SerializationBuffer from_int_vector(std::vector<int>&& vec) { return SerializationBuffer(std::move(vec)); }
 
 private:
+    /// num bytes of each element of type T
     static constexpr auto data_size = sizeof(T);
+    /// stored element count
+    size_type _requested_size = 0;
+    /// data storage
+    data_t _data;
 };
 
 class Serializable {
