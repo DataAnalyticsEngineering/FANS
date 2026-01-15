@@ -167,13 +167,11 @@ void Reader::ReadJson(json j)
         }
 
         Log::io->info() << "# microstructure file name: \t " << ms_filename << "\n";
-        Log::io->info() << "# microstructure dataset name: \t " << ms_datasetname <<"\n";
+        Log::io->info() << "# microstructure dataset name: \t " << ms_datasetname << "\n";
         Log::io->info() << "# strain type: \t " << strain_type << "\n";
         Log::io->info() << "# problem type: \t " << problemType << "\n";
         Log::io->info() << "# FE type: \t " << FE_type << "\n";
-        Log::io->info() << "# FANS error measure: \t " <<
-            errorParameters["type"].get<string>() << " " <<
-            errorParameters["measure"].get<string>() << " error  \n";
+        Log::io->info() << "# FANS error measure: \t " << errorParameters["type"].get<string>() << " " << errorParameters["measure"].get<string>() << " error  \n";
         Log::io->info() << "# FANS Tolerance: \t " << std::setw(10) << std::setprecision(5) << errorParameters["tolerance"].get<double>() << std::defaultfloat << "e\n";
         Log::io->info() << "# Max iterations: \t " << n_it << "\n";
 
@@ -273,8 +271,10 @@ void Reader ::ReadMS(int hm)
         H5Aclose(attr_id);
         H5Tclose(attr_type);
     }
-    if (is_zyx) Log::io->info() << "# Using Z-Y-X dimension ordering for the microstructure data\n";
-    else Log::io->info() << "# Using X-Y-Z dimension ordering for the microstructure data\n";
+    if (is_zyx)
+        Log::io->info() << "# Using Z-Y-X dimension ordering for the microstructure data\n";
+    else
+        Log::io->info() << "# Using X-Y-Z dimension ordering for the microstructure data\n";
 
     dims.resize(3);
     if (is_zyx) {           /* file layout Z Y X  -> logical X Y Z */
@@ -297,9 +297,12 @@ void Reader ::ReadMS(int hm)
                     << std::setw(3) << std::setprecision(6) << L[0] << std::defaultfloat << " x "
                     << std::setw(3) << std::setprecision(6) << L[1] << std::defaultfloat << " x "
                     << std::setw(3) << std::setprecision(6) << L[2] << std::defaultfloat << "]\n";
-    if (dims[0] % 2 != 0) Log::io->warn() << "[ FANS3D_Grid ] WARNING: n_x is not a multiple of 2\n";
-    if (dims[1] % 2 != 0) Log::io->warn() << "[ FANS3D_Grid ] WARNING: n_y is not a multiple of 2\n";
-    if (dims[2] % 2 != 0) Log::io->warn() << "[ FANS3D_Grid ] WARNING: n_z is not a multiple of 2\n";
+    if (dims[0] % 2 != 0)
+        Log::io->warn() << "[ FANS3D_Grid ] WARNING: n_x is not a multiple of 2\n";
+    if (dims[1] % 2 != 0)
+        Log::io->warn() << "[ FANS3D_Grid ] WARNING: n_y is not a multiple of 2\n";
+    if (dims[2] % 2 != 0)
+        Log::io->warn() << "[ FANS3D_Grid ] WARNING: n_z is not a multiple of 2\n";
     if (dims[0] / 4 < world_size)
         throw std::runtime_error("[ FANS3D_Grid ] ERROR: Please decrease the number of processes or increase the grid size to ensure that each process has at least 4 boxels in the x direction.");
     Log::io->info() << "Voxel length: ["
@@ -395,7 +398,7 @@ void Reader ::ReadMS(int hm)
     } else {
         /* XYZ case: the slab is already in correct order */
         FANS_free(ms); // dealloc mem
-        ms = tmp; // steal the buffer; no copy
+        ms = tmp;      // steal the buffer; no copy
     }
 
     /*--------------------------------------------------------------------
@@ -413,30 +416,39 @@ void Reader ::ReadMS(int hm)
 Reader::length_t Reader::serialize_override(buffer_t &buffer, length_t offset)
 {
     // write JSON
-    std::string j_str = inputJson.dump();
-    length_t block_size = (j_str.size()+1) * sizeof(char);
+    std::string j_str      = inputJson.dump();
+    length_t    block_size = (j_str.size() + 1) * sizeof(char);
     buffer.add_size(block_size + header_len);
-    *reinterpret_cast<length_t*>(std::data(buffer) + offset) = block_size;
+    *reinterpret_cast<length_t *>(std::data(buffer) + offset) = block_size;
     offset += header_len;
     std::memcpy(std::data(buffer) + offset, j_str.c_str(), block_size);
     offset += block_size;
 
     // write ms
-    block_size =     sizeof(bool)      +
-                 3 * sizeof(int)       +
-                 3 * sizeof(double)    +
+    block_size = sizeof(bool) +
+                 3 * sizeof(int) +
+                 3 * sizeof(double) +
                  5 * sizeof(ptrdiff_t) +
-                     sizeof(int);
+                 sizeof(int);
     buffer.add_size(block_size);
-    *reinterpret_cast<bool*>(std::data(buffer) + offset) = is_zyx; offset += sizeof(bool);
-    std::memcpy(std::data(buffer) + offset, std::data(dims), sizeof(int)*3); offset += sizeof(int) * 3;
-    std::memcpy(std::data(buffer) + offset, std::data(l_e), sizeof(double)*3); offset += sizeof(double) * 3;
-    *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset) = alloc_local; offset += sizeof(ptrdiff_t);
-    *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset) = local_n0; offset += sizeof(ptrdiff_t);
-    *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset) = local_0_start; offset += sizeof(ptrdiff_t);
-    *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset) = local_n1; offset += sizeof(ptrdiff_t);
-    *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset) = local_1_start; offset += sizeof(ptrdiff_t);
-    *reinterpret_cast<int*>(std::data(buffer) + offset) = n_mat; offset += sizeof(int);
+    *reinterpret_cast<bool *>(std::data(buffer) + offset) = is_zyx;
+    offset += sizeof(bool);
+    std::memcpy(std::data(buffer) + offset, std::data(dims), sizeof(int) * 3);
+    offset += sizeof(int) * 3;
+    std::memcpy(std::data(buffer) + offset, std::data(l_e), sizeof(double) * 3);
+    offset += sizeof(double) * 3;
+    *reinterpret_cast<ptrdiff_t *>(std::data(buffer) + offset) = alloc_local;
+    offset += sizeof(ptrdiff_t);
+    *reinterpret_cast<ptrdiff_t *>(std::data(buffer) + offset) = local_n0;
+    offset += sizeof(ptrdiff_t);
+    *reinterpret_cast<ptrdiff_t *>(std::data(buffer) + offset) = local_0_start;
+    offset += sizeof(ptrdiff_t);
+    *reinterpret_cast<ptrdiff_t *>(std::data(buffer) + offset) = local_n1;
+    offset += sizeof(ptrdiff_t);
+    *reinterpret_cast<ptrdiff_t *>(std::data(buffer) + offset) = local_1_start;
+    offset += sizeof(ptrdiff_t);
+    *reinterpret_cast<int *>(std::data(buffer) + offset) = n_mat;
+    offset += sizeof(int);
 
     block_size = local_n0 * dims[1] * dims[2] * sizeof(unsigned short);
     buffer.add_size(block_size);
@@ -449,7 +461,7 @@ Reader::length_t Reader::serialize_override(buffer_t &buffer, length_t offset)
 Reader::length_t Reader::deserialize_override(buffer_t &buffer, length_t offset)
 {
     // write JSON
-    length_t block_size = *reinterpret_cast<length_t*>(std::data(buffer) + offset);
+    length_t block_size = *reinterpret_cast<length_t *>(std::data(buffer) + offset);
     offset += header_len;
     std::string tmp("");
     tmp.resize(block_size / sizeof(char), '\0');
@@ -462,22 +474,31 @@ Reader::length_t Reader::deserialize_override(buffer_t &buffer, length_t offset)
     ReadJson(j);
 
     // write ms
-    is_zyx = *reinterpret_cast<bool*>(std::data(buffer) + offset); offset += sizeof(bool);
+    is_zyx = *reinterpret_cast<bool *>(std::data(buffer) + offset);
+    offset += sizeof(bool);
     dims.resize(3);
-    std::memcpy(std::data(dims), std::data(buffer) + offset, sizeof(int)*3); offset += sizeof(int) * 3;
+    std::memcpy(std::data(dims), std::data(buffer) + offset, sizeof(int) * 3);
+    offset += sizeof(int) * 3;
     l_e.resize(3);
-    std::memcpy(std::data(l_e), std::data(buffer) + offset, sizeof(double)*3); offset += sizeof(double) * 3;
-    alloc_local   = *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset); offset += sizeof(ptrdiff_t);
-    local_n0      = *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset); offset += sizeof(ptrdiff_t);
-    local_0_start = *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset); offset += sizeof(ptrdiff_t);
-    local_n1      = *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset); offset += sizeof(ptrdiff_t);
-    local_1_start = *reinterpret_cast<ptrdiff_t*>(std::data(buffer) + offset); offset += sizeof(ptrdiff_t);
-    n_mat         = *reinterpret_cast<int*>(std::data(buffer) + offset);       offset += sizeof(int);
+    std::memcpy(std::data(l_e), std::data(buffer) + offset, sizeof(double) * 3);
+    offset += sizeof(double) * 3;
+    alloc_local = *reinterpret_cast<ptrdiff_t *>(std::data(buffer) + offset);
+    offset += sizeof(ptrdiff_t);
+    local_n0 = *reinterpret_cast<ptrdiff_t *>(std::data(buffer) + offset);
+    offset += sizeof(ptrdiff_t);
+    local_0_start = *reinterpret_cast<ptrdiff_t *>(std::data(buffer) + offset);
+    offset += sizeof(ptrdiff_t);
+    local_n1 = *reinterpret_cast<ptrdiff_t *>(std::data(buffer) + offset);
+    offset += sizeof(ptrdiff_t);
+    local_1_start = *reinterpret_cast<ptrdiff_t *>(std::data(buffer) + offset);
+    offset += sizeof(ptrdiff_t);
+    n_mat = *reinterpret_cast<int *>(std::data(buffer) + offset);
+    offset += sizeof(int);
 
     block_size = local_n0 * dims[1] * dims[2] * sizeof(unsigned short);
-    ms = FANS_malloc<unsigned short>(static_cast<unsigned long>(local_n0) *
-                                     static_cast<unsigned long>(dims[1]) *
-                                     static_cast<unsigned long>(dims[2]));
+    ms         = FANS_malloc<unsigned short>(static_cast<unsigned long>(local_n0) *
+                                             static_cast<unsigned long>(dims[1]) *
+                                             static_cast<unsigned long>(dims[2]));
     std::memcpy(ms, std::data(buffer) + offset, block_size);
     offset += block_size;
 

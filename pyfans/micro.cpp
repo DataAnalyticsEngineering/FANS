@@ -25,7 +25,8 @@ py::array_t<double> merge_arrays(py::array_t<double> array1, py::array_t<double>
     return result;
 }
 
-MicroSimulation::MicroSimulation(int sim_id, bool late_init, char *input_file) : _sim_id(sim_id)
+MicroSimulation::MicroSimulation(int sim_id, bool late_init, char *input_file)
+    : _sim_id(sim_id)
 {
     // initialize fftw mpi
     fftw_mpi_init();
@@ -82,10 +83,10 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
 
     auto make_py_array = [](double d0, double d1, double d2) {
         py::array_t<double> arr(3);
-        auto buf = arr.mutable_unchecked<1>();
-        buf(0) = d0;
-        buf(1) = d1;
-        buf(2) = d2;
+        auto                buf = arr.mutable_unchecked<1>();
+        buf(0)                  = d0;
+        buf(1)                  = d1;
+        buf(2)                  = d2;
         return arr;
     };
 
@@ -109,7 +110,8 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
     return micro_write_data;
 }
 
-py::array_t<int> to_int_array(const std::vector<int>& v) {
+py::array_t<int> to_int_array(const std::vector<int> &v)
+{
     py::array_t<int> arr(v.size());
     std::memcpy(arr.mutable_data(), v.data(), v.size() * sizeof(int));
     return arr;
@@ -121,13 +123,13 @@ py::dict MicroSimulation::get_state()
 
     Log::io->debug() << "Serializing reader\n";
     Serializable::buffer_t reader_state = reader.serialize_full();
-    state["reader_state"] = to_int_array(reader_state.as_int_vector());
-    //Log::io->debug() << "Serializing solver\n";
-    //Serializable::buffer_t solver_state = std::visit([](auto &s) { return s->serialize_full(); }, solver);
-    //state["solver_state"] = to_int_array(solver_state.as_int_vector());
-    //Log::io->debug() << "Serializing material manager\n";
-    //Serializable::buffer_t matmngr_state = std::visit([](auto &m) { return m->serialize_full(); }, matmanager);
-    //state["matmanager_state"] = to_int_array(matmngr_state.as_int_vector());
+    state["reader_state"]               = to_int_array(reader_state.as_int_vector());
+    // Log::io->debug() << "Serializing solver\n";
+    // Serializable::buffer_t solver_state = std::visit([](auto &s) { return s->serialize_full(); }, solver);
+    // state["solver_state"] = to_int_array(solver_state.as_int_vector());
+    // Log::io->debug() << "Serializing material manager\n";
+    // Serializable::buffer_t matmngr_state = std::visit([](auto &m) { return m->serialize_full(); }, matmanager);
+    // state["matmanager_state"] = to_int_array(matmngr_state.as_int_vector());
     Log::io->debug() << "Serializing micro sim done\n";
 
     return state;
@@ -135,42 +137,45 @@ py::dict MicroSimulation::get_state()
 
 void MicroSimulation::set_state(py::dict &state)
 {
-    auto py_reader_state = state["reader_state"].cast<py::array_t<int>>();
-    std::vector<int> reader_state_i(py_reader_state.data(), py_reader_state.data() + py_reader_state.size());
+    auto                   py_reader_state = state["reader_state"].cast<py::array_t<int>>();
+    std::vector<int>       reader_state_i(py_reader_state.data(), py_reader_state.data() + py_reader_state.size());
     Serializable::buffer_t reader_state = Serializable::buffer_t::from_int_vector(std::move(reader_state_i));
 
-    //auto py_solver_state = state["solver_state"].cast<py::array_t<int>>();
-    //std::vector<int> solver_state_i(py_solver_state.data(), py_solver_state.data() + py_solver_state.size());
-    //Serializable::buffer_t solver_state = Serializable::buffer_t::from_int_vector(std::move(solver_state_i));
+    // auto py_solver_state = state["solver_state"].cast<py::array_t<int>>();
+    // std::vector<int> solver_state_i(py_solver_state.data(), py_solver_state.data() + py_solver_state.size());
+    // Serializable::buffer_t solver_state = Serializable::buffer_t::from_int_vector(std::move(solver_state_i));
 
-    //auto py_matmngr_state = state["matmanager_state"].cast<py::array_t<int>>();
-    //std::vector<int> matmngr_state_i(py_matmngr_state.data(), py_matmngr_state.data() + py_matmngr_state.size());
-    //Serializable::buffer_t matmngr_state = Serializable::buffer_t::from_int_vector(std::move(matmngr_state_i));
+    // auto py_matmngr_state = state["matmanager_state"].cast<py::array_t<int>>();
+    // std::vector<int> matmngr_state_i(py_matmngr_state.data(), py_matmngr_state.data() + py_matmngr_state.size());
+    // Serializable::buffer_t matmngr_state = Serializable::buffer_t::from_int_vector(std::move(matmngr_state_i));
 
     reader.deserialize_full(reader_state);
     if (reader.strain_type == "small") {
         auto *mat_ptr = createMaterialManager<3, 6>(reader);
-        //mat_ptr->deserialize_full(matmngr_state);
-        matmanager = mat_ptr;
+        // mat_ptr->deserialize_full(matmngr_state);
+        matmanager    = mat_ptr;
         auto *sol_ptr = createSolver<3, 6>(reader, mat_ptr);
-        //sol_ptr->init_fundamentalSolutionBuffer();
-        //sol_ptr->matmanager = std::get<MaterialManager<3, 6> *>(matmanager);
-        //sol_ptr->deserialize_full(solver_state);
-        solver     = sol_ptr;
+        // sol_ptr->init_fundamentalSolutionBuffer();
+        // sol_ptr->matmanager = std::get<MaterialManager<3, 6> *>(matmanager);
+        // sol_ptr->deserialize_full(solver_state);
+        solver = sol_ptr;
 
     } else {
         auto *mat_ptr = createMaterialManager<3, 9>(reader);
-        //mat_ptr->deserialize_full(matmngr_state);
-        matmanager = mat_ptr;
+        // mat_ptr->deserialize_full(matmngr_state);
+        matmanager    = mat_ptr;
         auto *sol_ptr = createSolver<3, 9>(reader, mat_ptr);
-        //sol_ptr->init_fundamentalSolutionBuffer();
-        //sol_ptr->matmanager = std::get<MaterialManager<3, 9> *>(matmanager);
-        //sol_ptr->deserialize_full(solver_state);
-        solver     = sol_ptr;
+        // sol_ptr->init_fundamentalSolutionBuffer();
+        // sol_ptr->matmanager = std::get<MaterialManager<3, 9> *>(matmanager);
+        // sol_ptr->deserialize_full(solver_state);
+        solver = sol_ptr;
     }
 }
 
-int MicroSimulation::get_id() { return _sim_id; }
+int MicroSimulation::get_id()
+{
+    return _sim_id;
+}
 
 PYBIND11_MODULE(PyFANS, m)
 {
@@ -181,20 +186,18 @@ PYBIND11_MODULE(PyFANS, m)
         .def(py::init<int>())
         .def("solve", &MicroSimulation::solve)
         .def(py::pickle(
-            [](MicroSimulation& m) {
+            [](MicroSimulation &m) {
                 return py::make_tuple(m.get_id(), m.get_state());
             },
             [](py::tuple t) {
-                int id = t[0].cast<int>();
+                int      id    = t[0].cast<int>();
                 py::dict state = t[1].cast<py::dict>();
 
                 auto m = std::make_unique<MicroSimulation>(id, true);
                 m->set_state(state);
                 return m;
-            }
-            ))
+            }))
         .def("set_state", &MicroSimulation::set_state)
         .def("get_state", &MicroSimulation::get_state)
-        .def("get_global_id", &MicroSimulation::get_id)
-    ;
+        .def("get_global_id", &MicroSimulation::get_id);
 }

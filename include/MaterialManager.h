@@ -125,7 +125,8 @@ class MaterialManager : public Serializable {
             Log::io->info() << "#   Phases: [";
             for (size_t j = 0; j < phases.size(); ++j) {
                 Log::io->info(true) << phases[j];
-                if (j < phases.size() - 1) Log::io->info(true) << ", ";
+                if (j < phases.size() - 1)
+                    Log::io->info(true) << ", ";
             }
             Log::io->info(true) << "]\n";
 
@@ -142,7 +143,8 @@ class MaterialManager : public Serializable {
                         } else if (it.value()[k].is_string()) {
                             Log::io->info(true) << "\"" << it.value()[k].get<string>() << "\"";
                         }
-                        if (k < it.value().size() - 1) Log::io->info(true) << ", ";
+                        if (k < it.value().size() - 1)
+                            Log::io->info(true) << ", ";
                     }
                     Log::io->info(true) << "]";
                 } else if (it.value().is_number()) {
@@ -225,7 +227,7 @@ class MaterialManager : public Serializable {
     }
 
     // Set macroscale loading gradient for all models
-    void set_gradient(const vector<double>& g0)
+    void set_gradient(const vector<double> &g0)
     {
         for (auto *model : models) {
             model->setGradient(g0);

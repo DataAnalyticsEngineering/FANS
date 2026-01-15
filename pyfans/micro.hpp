@@ -26,7 +26,7 @@ class MicroSimulation {
     py::dict solve(py::dict macro_write_data, double dt);
 
     py::dict get_state();
-    void set_state(py::dict &state);
+    void     set_state(py::dict &state);
 
     int get_id();
 

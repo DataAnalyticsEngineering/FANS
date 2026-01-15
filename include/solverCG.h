@@ -143,8 +143,8 @@ void SolverCG<howmany, n_str>::LineSearchSecant()
     v_r_real = rnew_real;
 
     Log::solver->info() << "line search iter " << _iter
-                        << ", alpha "  << std::fixed << std::setprecision(6) << alpha_new  << std::defaultfloat
-                        << " - error " << std::fixed << std::setprecision(6) << err        << std::defaultfloat << " - ";
+                        << ", alpha " << std::fixed << std::setprecision(6) << alpha_new << std::defaultfloat
+                        << " - error " << std::fixed << std::setprecision(6) << err << std::defaultfloat << " - ";
 }
 
 template <int howmany, int n_str>

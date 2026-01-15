@@ -13,7 +13,7 @@ typedef Map<Array<double, Dynamic, Dynamic>, Unaligned, OuterStride<>> RealArray
 template <int howmany, int n_str>
 class Solver : MixedBCController<howmany>, public Serializable {
   public:
-    explicit Solver(Reader &reader, MaterialManager<howmany, n_str> *matmanager=nullptr);
+    explicit Solver(Reader &reader, MaterialManager<howmany, n_str> *matmanager = nullptr);
     virtual ~Solver();
 
     Reader &reader;
@@ -46,7 +46,7 @@ class Solver : MixedBCController<howmany>, public Serializable {
 
     ArrayXd                          err_all; //!< Absolute error history
     Matrix<double, howmany, Dynamic> fundamentalSolution;
-    void init_fundamentalSolutionBuffer()
+    void                             init_fundamentalSolutionBuffer()
     {
         fundamentalSolution = Matrix<double, howmany, Dynamic>(howmany, (local_n1 * n_x * (n_z / 2 + 1) * (howmany + 1)) / 2);
     }
@@ -315,10 +315,10 @@ void Solver<howmany, n_str>::solve()
     internalSolve();
     tot_time = clock() - tot_time;
 
-    Log::solver->info() << "# FFT Time per iteration .......   " << std::setw(2) << std::setprecision(6) << double(fft_time) / CLOCKS_PER_SEC / iter   << std::defaultfloat << " sec\n";
-    Log::solver->info() << "# Total FFT Time ...............   " << std::setw(2) << std::setprecision(6) << double(fft_time) / CLOCKS_PER_SEC          << std::defaultfloat << " sec\n";
-    Log::solver->info() << "# Total Time per iteration .....   " << std::setw(2) << std::setprecision(6) << double(tot_time) / CLOCKS_PER_SEC / iter   << std::defaultfloat << " sec\n";
-    Log::solver->info() << "# Total Time ...................   " << std::setw(2) << std::setprecision(6) << double(tot_time) / CLOCKS_PER_SEC          << std::defaultfloat << " sec\n";
+    Log::solver->info() << "# FFT Time per iteration .......   " << std::setw(2) << std::setprecision(6) << double(fft_time) / CLOCKS_PER_SEC / iter << std::defaultfloat << " sec\n";
+    Log::solver->info() << "# Total FFT Time ...............   " << std::setw(2) << std::setprecision(6) << double(fft_time) / CLOCKS_PER_SEC << std::defaultfloat << " sec\n";
+    Log::solver->info() << "# Total Time per iteration .....   " << std::setw(2) << std::setprecision(6) << double(tot_time) / CLOCKS_PER_SEC / iter << std::defaultfloat << " sec\n";
+    Log::solver->info() << "# Total Time ...................   " << std::setw(2) << std::setprecision(6) << double(tot_time) / CLOCKS_PER_SEC << std::defaultfloat << " sec\n";
     Log::solver->info() << "# FFT contribution to total time   " << std::setw(2) << std::setprecision(6) << 100. * double(fft_time) / double(tot_time) << std::defaultfloat << " % \n";
 
     matmanager->update_internal_variables();
@@ -458,12 +458,14 @@ double Solver<howmany, n_str>::compute_error(RealArray &r)
     double err0    = err_all[0];
     double err_rel = (iter == 0 ? 100 : err / err0);
 
-    if (iter == 0) Log::solver->info() << "Before 1st iteration: " << std::setw(16) << std::setprecision(8) << err0 << std::defaultfloat << "\n";
-    else           Log::solver->info() << "it "                    << iter << " .... "
-                                       << "err "                   << std::setw(16) << std::setprecision(8) << err << std::defaultfloat << "  / "
-                                                                   << std::setw( 8) << std::setprecision(4) << err / err0 << std::defaultfloat
-                                       << ", ratio: "              << std::setw(4)  << std::setprecision(8) << (iter == 1 ? 0.0 : err / err_all[iter - 1]) << std::defaultfloat
-                                       << ", FFT time: "           << std::setw(2)  << std::setprecision(6) << static_cast<double>(buftime) / CLOCKS_PER_SEC << std::defaultfloat << " sec\n";
+    if (iter == 0)
+        Log::solver->info() << "Before 1st iteration: " << std::setw(16) << std::setprecision(8) << err0 << std::defaultfloat << "\n";
+    else
+        Log::solver->info() << "it " << iter << " .... "
+                            << "err " << std::setw(16) << std::setprecision(8) << err << std::defaultfloat << "  / "
+                            << std::setw(8) << std::setprecision(4) << err / err0 << std::defaultfloat
+                            << ", ratio: " << std::setw(4) << std::setprecision(8) << (iter == 1 ? 0.0 : err / err_all[iter - 1]) << std::defaultfloat
+                            << ", FFT time: " << std::setw(2) << std::setprecision(6) << static_cast<double>(buftime) / CLOCKS_PER_SEC << std::defaultfloat << " sec\n";
 
     const std::string &error_type = reader.errorParameters["type"].get<std::string>();
     if (error_type == "absolute") {
@@ -598,10 +600,12 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     }
 
     Log::solver->info() << "# Effective Stress .. (";
-    for (int i = 0; i < n_str; ++i) Log::solver->info(true) << std::showpos << std::fixed << std::setprecision(12) << stress_average[i] << " " << std::noshowpos << std::defaultfloat;
+    for (int i = 0; i < n_str; ++i)
+        Log::solver->info(true) << std::showpos << std::fixed << std::setprecision(12) << stress_average[i] << " " << std::noshowpos << std::defaultfloat;
     Log::solver->info(true) << ") \n";
     Log::solver->info() << "# Effective Strain .. (";
-    for (int i = 0; i < n_str; ++i) Log::solver->info(true) << std::showpos << std::fixed << std::setprecision(12) << strain_average[i] << " " << std::noshowpos << std::defaultfloat;
+    for (int i = 0; i < n_str; ++i)
+        Log::solver->info(true) << std::showpos << std::fixed << std::setprecision(12) << strain_average[i] << " " << std::noshowpos << std::defaultfloat;
     Log::solver->info(true) << ") \n\n";
 
     /* ====================================================================== *
@@ -715,7 +719,8 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "homogenized_tangent") != reader.resultsToWrite.end()) {
         homogenized_tangent = get_homogenized_tangent(1e-6);
         hsize_t dims[2]     = {static_cast<hsize_t>(n_str), static_cast<hsize_t>(n_str)};
-        Log::solver->info() << "# Homogenized tangent: \n" << std::setprecision(12) << homogenized_tangent << std::defaultfloat << "\n\n";
+        Log::solver->info() << "# Homogenized tangent: \n"
+                            << std::setprecision(12) << homogenized_tangent << std::defaultfloat << "\n\n";
         reader.writeData("homogenized_tangent", load_idx, time_idx, homogenized_tangent.data(), dims, 2);
     }
     extrapolateDisplacement(); // prepare v_u for next time step

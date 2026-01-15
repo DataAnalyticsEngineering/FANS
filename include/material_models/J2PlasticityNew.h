@@ -37,10 +37,14 @@ class J2PlasticityNew : public SmallStrainMechModel {
     void register_serialization(registry_t &r) override
     {
         SmallStrainMechModel::register_serialization(r);
-        for (auto &mat : plasticStrain_t) r.emplace_back(std::data(mat), (mat.size()) * sizeof(double), true);
-        for (auto &mat : plasticStrain) r.emplace_back(std::data(mat), (mat.size()) * sizeof(double), true);
-        for (auto &vec : q_t) r.emplace_back(std::data(vec), (vec.size()) * sizeof(double), true);
-        for (auto &vec : q) r.emplace_back(std::data(vec), (vec.size()) * sizeof(double), true);
+        for (auto &mat : plasticStrain_t)
+            r.emplace_back(std::data(mat), (mat.size()) * sizeof(double), true);
+        for (auto &mat : plasticStrain)
+            r.emplace_back(std::data(mat), (mat.size()) * sizeof(double), true);
+        for (auto &vec : q_t)
+            r.emplace_back(std::data(vec), (vec.size()) * sizeof(double), true);
+        for (auto &vec : q)
+            r.emplace_back(std::data(vec), (vec.size()) * sizeof(double), true);
     }
 
     virtual void updateInternalVariables() override

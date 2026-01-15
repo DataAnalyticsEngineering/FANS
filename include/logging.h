@@ -48,23 +48,23 @@ MPI_TraceSync &MPI_TraceSync::operator<<(const T &v)
 class Logger {
   public:
     friend class MPI_TraceSync;
-    explicit Logger(std::string prefix, int comm_rank, int comm_size, const MPI_Comm& comm);
+    explicit Logger(std::string prefix, int comm_rank, int comm_size, const MPI_Comm &comm);
 
     /// error > info > warn > debug > trace
-    std::ostream& error(bool append=false);
+    std::ostream &error(bool append = false);
     /// error > info > warn > debug > trace
-    std::ostream& info(bool append=false);
+    std::ostream &info(bool append = false);
     /// error > info > warn > debug > trace
-    std::ostream& warn(bool append=false);
+    std::ostream &warn(bool append = false);
     /// error > info > warn > debug > trace
-    std::ostream& debug(bool append=false);
+    std::ostream &debug(bool append = false);
     /// error > info > warn > debug > trace
-    MPI_TraceSync trace(bool append=false);
+    MPI_TraceSync trace(bool append = false);
     /// progress bar
-    void progress(const std::string& prefix, int step, int max);
+    void progress(const std::string &prefix, int step, int max);
 
   private:
-    std::ostream& trace_impl(bool append=false);
+    std::ostream &trace_impl(bool append = false);
     /// starting time
     std::chrono::steady_clock::time_point _start_time;
     /// what the logger should always print first
@@ -82,7 +82,7 @@ class Logger {
 /**
  * Creates all loggers and sets the level
  * */
-void init(int comm_rank, int comm_size, const MPI_Comm& comm);
+void init(int comm_rank, int comm_size, const MPI_Comm &comm);
 
 /**
  * Frees all memory

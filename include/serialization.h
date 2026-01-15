@@ -10,25 +10,28 @@
 #include <vector>
 #include <type_traits>
 
-template<
+template <
     typename T,
-    typename Alloc_Base = int,
+    typename Alloc_Base         = int,
     std::size_t Alloc_Base_Size = sizeof(Alloc_Base),
-    typename r0 = std::conditional_t<sizeof(T)<=Alloc_Base_Size, std::true_type, void>,
-    typename r1 = std::conditional_t<std::is_same_v<int, Alloc_Base>, std::true_type, void>
->
+    typename r0                 = std::conditional_t<sizeof(T) <= Alloc_Base_Size, std::true_type, void>,
+    typename r1                 = std::conditional_t<std::is_same_v<int, Alloc_Base>, std::true_type, void>>
 class SerializationBuffer {
-public:
-    using data_t = std::vector<Alloc_Base>;
+  public:
+    using data_t    = std::vector<Alloc_Base>;
     using size_type = typename data_t::size_type;
 
-    SerializationBuffer() : _requested_size(0), _data() {}
-    explicit SerializationBuffer(const data_t& data) : _requested_size(-1), _data(data) {}
-    explicit SerializationBuffer(data_t&& data) : _requested_size(-1), _data(std::move(data)) {}
-    SerializationBuffer(const SerializationBuffer& s) : _requested_size(s._requested_size), _data(s._data) {}
-    SerializationBuffer& operator=(const SerializationBuffer& s) = default;
-    SerializationBuffer(SerializationBuffer&& s) = default;
-    SerializationBuffer& operator=(SerializationBuffer&& s) = default;
+    SerializationBuffer()
+        : _requested_size(0), _data() {}
+    explicit SerializationBuffer(const data_t &data)
+        : _requested_size(-1), _data(data) {}
+    explicit SerializationBuffer(data_t &&data)
+        : _requested_size(-1), _data(std::move(data)) {}
+    SerializationBuffer(const SerializationBuffer &s)
+        : _requested_size(s._requested_size), _data(s._data) {}
+    SerializationBuffer &operator=(const SerializationBuffer &s) = default;
+    SerializationBuffer(SerializationBuffer &&s)                 = default;
+    SerializationBuffer &operator=(SerializationBuffer &&s)      = default;
 
     /**
      * Resizes this buffer to contain at least new_size elements of T
@@ -37,8 +40,8 @@ public:
      */
     void resize(size_type new_size)
     {
-        _requested_size = new_size;
-        const auto num_bytes = new_size * data_size;
+        _requested_size        = new_size;
+        const auto num_bytes   = new_size * data_size;
         const auto delta_bytes = (Alloc_Base_Size - (num_bytes % Alloc_Base_Size)) % Alloc_Base_Size;
         _data.resize((num_bytes + delta_bytes) / Alloc_Base_Size);
     }
@@ -49,32 +52,50 @@ public:
      * @param new_size minimum target count
      * @param value fill value
      */
-    void resize(size_type new_size, const T& value)
+    void resize(size_type new_size, const T &value)
     {
-        _requested_size = new_size;
-        const auto num_bytes = new_size * data_size;
+        _requested_size        = new_size;
+        const auto num_bytes   = new_size * data_size;
         const auto delta_bytes = (Alloc_Base_Size - (num_bytes % Alloc_Base_Size)) % Alloc_Base_Size;
         _data.resize((num_bytes + delta_bytes) / Alloc_Base_Size, value);
     }
 
-    void add_size(size_type delta) { resize(_requested_size + delta); }
+    void add_size(size_type delta)
+    {
+        resize(_requested_size + delta);
+    }
 
-    T* data() { return reinterpret_cast<T*>(std::data(_data)); }
+    T *data()
+    {
+        return reinterpret_cast<T *>(std::data(_data));
+    }
 
     /**
      * @return buffer size, not true store amount
      */
-    [[nodiscard]] size_type size() const { return _data.size(); }
+    [[nodiscard]] size_type size() const
+    {
+        return _data.size();
+    }
 
     /**
      * @return amount of stored elements
      */
-    [[nodiscard]] size_type true_size() const { return _requested_size; }
+    [[nodiscard]] size_type true_size() const
+    {
+        return _requested_size;
+    }
 
-    std::vector<int>& as_int_vector() { return _data; }
-    static SerializationBuffer from_int_vector(std::vector<int>&& vec) { return SerializationBuffer(std::move(vec)); }
+    std::vector<int> &as_int_vector()
+    {
+        return _data;
+    }
+    static SerializationBuffer from_int_vector(std::vector<int> &&vec)
+    {
+        return SerializationBuffer(std::move(vec));
+    }
 
-private:
+  private:
     /// num bytes of each element of type T
     static constexpr auto data_size = sizeof(T);
     /// stored element count
@@ -89,18 +110,18 @@ class Serializable {
      * Buffer elements will be bytes, but total count will always be padded to be multiple of 4.
      * Data is run length encoded.
      */
-public:
+  public:
     // run length type
     using length_t = uint64_t;
     // run length block size
     static constexpr auto header_len = sizeof(length_t);
     // byte data type
-    using data_t   = uint8_t;
+    using data_t = uint8_t;
     // buffer type
     using buffer_t = SerializationBuffer<data_t>;
     // registry type: pointer to data, data size, true: run length encoded, false: direct read write
-    using reg_entry_t = std::tuple<void*, length_t, bool>;
-    using registry_t = std::vector<reg_entry_t>;
+    using reg_entry_t = std::tuple<void *, length_t, bool>;
+    using registry_t  = std::vector<reg_entry_t>;
 
     virtual ~Serializable() = default;
 
@@ -122,28 +143,29 @@ public:
 
         Log::io->trace() << "Serialization::serialize_full() - accumulate\n";
         const length_t total_size = std::accumulate(registry.begin(), registry.end(), 0UL,
-            [](const length_t acc, const reg_entry_t &e) {
-            const bool use_run_length = std::get<2>(e);
-            length_t size = std::get<1>(e);
-            if (use_run_length) size += header_len;
-            return acc + size;
-        });
+                                                    [](const length_t acc, const reg_entry_t &e) {
+                                                        const bool use_run_length = std::get<2>(e);
+                                                        length_t   size           = std::get<1>(e);
+                                                        if (use_run_length)
+                                                            size += header_len;
+                                                        return acc + size;
+                                                    });
 
         buffer_t buffer;
         buffer.resize(total_size);
-        Log::io->trace() << "Serialization::serialize_full() - buffer size=" << total_size << " addr=" << static_cast<void*>(std::data(buffer)) << "\n";
+        Log::io->trace() << "Serialization::serialize_full() - buffer size=" << total_size << " addr=" << static_cast<void *>(std::data(buffer)) << "\n";
 
         Log::io->trace() << "Serialization::serialize_full() - process entries\n";
         length_t offset = 0UL;
-        length_t pos = 0UL;
+        length_t pos    = 0UL;
         for (const reg_entry_t &e : registry) {
             const bool use_run_length = std::get<2>(e);
-            length_t size             = std::get<1>(e);
-            void* data                = std::get<0>(e);
+            length_t   size           = std::get<1>(e);
+            void      *data           = std::get<0>(e);
             Log::io->trace() << "Serialization::serialize_full() - entry: pos=" << pos << " addr=" << data << " offset=" << offset << " useRL=" << use_run_length << " size=" << size << "\n";
 
             if (use_run_length) {
-                *reinterpret_cast<length_t*>(std::data(buffer) + offset) = size;
+                *reinterpret_cast<length_t *>(std::data(buffer) + offset) = size;
                 offset += header_len;
             }
             std::memcpy(std::data(buffer) + offset, data, size);
@@ -159,10 +181,13 @@ public:
 
     virtual void init_deserialization() {}
 
-    virtual registry_t::iterator late_init_deserialization(registry_t &r, registry_t::iterator begin) { return r.begin(); }
+    virtual registry_t::iterator late_init_deserialization(registry_t &r, registry_t::iterator begin)
+    {
+        return r.begin();
+    }
 
     bool manual_deserialize = false;
-    bool manual_serialize = false;
+    bool manual_serialize   = false;
 
     /**
      * Deserialize this object using provided data
@@ -186,11 +211,11 @@ public:
         length_t offset = 0UL;
         for (reg_entry_t &e : registry) {
             const bool use_run_length = std::get<2>(e);
-            length_t &size            = std::get<1>(e);
-            void* data                = std::get<0>(e);
+            length_t  &size           = std::get<1>(e);
+            void      *data           = std::get<0>(e);
 
             if (use_run_length) {
-                size = *reinterpret_cast<const length_t*>(std::data(buffer) + offset);
+                size = *reinterpret_cast<const length_t *>(std::data(buffer) + offset);
                 offset += header_len;
             }
             std::memcpy(data, std::data(buffer) + offset, size);
@@ -198,8 +223,14 @@ public:
         }
     }
 
-    virtual length_t deserialize_override(buffer_t &buffer, length_t offset) { return offset; }
-    virtual length_t serialize_override(buffer_t &buffer, length_t offset) { return offset; }
+    virtual length_t deserialize_override(buffer_t &buffer, length_t offset)
+    {
+        return offset;
+    }
+    virtual length_t serialize_override(buffer_t &buffer, length_t offset)
+    {
+        return offset;
+    }
 };
 
 #endif
