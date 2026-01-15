@@ -1,0 +1,33 @@
+[workspace] 
+channels = ["https://prefix.dev/conda-forge"]
+platforms = ["linux-64", "osx-arm64", "osx-64"]
+preview = ["pixi-build"]
+
+[package]
+name = "pyfans"
+version = "0.6.1"
+
+[package.build] 
+backend = { name = "pixi-build-python", version = "0.4.*" }
+
+[workspace.target.osx-arm64.build-variants]
+cxx_compiler = ["clangxx"]
+
+[workspace.target.linux-64.build-variants]
+cxx_compiler = ["clangxx"]
+
+[package.build-dependencies]
+cmake = "*"
+pybind11 = "*"
+pkg-config = "*"
+ninja = "*"
+
+[package.host-dependencies]
+hdf5 = { version = "*", build = "* mpi_openmpi*" }
+fftw = { version = "*", build = "* mpi_openmpi*" }
+openmpi-mpicxx = "*"
+eigen = "*"
+nlohmann_json = "*"
+scikit-build-core = ">=0.10.7"
+python = "3.10.*"
+
