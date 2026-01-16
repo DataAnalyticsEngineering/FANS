@@ -48,7 +48,7 @@ MicroSimulation::MicroSimulation(int sim_id, bool late_init, char *input_file)
 
 MicroSimulation::~MicroSimulation()
 {
-    Log::finalize();
+    // Log::finalize();
 }
 
 py::dict MicroSimulation::solve(py::dict macro_data, double dt)
