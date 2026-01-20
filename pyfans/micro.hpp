@@ -15,7 +15,6 @@
 #include "matmodel.h"
 #include "MaterialManager.h"
 #include "solver.h"
-#include "serialization.h"
 
 namespace py = pybind11;
 

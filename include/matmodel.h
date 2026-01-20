@@ -3,13 +3,12 @@
 #define MATMODEL_H
 
 #include "general.h"
-#include "serialization.h"
 
 template <int howmany, int n_str>
 class Solver;
 
 template <int howmany, int n_str>
-class Matmodel : public Serializable {
+class Matmodel {
   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW // see http://eigen.tuxfamily.org/dox-devel/group__TopicStructHavingEigenMembers.html
 
@@ -53,9 +52,6 @@ class Matmodel : public Serializable {
     virtual Matrix<double, n_str, n_str> get_reference_stiffness() const = 0;
 
     virtual ~Matmodel() = default;
-
-    void register_serialization(registry_t &r) override;
-    void init_deserialization() override;
 
   protected:
     double l_e_x;
@@ -103,37 +99,6 @@ Matmodel<howmany, n_str>::Matmodel(const Reader &reader)
     eps.resize(n_str * n_gp);
     g0.resize(n_str * n_gp);
     sigma.resize(n_str * n_gp);
-}
-
-template <int howmany, int n_str>
-void Matmodel<howmany, n_str>::register_serialization(registry_t &r)
-{
-    // r.emplace_back(&verbosity, sizeof(int), false);
-    // r.emplace_back(&n_mat,     sizeof(int), false);
-    // r.emplace_back(&n_gp,      sizeof(int), false);
-
-    // r.emplace_back(std::data(FE_type), (FE_type.size() + 1) * sizeof(char), true);
-    // r.emplace_back(std::data(macroscale_loading), macroscale_loading.size() * sizeof(double), true);
-
-    // r.emplace_back(&l_e_x,      sizeof(double), false);
-    // r.emplace_back(&l_e_y,      sizeof(double), false);
-    // r.emplace_back(&l_e_z,      sizeof(double), false);
-    // r.emplace_back(&v_e,        sizeof(double), false);
-
-    // for (auto& mat : B_int) r.emplace_back(std::data(mat), mat.size() * sizeof(double), true);
-
-    r.emplace_back(std::data(B), B.size() * sizeof(double), true);
-    r.emplace_back(std::data(eps), eps.size() * sizeof(double), true);
-    r.emplace_back(std::data(g0), g0.size() * sizeof(double), true);
-    r.emplace_back(std::data(sigma), sigma.size() * sizeof(double), true);
-    r.emplace_back(std::data(res_e), res_e.size() * sizeof(double), true);
-}
-
-template <int howmany, int n_str>
-void Matmodel<howmany, n_str>::init_deserialization()
-{
-    // need to allocate enough memory first
-    // FE_type = std::string("\0\0\0\0\0\0");
 }
 
 template <int howmany, int n_str>

@@ -120,55 +120,24 @@ py::array_t<int> to_int_array(const std::vector<int> &v)
 py::dict MicroSimulation::get_state()
 {
     py::dict state;
-
-    Log::io->debug() << "Serializing reader\n";
-    Serializable::buffer_t reader_state = reader.serialize_full();
-    state["reader_state"]               = to_int_array(reader_state.as_int_vector());
-    // Log::io->debug() << "Serializing solver\n";
-    // Serializable::buffer_t solver_state = std::visit([](auto &s) { return s->serialize_full(); }, solver);
-    // state["solver_state"] = to_int_array(solver_state.as_int_vector());
-    // Log::io->debug() << "Serializing material manager\n";
-    // Serializable::buffer_t matmngr_state = std::visit([](auto &m) { return m->serialize_full(); }, matmanager);
-    // state["matmanager_state"] = to_int_array(matmngr_state.as_int_vector());
-    Log::io->debug() << "Serializing micro sim done\n";
-
     return state;
 }
 
 void MicroSimulation::set_state(py::dict &state)
 {
-    auto                   py_reader_state = state["reader_state"].cast<py::array_t<int>>();
-    std::vector<int>       reader_state_i(py_reader_state.data(), py_reader_state.data() + py_reader_state.size());
-    Serializable::buffer_t reader_state = Serializable::buffer_t::from_int_vector(std::move(reader_state_i));
-
-    // auto py_solver_state = state["solver_state"].cast<py::array_t<int>>();
-    // std::vector<int> solver_state_i(py_solver_state.data(), py_solver_state.data() + py_solver_state.size());
-    // Serializable::buffer_t solver_state = Serializable::buffer_t::from_int_vector(std::move(solver_state_i));
-
-    // auto py_matmngr_state = state["matmanager_state"].cast<py::array_t<int>>();
-    // std::vector<int> matmngr_state_i(py_matmngr_state.data(), py_matmngr_state.data() + py_matmngr_state.size());
-    // Serializable::buffer_t matmngr_state = Serializable::buffer_t::from_int_vector(std::move(matmngr_state_i));
-
-    reader.deserialize_full(reader_state);
+    reader.ReadInputFile("input.json");
+    reader.ReadMS(3);
     if (reader.strain_type == "small") {
         auto *mat_ptr = createMaterialManager<3, 6>(reader);
-        // mat_ptr->deserialize_full(matmngr_state);
         matmanager    = mat_ptr;
         auto *sol_ptr = createSolver<3, 6>(reader, mat_ptr);
-        // sol_ptr->init_fundamentalSolutionBuffer();
-        // sol_ptr->matmanager = std::get<MaterialManager<3, 6> *>(matmanager);
-        // sol_ptr->deserialize_full(solver_state);
-        solver = sol_ptr;
+        solver        = sol_ptr;
 
     } else {
         auto *mat_ptr = createMaterialManager<3, 9>(reader);
-        // mat_ptr->deserialize_full(matmngr_state);
         matmanager    = mat_ptr;
         auto *sol_ptr = createSolver<3, 9>(reader, mat_ptr);
-        // sol_ptr->init_fundamentalSolutionBuffer();
-        // sol_ptr->matmanager = std::get<MaterialManager<3, 9> *>(matmanager);
-        // sol_ptr->deserialize_full(solver_state);
-        solver = sol_ptr;
+        solver        = sol_ptr;
     }
 }
 

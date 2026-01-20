@@ -4,14 +4,13 @@
 #include "matmodel.h"
 #include "MaterialManager.h"
 #include "logging.h"
-#include "serialization.h"
 
 class J2Plasticity;
 
 typedef Map<Array<double, Dynamic, Dynamic>, Unaligned, OuterStride<>> RealArray;
 
 template <int howmany, int n_str>
-class Solver : MixedBCController<howmany>, public Serializable {
+class Solver : MixedBCController<howmany> {
   public:
     explicit Solver(Reader &reader, MaterialManager<howmany, n_str> *matmanager = nullptr);
     virtual ~Solver();
@@ -68,8 +67,6 @@ class Solver : MixedBCController<howmany>, public Serializable {
     void   convolution();
     double compute_error(RealArray &r);
     void   CreateFFTWPlans(double *in, fftw_complex *transformed, double *out);
-
-    void register_serialization(registry_t &r) override;
 
     VectorXd homogenized_stress;
     VectorXd get_homogenized_stress();
@@ -235,21 +232,6 @@ void Solver<howmany, n_str>::CreateFFTWPlans(double *in, fftw_complex *transform
 
     // see https://eigen.tuxfamily.org/dox/group__TutorialMapClass.html#title3
     new (&rhat) Map<VectorXcd>((std::complex<double> *) transformed, local_n1 * n_x * (n_z / 2 + 1) * howmany);
-}
-
-template <int howmany, int n_str>
-void Solver<howmany, n_str>::register_serialization(registry_t &r)
-{
-    Log::io->trace() << "Solver::register_serialization v_r size=" << std::max(reader.alloc_local * 2, (local_n0 + 1) * n_y * (n_z + 2) * howmany) * sizeof(double) << "\n";
-    r.emplace_back(v_r, std::max(reader.alloc_local * 2, (local_n0 + 1) * n_y * (n_z + 2) * howmany) * sizeof(double), true);
-    Log::io->trace() << "Solver::register_serialization v_u size=" << (local_n0 * n_y * n_z * howmany) * sizeof(double) << "\n";
-    r.emplace_back(v_u, (local_n0 * n_y * n_z * howmany) * sizeof(double), true);
-    Log::io->trace() << "Solver::register_serialization v_u_prev size=" << (local_n0 * n_y * n_z * howmany) * sizeof(double) << "\n";
-    r.emplace_back(v_u_prev, (local_n0 * n_y * n_z * howmany) * sizeof(double), true);
-    Log::io->trace() << "Solver::register_serialization rhat size=" << (local_n1 * n_x * (n_z / 2 + 1) * howmany) * sizeof(std::complex<double>) << "\n";
-    r.emplace_back(std::data(rhat), (local_n1 * n_x * (n_z / 2 + 1) * howmany) * sizeof(std::complex<double>), true);
-    Log::io->trace() << "Solver::register_serialization fundamentalSolution size=" << ((local_n1 * n_x * (n_z / 2 + 1) * (howmany + 1)) / 2) * sizeof(double) << "\n";
-    r.emplace_back(std::data(fundamentalSolution), ((local_n1 * n_x * (n_z / 2 + 1) * (howmany + 1)) / 2) * sizeof(double), true);
 }
 
 // TODO: possibly circumvent the padding problem by accessing r as a matrix?

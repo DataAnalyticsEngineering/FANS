@@ -11,22 +11,10 @@
 #include "H5FDmpio.h"
 #include "mpi.h"
 
-#include "serialization.h"
-
 using namespace std;
 
-class Reader : public Serializable {
+class Reader {
   public:
-    // Explicit default constructor
-    Reader()
-        : force_single_rank(false), communicator(nullptr), n_mat(0),
-          TOL(0), n_it(0), world_rank(0), world_size(0), alloc_local(0),
-          local_n0(0), local_0_start(0), local_n1(0), local_1_start(0)
-    {
-        manual_serialize   = true;
-        manual_deserialize = true;
-    }
-
     // Destructor to free allocated memory
     ~Reader();
 
@@ -73,12 +61,10 @@ class Reader : public Serializable {
     ptrdiff_t local_1_start;
 
     // void Setup(ptrdiff_t howmany);
-    void     ReadInputFile(char input_fn[]);
-    void     ReadJson(json j);
-    void     ReadMS(int hm);
-    void     ComputeVolumeFractions();
-    length_t serialize_override(buffer_t &buffer, length_t offset) override;
-    length_t deserialize_override(buffer_t &buffer, length_t offset) override;
+    void ReadInputFile(char input_fn[]);
+    void ReadJson(json j);
+    void ReadMS(int hm);
+    void ComputeVolumeFractions();
     // void ReadHDF5(char file_name[], char dset_name[]);
     void safe_create_group(hid_t file, const char *const name);
     void OpenResultsFile(const char *output_fn); // Open results file once
