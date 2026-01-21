@@ -421,7 +421,6 @@ void Reader::FreeMS()
     }
 }
 
-
 void Reader::OpenResultsFile(const char *output_fn)
 {
     std::snprintf(results_filename, sizeof(results_filename), "%s", output_fn);

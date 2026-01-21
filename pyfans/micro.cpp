@@ -48,7 +48,8 @@ std::vector<double> conv_to_vector(const py::array_t<double> &arr, const int siz
     std::vector<double> res;
     res.resize(size);
     // arr not necessarily contiguous
-    for (int i = 0; i < size; i++) res[i] = arr.at(i);
+    for (int i = 0; i < size; i++)
+        res[i] = arr.at(i);
     return res;
 }
 
