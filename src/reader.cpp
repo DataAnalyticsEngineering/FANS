@@ -413,6 +413,15 @@ void Reader ::ReadMS(int hm)
     this->ComputeVolumeFractions();
 }
 
+void Reader::FreeMS()
+{
+    if (ms) {
+        FANS_free(ms);
+        ms = nullptr;
+    }
+}
+
+
 void Reader::OpenResultsFile(const char *output_fn)
 {
     std::snprintf(results_filename, sizeof(results_filename), "%s", output_fn);
@@ -437,8 +446,5 @@ void Reader::CloseResultsFile()
 
 Reader::~Reader()
 {
-    if (ms) {
-        FANS_free(ms);
-        ms = nullptr;
-    }
+    FreeMS();
 }

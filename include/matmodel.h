@@ -309,6 +309,11 @@ template <int howmany, int n_str>
 class LinearModel {
   public:
     Matrix<double, howmany * 8, howmany * 8> *phase_stiffness;
+
+    ~LinearModel()
+    {
+        delete[] phase_stiffness;
+    }
 };
 
 #endif // MATMODEL_H

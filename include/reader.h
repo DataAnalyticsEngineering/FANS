@@ -64,6 +64,7 @@ class Reader {
     void ReadInputFile(char input_fn[]);
     void ReadJson(json j);
     void ReadMS(int hm);
+    void FreeMS();
     void ComputeVolumeFractions();
     // void ReadHDF5(char file_name[], char dset_name[]);
     void safe_create_group(hid_t file, const char *const name);

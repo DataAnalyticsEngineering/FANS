@@ -8,23 +8,6 @@
 #include "matmodel.h"
 #include "mpi.h"
 
-py::array_t<double> merge_arrays(py::array_t<double> array1, py::array_t<double> array2)
-{
-    // Ensure arrays are contiguous for efficient merging
-    array1 = array1.attr("copy")();
-    array2 = array2.attr("copy")();
-
-    // Get numpy concatenate function
-    py::object np          = py::module::import("numpy");
-    py::object concatenate = np.attr("concatenate");
-
-    // Concatenate the two arrays
-    py::tuple           arrays = py::make_tuple(array1, array2);
-    py::array_t<double> result = concatenate(arrays, py::int_(0)).cast<py::array_t<double>>();
-
-    return result;
-}
-
 MicroSimulation::MicroSimulation(int sim_id, bool late_init, char *input_file)
     : _sim_id(sim_id)
 {
@@ -51,26 +34,42 @@ MicroSimulation::~MicroSimulation()
     // Log::finalize();
 }
 
-py::dict MicroSimulation::solve(py::dict macro_data, double dt)
+std::vector<double> merge_arrays(const std::vector<double> &v1, const std::vector<double> &v2)
+{
+    std::vector<double> res;
+    res.resize(v1.size() + v2.size());
+    std::copy(v1.begin(), v1.end(), res.begin());
+    std::copy(v2.begin(), v2.end(), res.begin() + v1.size());
+    return res;
+}
+
+std::vector<double> conv_to_vector(const py::array_t<double> &arr, const int size)
+{
+    std::vector<double> res;
+    res.resize(size);
+    // arr not necessarily contiguous
+    for (int i = 0; i < size; i++) res[i] = arr.at(i);
+    return res;
+}
+
+py::dict MicroSimulation::solve(const py::dict &macro_data, double dt)
 {
     const bool is_small_strain = std::holds_alternative<MaterialManager<3, 6> *>(matmanager);
     // Time step value dt is not used currently, but is available for future use
 
     // Create a pybind style Numpy array from macro_write_data["micro_vector_data"], which is a Numpy array
-    py::array_t<double> strain1 = macro_data["strains1to3"].cast<py::array_t<double>>();
-    py::array_t<double> strain2 = macro_data["strains4to6"].cast<py::array_t<double>>();
+    std::vector<double> strain1 = conv_to_vector(macro_data["strains1to3"].cast<py::array_t<double>>(), 3);
+    std::vector<double> strain2 = conv_to_vector(macro_data["strains4to6"].cast<py::array_t<double>>(), 3);
 
-    py::array_t<double> strain = merge_arrays(strain1, strain2);
+    std::vector<double> strain = merge_arrays(strain1, strain2);
     if (not is_small_strain) {
-        py::array_t<double> strain3 = macro_data["strains7to9"].cast<py::array_t<double>>();
+        std::vector<double> strain3 = conv_to_vector(macro_data["strains7to9"].cast<py::array_t<double>>(), 3);
         strain                      = merge_arrays(strain, strain3);
     }
 
-    std::vector<double> g0 = std::vector<double>(strain.data(), strain.data() + strain.size()); // convert numpy array to std::vector.
-
     VectorXd homogenized_stress;
 
-    std::visit([&](auto &mm) { mm->set_gradient(g0); }, matmanager);
+    std::visit([&](auto &mm) { mm->set_gradient(strain); }, matmanager);
 
     std::visit([](auto &s) { s->solve(); }, solver);
 
@@ -110,32 +109,30 @@ py::dict MicroSimulation::solve(py::dict macro_data, double dt)
     return micro_write_data;
 }
 
-py::array_t<int> to_int_array(const std::vector<int> &v)
-{
-    py::array_t<int> arr(v.size());
-    std::memcpy(arr.mutable_data(), v.data(), v.size() * sizeof(int));
-    return arr;
-}
-
 py::dict MicroSimulation::get_state()
 {
     py::dict state;
     return state;
 }
 
-void MicroSimulation::set_state(py::dict &state)
+void MicroSimulation::set_state(const py::dict &state)
 {
+    reader.FreeMS();
     reader.ReadInputFile("input.json");
     reader.ReadMS(3);
     if (reader.strain_type == "small") {
+        delete std::get<MaterialManager<3, 6> *>(matmanager);
         auto *mat_ptr = createMaterialManager<3, 6>(reader);
         matmanager    = mat_ptr;
+        delete std::get<Solver<3, 6> *>(solver);
         auto *sol_ptr = createSolver<3, 6>(reader, mat_ptr);
         solver        = sol_ptr;
 
     } else {
+        delete std::get<MaterialManager<3, 9> *>(matmanager);
         auto *mat_ptr = createMaterialManager<3, 9>(reader);
         matmanager    = mat_ptr;
+        delete std::get<Solver<3, 9> *>(solver);
         auto *sol_ptr = createSolver<3, 9>(reader, mat_ptr);
         solver        = sol_ptr;
     }
@@ -153,20 +150,8 @@ PYBIND11_MODULE(PyFANS, m)
 
     py::class_<MicroSimulation>(m, "MicroSimulation")
         .def(py::init<int>())
-        .def("solve", &MicroSimulation::solve)
-        .def(py::pickle(
-            [](MicroSimulation &m) {
-                return py::make_tuple(m.get_id(), m.get_state());
-            },
-            [](py::tuple t) {
-                int      id    = t[0].cast<int>();
-                py::dict state = t[1].cast<py::dict>();
-
-                auto m = std::make_unique<MicroSimulation>(id, true);
-                m->set_state(state);
-                return m;
-            }))
+        .def("solve", &MicroSimulation::solve, py::return_value_policy::automatic)
         .def("set_state", &MicroSimulation::set_state)
-        .def("get_state", &MicroSimulation::get_state)
+        .def("get_state", &MicroSimulation::get_state, py::return_value_policy::automatic)
         .def("get_global_id", &MicroSimulation::get_id);
 }
