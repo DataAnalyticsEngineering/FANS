@@ -8,7 +8,7 @@
 #include "matmodel.h"
 #include "mpi.h"
 
-MicroSimulation::MicroSimulation(int sim_id, bool late_init, char *input_file)
+PyFANS_CLASS_NAME::PyFANS_CLASS_NAME(int sim_id, bool late_init, char *input_file)
     : _sim_id(sim_id)
 {
     // initialize fftw mpi
@@ -29,7 +29,7 @@ MicroSimulation::MicroSimulation(int sim_id, bool late_init, char *input_file)
     }
 }
 
-MicroSimulation::~MicroSimulation()
+PyFANS_CLASS_NAME::~PyFANS_CLASS_NAME()
 {
     // Log::finalize();
 }
@@ -53,7 +53,7 @@ std::vector<double> conv_to_vector(const py::array_t<double> &arr, const int siz
     return res;
 }
 
-py::dict MicroSimulation::solve(const py::dict &macro_data, double dt)
+py::dict PyFANS_CLASS_NAME::solve(const py::dict &macro_data, double dt)
 {
     const bool is_small_strain = std::holds_alternative<MaterialManager<3, 6> *>(matmanager);
     // Time step value dt is not used currently, but is available for future use
@@ -110,16 +110,16 @@ py::dict MicroSimulation::solve(const py::dict &macro_data, double dt)
     return micro_write_data;
 }
 
-py::dict MicroSimulation::get_state()
+py::dict PyFANS_CLASS_NAME::get_state()
 {
     py::dict state;
     return state;
 }
 
-void MicroSimulation::set_state(const py::dict &state)
+void PyFANS_CLASS_NAME::set_state(const py::dict &state)
 {
     reader.FreeMS();
-    reader.ReadInputFile("input.json");
+    reader.ReadInputFile(PyFANS_INPUT_NAME);
     reader.ReadMS(3);
     if (reader.strain_type == "small") {
         delete std::get<MaterialManager<3, 6> *>(matmanager);
@@ -139,20 +139,20 @@ void MicroSimulation::set_state(const py::dict &state)
     }
 }
 
-int MicroSimulation::get_id()
+int PyFANS_CLASS_NAME::get_id()
 {
     return _sim_id;
 }
 
-PYBIND11_MODULE(PyFANS, m)
+PYBIND11_MODULE(PyFANS_MODULE_NAME, m)
 {
     // optional docstring
     m.doc() = "FANS for Micro Manager";
 
-    py::class_<MicroSimulation>(m, "MicroSimulation")
+    py::class_<PyFANS_CLASS_NAME>(m, PyFANS_CLASS_NAME_STR)
         .def(py::init<int>())
-        .def("solve", &MicroSimulation::solve, py::return_value_policy::automatic)
-        .def("set_state", &MicroSimulation::set_state)
-        .def("get_state", &MicroSimulation::get_state, py::return_value_policy::automatic)
-        .def("get_global_id", &MicroSimulation::get_id);
+        .def("solve", &PyFANS_CLASS_NAME::solve, py::return_value_policy::automatic)
+        .def("set_state", &PyFANS_CLASS_NAME::set_state)
+        .def("get_state", &PyFANS_CLASS_NAME::get_state, py::return_value_policy::automatic)
+        .def("get_global_id", &PyFANS_CLASS_NAME::get_id);
 }
