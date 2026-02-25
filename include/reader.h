@@ -15,11 +15,12 @@ using namespace std;
 
 class Reader {
   public:
-    // Default constructor
-    Reader() = default;
-
     // Destructor to free allocated memory
     ~Reader();
+
+    // MPI controlls
+    bool     force_single_rank;
+    MPI_Comm communicator;
 
     // contents of input file:
     char             ms_filename[4096]{};    // Name of Micro-structure hdf5 file
@@ -61,7 +62,9 @@ class Reader {
 
     // void Setup(ptrdiff_t howmany);
     void ReadInputFile(char input_fn[]);
+    void ReadJson(json j);
     void ReadMS(int hm);
+    void FreeMS();
     void ComputeVolumeFractions();
     // void ReadHDF5(char file_name[], char dset_name[]);
     void safe_create_group(hid_t file, const char *const name);

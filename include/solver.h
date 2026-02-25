@@ -3,21 +3,23 @@
 
 #include "matmodel.h"
 #include "MaterialManager.h"
+#include "logging.h"
 
 class J2Plasticity;
 
 typedef Map<Array<double, Dynamic, Dynamic>, Unaligned, OuterStride<>> RealArray;
 
 template <int howmany, int n_str>
-class Solver : private MixedBCController<howmany> {
+class Solver : MixedBCController<howmany> {
   public:
-    Solver(Reader &reader, MaterialManager<howmany, n_str> *matmanager);
+    explicit Solver(Reader &reader, MaterialManager<howmany, n_str> *matmanager = nullptr);
     virtual ~Solver();
 
     Reader &reader;
 
     const int world_rank;
     const int world_size;
+    MPI_Comm  communicator;
 
     const ptrdiff_t n_x, n_y, n_z;
     // NOTE: the order in the declaration is very important because it is the same order in which the later initialization via member initializer lists takes place
@@ -43,6 +45,10 @@ class Solver : private MixedBCController<howmany> {
 
     ArrayXd                          err_all; //!< Absolute error history
     Matrix<double, howmany, Dynamic> fundamentalSolution;
+    void                             init_fundamentalSolutionBuffer()
+    {
+        fundamentalSolution = Matrix<double, howmany, Dynamic>(howmany, (local_n1 * n_x * (n_z / 2 + 1) * (howmany + 1)) / 2);
+    }
 
     template <int padding, typename F>
     void iterateCubes(F f);
@@ -108,6 +114,7 @@ Solver<howmany, n_str>::Solver(Reader &reader, MaterialManager<howmany, n_str> *
       matmanager(matmgr),
       world_rank(reader.world_rank),
       world_size(reader.world_size),
+      communicator(reader.communicator),
       n_x(reader.dims[0]),
       n_y(reader.dims[1]),
       n_z(reader.dims[2]),
@@ -130,23 +137,26 @@ Solver<howmany, n_str>::Solver(Reader &reader, MaterialManager<howmany, n_str> *
       rhat((std::complex<double> *) v_r, local_n1 * n_x * (n_z / 2 + 1) * howmany), // actual initialization is below
       buffer_padding(fftw_alloc_real(n_y * (n_z + 2) * howmany))
 {
+    Log::solver->trace() << "Start constructing solver\n";
+
     v_u_real.setZero();
     for (ptrdiff_t i = local_n0 * n_y * n_z * howmany; i < (local_n0 + 1) * n_y * n_z * howmany; i++) {
         this->v_u[i] = 0;
     }
     std::memset(v_u_prev, 0, local_n0 * n_y * n_z * howmany * sizeof(double));
 
-    matmanager->initialize_internal_variables(local_n0 * n_y * n_z, matmanager->models[0]->n_gp);
-
-    computeFundamentalSolution();
+    if (matmanager != nullptr) {
+        Log::solver->trace() << "Init internal vars.\n";
+        matmanager->initialize_internal_variables(local_n0 * n_y * n_z, matmanager->models[0]->n_gp);
+        computeFundamentalSolution();
+    }
 }
 
 template <int howmany, int n_str>
 void Solver<howmany, n_str>::computeFundamentalSolution()
 {
-    if (world_rank == 0) {
-        printf("\n# Start creating Fundamental Solution(s) \n");
-    }
+    Log::solver->info() << "\n# Start creating Fundamental Solution(s) \n";
+
     clock_t tot_time = clock();
 
     Matrix<double, howmany * 8, howmany * 8> Ker0 = matmanager->models[0]->Compute_Reference_ElementStiffness(matmanager->kapparef_mat);
@@ -160,7 +170,7 @@ void Solver<howmany, n_str>::computeFundamentalSolution()
     Matrix<complex<double>, 8, 1>    A;
     Matrix<double, 8, 8>             AA;
     Matrix<double, howmany, howmany> block;
-    fundamentalSolution = Matrix<double, howmany, Dynamic>(howmany, (local_n1 * n_x * (n_z / 2 + 1) * (howmany + 1)) / 2);
+    init_fundamentalSolutionBuffer();
     fundamentalSolution.setZero();
 
     for (int i_y = 0; i_y < local_n1; ++i_y) {
@@ -198,14 +208,13 @@ void Solver<howmany, n_str>::computeFundamentalSolution()
     fundamentalSolution /= (double) (n_x * n_y * n_z);
 
     tot_time = clock() - tot_time;
-    if (world_rank == 0) {
-        printf("# Complete; Time for construction of Fundamental Solution(s): %f seconds\n", double(tot_time) / CLOCKS_PER_SEC);
-    }
+    Log::solver->info() << "# Complete; Time for construction of Fundamental Solution(s): " << static_cast<double>(tot_time) / CLOCKS_PER_SEC << " seconds\n";
 }
 
 template <int howmany, int n_str>
 void Solver<howmany, n_str>::CreateFFTWPlans(double *in, fftw_complex *transformed, double *out)
 {
+    Log::solver->trace() << "Solver::CreateFFTWPlans() begin \n";
     int       rank   = 3;
     ptrdiff_t iblock = FFTW_MPI_DEFAULT_BLOCK;
     ptrdiff_t oblock = FFTW_MPI_DEFAULT_BLOCK;
@@ -218,8 +227,8 @@ void Solver<howmany, n_str>::CreateFFTWPlans(double *in, fftw_complex *transform
     // But, according to https://fftw.org/doc/MPI-Plan-Creation.html the BLOCK sizes must be the same:
     // "These must be the same block sizes as were passed to the corresponding ‘local_size’ function"
     const ptrdiff_t n[3] = {n_x, n_y, n_z};
-    planfft              = fftw_mpi_plan_many_dft_r2c(rank, n, howmany, iblock, oblock, in, transformed, MPI_COMM_WORLD, FFTW_MEASURE | FFTW_MPI_TRANSPOSED_OUT);
-    planifft             = fftw_mpi_plan_many_dft_c2r(rank, n, howmany, iblock, oblock, transformed, out, MPI_COMM_WORLD, FFTW_MEASURE | FFTW_MPI_TRANSPOSED_IN);
+    planfft              = fftw_mpi_plan_many_dft_r2c(rank, n, howmany, iblock, oblock, in, transformed, communicator, FFTW_MEASURE | FFTW_MPI_TRANSPOSED_OUT);
+    planifft             = fftw_mpi_plan_many_dft_c2r(rank, n, howmany, iblock, oblock, transformed, out, communicator, FFTW_MEASURE | FFTW_MPI_TRANSPOSED_IN);
 
     // see https://eigen.tuxfamily.org/dox/group__TutorialMapClass.html#title3
     new (&rhat) Map<VectorXcd>((std::complex<double> *) transformed, local_n1 * n_x * (n_z / 2 + 1) * howmany);
@@ -242,7 +251,7 @@ void Solver<howmany, n_str>::compute_residual_basic(RealArray &r_matrix, RealArr
     // int MPI_Sendrecv(void *sendbuf, int sendcount, MPI_Datatype sendtype, int dest, int sendtag, void *recvbuf,
     //           int recvcount, MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm, MPI_Status *status)
     MPI_Sendrecv(u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
-                 u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
 
     Matrix<double, howmany * 8, 1> ue;
 
@@ -262,7 +271,7 @@ void Solver<howmany, n_str>::compute_residual_basic(RealArray &r_matrix, RealArr
     });
 
     MPI_Sendrecv(r + local_n0 * n_y * (n_z + padding) * howmany, n_y * (n_z + padding) * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0,
-                 buffer_padding, n_y * (n_z + padding) * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 buffer_padding, n_y * (n_z + padding) * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
 
     RealArray b(buffer_padding, n_z * howmany, n_y, OuterStride<>((n_z + padding) * howmany)); // NOTE: for any padding of more than 2, the buffer_padding has to be extended
 
@@ -282,20 +291,18 @@ void Solver<howmany, n_str>::compute_residual(RealArray &r_matrix, RealArray &u_
 template <int howmany, int n_str>
 void Solver<howmany, n_str>::solve()
 {
-
     err_all          = ArrayXd::Zero(n_it + 1);
     fft_time         = 0.0;
     clock_t tot_time = clock();
     internalSolve();
     tot_time = clock() - tot_time;
-    // if( VERBOSITY > 5 ){
-    if (world_rank == 0) {
-        printf("# FFT Time per iteration .......   %2.6f sec\n", double(fft_time) / CLOCKS_PER_SEC / iter);
-        printf("# Total FFT Time ...............   %2.6f sec\n", double(fft_time) / CLOCKS_PER_SEC);
-        printf("# Total Time per iteration .....   %2.6f sec\n", double(tot_time) / CLOCKS_PER_SEC / iter);
-        printf("# Total Time ...................   %2.6f sec\n", double(tot_time) / CLOCKS_PER_SEC);
-        printf("# FFT contribution to total time   %2.6f %% \n", 100. * double(fft_time) / double(tot_time));
-    }
+
+    Log::solver->info() << "# FFT Time per iteration .......   " << std::setw(2) << std::setprecision(6) << double(fft_time) / CLOCKS_PER_SEC / iter << std::defaultfloat << " sec\n";
+    Log::solver->info() << "# Total FFT Time ...............   " << std::setw(2) << std::setprecision(6) << double(fft_time) / CLOCKS_PER_SEC << std::defaultfloat << " sec\n";
+    Log::solver->info() << "# Total Time per iteration .....   " << std::setw(2) << std::setprecision(6) << double(tot_time) / CLOCKS_PER_SEC / iter << std::defaultfloat << " sec\n";
+    Log::solver->info() << "# Total Time ...................   " << std::setw(2) << std::setprecision(6) << double(tot_time) / CLOCKS_PER_SEC << std::defaultfloat << " sec\n";
+    Log::solver->info() << "# FFT contribution to total time   " << std::setw(2) << std::setprecision(6) << 100. * double(fft_time) / double(tot_time) << std::defaultfloat << " % \n";
+
     matmanager->update_internal_variables();
 }
 
@@ -427,19 +434,20 @@ double Solver<howmany, n_str>::compute_error(RealArray &r)
     }
 
     double err;
-    MPI_Allreduce(&err_local, &err, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&err_local, &err, 1, MPI_DOUBLE, MPI_MAX, communicator);
 
     err_all[iter]  = err;
     double err0    = err_all[0];
     double err_rel = (iter == 0 ? 100 : err / err0);
 
-    if (world_rank == 0) {
-        if (iter == 0) {
-            printf("Before 1st iteration: %16.8e\n", err0);
-        } else {
-            printf("it %3lu .... err %16.8e  / %8.4e, ratio: %4.8e, FFT time: %2.6f sec\n", iter, err, err / err0, (iter == 1 ? 0.0 : err / err_all[iter - 1]), double(buftime) / CLOCKS_PER_SEC);
-        }
-    }
+    if (iter == 0)
+        Log::solver->info() << "Before 1st iteration: " << std::setw(16) << std::setprecision(8) << err0 << std::defaultfloat << "\n";
+    else
+        Log::solver->info() << "it " << iter << " .... "
+                            << "err " << std::setw(16) << std::setprecision(8) << err << std::defaultfloat << "  / "
+                            << std::setw(8) << std::setprecision(4) << err / err0 << std::defaultfloat
+                            << ", ratio: " << std::setw(4) << std::setprecision(8) << (iter == 1 ? 0.0 : err / err_all[iter - 1]) << std::defaultfloat
+                            << ", FFT time: " << std::setw(2) << std::setprecision(6) << static_cast<double>(buftime) / CLOCKS_PER_SEC << std::defaultfloat << " sec\n";
 
     const std::string &error_type = reader.errorParameters["type"].get<std::string>();
     if (error_type == "absolute") {
@@ -495,7 +503,7 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     vector<int>      phase_counts(n_mat, 0);
 
     MPI_Sendrecv(v_u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
-                 v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
 
     Matrix<double, howmany * 8, 1> ue;
     int                            phase_id;
@@ -555,16 +563,16 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
         });
     }
 
-    MPI_Allreduce(MPI_IN_PLACE, stress_average.data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    MPI_Allreduce(MPI_IN_PLACE, strain_average.data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, stress_average.data(), n_str, MPI_DOUBLE, MPI_SUM, communicator);
+    MPI_Allreduce(MPI_IN_PLACE, strain_average.data(), n_str, MPI_DOUBLE, MPI_SUM, communicator);
     stress_average /= (n_x * n_y * n_z);
     strain_average /= (n_x * n_y * n_z);
 
     // Reduce per-phase accumulations across all processes
     for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
-        MPI_Allreduce(MPI_IN_PLACE, phase_stress_average[mat_index].data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(MPI_IN_PLACE, phase_strain_average[mat_index].data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(MPI_IN_PLACE, &phase_counts[mat_index], 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(MPI_IN_PLACE, phase_stress_average[mat_index].data(), n_str, MPI_DOUBLE, MPI_SUM, communicator);
+        MPI_Allreduce(MPI_IN_PLACE, phase_strain_average[mat_index].data(), n_str, MPI_DOUBLE, MPI_SUM, communicator);
+        MPI_Allreduce(MPI_IN_PLACE, &phase_counts[mat_index], 1, MPI_INT, MPI_SUM, communicator);
 
         // Compute average for each phase
         if (phase_counts[mat_index] > 0) {
@@ -573,16 +581,14 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
         }
     }
 
-    if (world_rank == 0) {
-        printf("# Effective Stress .. (");
-        for (int i = 0; i < n_str; ++i)
-            printf("%+.12f ", stress_average[i]);
-        printf(") \n");
-        printf("# Effective Strain .. (");
-        for (int i = 0; i < n_str; ++i)
-            printf("%+.12f ", strain_average[i]);
-        printf(") \n\n");
-    }
+    Log::solver->info() << "# Effective Stress .. (";
+    for (int i = 0; i < n_str; ++i)
+        Log::solver->info(true) << std::showpos << std::fixed << std::setprecision(12) << stress_average[i] << " " << std::noshowpos << std::defaultfloat;
+    Log::solver->info(true) << ") \n";
+    Log::solver->info() << "# Effective Strain .. (";
+    for (int i = 0; i < n_str; ++i)
+        Log::solver->info(true) << std::showpos << std::fixed << std::setprecision(12) << strain_average[i] << " " << std::noshowpos << std::defaultfloat;
+    Log::solver->info(true) << ") \n\n";
 
     /* ====================================================================== *
      *  u_total = g0·X  +  ũ          (vector or scalar, decided at compile time)
@@ -695,11 +701,8 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "homogenized_tangent") != reader.resultsToWrite.end()) {
         homogenized_tangent = get_homogenized_tangent(1e-6);
         hsize_t dims[2]     = {static_cast<hsize_t>(n_str), static_cast<hsize_t>(n_str)};
-        if (world_rank == 0) {
-            cout << "# Homogenized tangent: " << endl
-                 << setprecision(12) << homogenized_tangent << endl
-                 << endl;
-        }
+        Log::solver->info() << "# Homogenized tangent: \n"
+                            << std::setprecision(12) << homogenized_tangent << std::defaultfloat << "\n\n";
         reader.writeData("homogenized_tangent", load_idx, time_idx, homogenized_tangent.data(), dims, 2);
     }
     extrapolateDisplacement(); // prepare v_u for next time step
@@ -714,7 +717,7 @@ VectorXd Solver<howmany, n_str>::get_homogenized_stress()
     homogenized_stress = VectorXd::Zero(n_str);
 
     MPI_Sendrecv(v_u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
-                 v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
 
     Matrix<double, howmany * 8, 1> ue;
     int                            phase_id;
@@ -731,7 +734,7 @@ VectorXd Solver<howmany, n_str>::get_homogenized_stress()
         homogenized_stress += stress.segment(n_str * idx[0], n_str);
     });
 
-    MPI_Allreduce(MPI_IN_PLACE, homogenized_stress.data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, homogenized_stress.data(), n_str, MPI_DOUBLE, MPI_SUM, communicator);
     homogenized_stress /= (n_x * n_y * n_z);
 
     return homogenized_stress;

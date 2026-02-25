@@ -72,13 +72,25 @@ macro(find_specific_libraries KIND PARALLEL)
     # adding target properties to the different cases
     ##   MPI
     if(PARALLEL STREQUAL "MPI")
-      if(MPI_C_LIBRARIES)
-        set_target_properties(fftw3::${kind}::mpi PROPERTIES
-          IMPORTED_LOCATION "${FFTW3_${KIND}_${PARALLEL}_LIBRARY}"
-          INTERFACE_INCLUDE_DIRECTORIES "${FFTW3_INCLUDE_DIR_PARALLEL}"
-          IMPORTED_LINK_INTERFACE_LIBRARIES ${MPI_C_LIBRARIES})
+      set_target_properties(fftw3::${kind}::mpi PROPERTIES
+              IMPORTED_LOCATION "${FFTW3_${KIND}_${PARALLEL}_LIBRARY}"
+              INTERFACE_INCLUDE_DIRECTORIES "${FFTW3_INCLUDE_DIR_PARALLEL}"
+      )
+
+      if(MPI_C_LIBRARIES AND NOT MPI_C_LIBRARIES STREQUAL "")
+        set_property(TARGET fftw3::${kind}::mpi PROPERTY
+                INTERFACE_LINK_LIBRARIES "${MPI_C_LIBRARIES}"
+        )
       endif()
     endif()
+    #if(PARALLEL STREQUAL "MPI")
+    #  if(MPI_C_LIBRARIES)
+    #    set_target_properties(fftw3::${kind}::mpi PROPERTIES
+    #      IMPORTED_LOCATION "${FFTW3_${KIND}_${PARALLEL}_LIBRARY}"
+    #      INTERFACE_INCLUDE_DIRECTORIES "${FFTW3_INCLUDE_DIR_PARALLEL}"
+    #      IMPORTED_LINK_INTERFACE_LIBRARIES ${MPI_C_LIBRARIES})
+    #  endif()
+    #endif()
     ##   OpenMP
     if(PARALLEL STREQUAL "OPENMP")
       if(OPENMP_C_FLAGS)
