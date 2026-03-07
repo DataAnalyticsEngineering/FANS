@@ -117,33 +117,43 @@ void SolverCG<howmany, n_str>::internalSolve()
 template <int howmany, int n_str>
 void SolverCG<howmany, n_str>::LineSearchSecant()
 {
-    double err       = 10.0;
-    int    MaxIter   = 5;
-    double tol       = 1e-2;
-    int    _iter     = 0;
-    double alpha_new = 0.0001;
-    double alpha_old = 0;
+    double       err        = 10.0;
+    const int    MaxIter    = 5;
+    const double tol        = 1e-2;
+    int          _iter      = 0;
+    double       alpha_prev = 0.0;
+    double       alpha_curr = 0.1;
 
-    double r1pd;
     double rpd = dotProduct(v_r_real, d_real);
+    v_u_real += d_real * alpha_curr;
+    this->updateMixedBC();
+    this->template compute_residual<0>(rnew_real, v_u_real);
+    double r1pd = dotProduct(rnew_real, d_real);
 
-    while (((_iter < MaxIter) && (err > tol))) {
+    double denom, alpha_next;
+    while (_iter < MaxIter && err > tol) {
+        denom = r1pd - rpd;
+        if (fabs(denom) < 1e-14 * (fabs(r1pd) + fabs(rpd)))
+            break;
 
-        v_u_real += d_real * (alpha_new - alpha_old);
+        alpha_next = alpha_curr - r1pd * (alpha_curr - alpha_prev) / denom;
+        if (alpha_next <= 0.0)
+            alpha_next = 0.5 * (alpha_prev + alpha_curr);
+        err = fabs(alpha_next - alpha_curr);
+
+        v_u_real += d_real * (alpha_next - alpha_curr);
+        alpha_prev = alpha_curr;
+        rpd        = r1pd;
+        alpha_curr = alpha_next;
+        _iter++;
+
         this->updateMixedBC();
         this->template compute_residual<0>(rnew_real, v_u_real);
         r1pd = dotProduct(rnew_real, d_real);
-
-        alpha_old = alpha_new;
-        alpha_new *= rpd / (rpd - r1pd);
-
-        err = fabs(alpha_new - alpha_old);
-        _iter++;
     }
-    v_u_real += d_real * (alpha_new - alpha_old);
     v_r_real = rnew_real;
     if (this->world_rank == 0)
-        printf("line search iter %i, alpha %f - error %e - ", _iter, alpha_new, err);
+        printf("line search iter %i, alpha %f - error %e - ", _iter, alpha_curr, err);
 }
 
 template <int howmany, int n_str>
