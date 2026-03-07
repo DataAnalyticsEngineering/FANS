@@ -1,6 +1,6 @@
 # FANS Changelog
 
-## Latest
+## v0.6.2
 
 - Fix bug demanding a leading slash in the datasetname and exiting ungracefully [#123](https://github.com/DataAnalyticsEngineering/FANS/pull/123)
 
