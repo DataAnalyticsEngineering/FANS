@@ -1,5 +1,9 @@
 # FANS Changelog
 
+## Latest
+
+- Fix bug demanding a leading slash in the datasetname and exiting ungracefully [#123](https://github.com/DataAnalyticsEngineering/FANS/pull/123)
+
 ## v0.6.1
 
 - Adds support to write integration point data to disk [#117](https://github.com/DataAnalyticsEngineering/FANS/pull/117)

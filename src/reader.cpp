@@ -73,12 +73,22 @@ void Reader ::ReadInputFile(char input_fn[])
         inputJson = j; // Store complete input JSON for MaterialManager
 
         microstructure = j["microstructure"];
-        strcpy(ms_filename, microstructure["filepath"].get<string>().c_str());
-        strcpy(ms_datasetname, microstructure["datasetname"].get<string>().c_str());
+        std::snprintf(ms_filename, sizeof(ms_filename), "%s", microstructure["filepath"].get<std::string>().c_str());
+        // dataset name handling
+        std::string tmp_str = microstructure["datasetname"].get<std::string>();
+        if (tmp_str.empty()) {
+            throw std::invalid_argument(
+                "datasetname must not be empty and must refer to a valid HDF5 path");
+        }
+        // Ensure absolute HDF5 path, leeading slash
+        if (tmp_str.front() != '/') {
+            tmp_str.insert(tmp_str.begin(), '/');
+        }
+        std::snprintf(ms_datasetname, sizeof(ms_datasetname), "%s", tmp_str.c_str());
         L = microstructure["L"].get<vector<double>>();
 
         if (j.contains("results_prefix")) {
-            strcpy(results_prefix, j["results_prefix"].get<string>().c_str());
+            std::snprintf(results_prefix, sizeof(results_prefix), "%s", j["results_prefix"].get<std::string>().c_str());
         } else {
             strcpy(results_prefix, "");
         }
