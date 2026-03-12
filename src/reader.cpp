@@ -75,16 +75,11 @@ void Reader ::ReadInputFile(char input_fn[])
         microstructure = j["microstructure"];
         std::snprintf(ms_filename, sizeof(ms_filename), "%s", microstructure["filepath"].get<std::string>().c_str());
         // dataset name handling
-        std::string tmp_str = microstructure["datasetname"].get<std::string>();
-        if (tmp_str.empty()) {
-            throw std::invalid_argument(
-                "datasetname must not be empty and must refer to a valid HDF5 path");
-        }
-        // Ensure absolute HDF5 path, leeading slash
-        if (tmp_str.front() != '/') {
-            tmp_str.insert(tmp_str.begin(), '/');
-        }
-        std::snprintf(ms_datasetname, sizeof(ms_datasetname), "%s", tmp_str.c_str());
+        const auto tmp_str = microstructure["datasetname"].get<std::string>();
+        if (tmp_str.empty())
+            throw std::invalid_argument("datasetname must not be empty and must refer to a valid HDF5 path");
+        // Ensure absolute HDF5 path, leading slash
+        std::snprintf(ms_datasetname, sizeof(ms_datasetname), "%s%s", tmp_str.front() == '/' ? "" : "/", tmp_str.c_str());
         L = microstructure["L"].get<vector<double>>();
 
         if (j.contains("results_prefix")) {
@@ -99,6 +94,15 @@ void Reader ::ReadInputFile(char input_fn[])
         errorParameters = j["error_parameters"];
         TOL             = errorParameters["tolerance"].get<double>();
         n_it            = j["n_it"].get<int>();
+
+        extrapolate_displacement = j.value("extrapolate_displacement", extrapolate_displacement);
+
+        if (j.contains("linesearch_parameters")) {
+            ls_max_iter = j["linesearch_parameters"].value("max_iter", ls_max_iter);
+            ls_tol      = j["linesearch_parameters"].value("tol", ls_tol);
+            if (ls_max_iter < 1 || ls_tol <= 0.0)
+                throw std::invalid_argument("linesearch_parameters: max_iter >= 1 and tol > 0 required");
+        }
 
         problemType = j["problem_type"].get<string>();
         method      = j["method"].get<string>();
@@ -173,7 +177,7 @@ void Reader ::ReadInputFile(char input_fn[])
         }
 
     } catch (const std::exception &e) {
-        fprintf(stderr, "ERROR trying to read input file '%s' for FANS\n", input_fn);
+        fprintf(stderr, "ERROR trying to read input file '%s' for FANS: %s\n", input_fn, e.what());
         exit(10);
     }
 }

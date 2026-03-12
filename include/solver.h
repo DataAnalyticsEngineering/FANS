@@ -702,7 +702,6 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
         }
         reader.writeData("homogenized_tangent", load_idx, time_idx, homogenized_tangent.data(), dims, 2);
     }
-    extrapolateDisplacement(); // prepare v_u for next time step
 }
 
 template <int howmany, int n_str>

@@ -23,6 +23,7 @@ class SolverCG : public Solver<howmany, n_str> {
     RealArray s_real;
     RealArray d_real;
     RealArray rnew_real;
+    double    alpha_warm{0.1};
 
     void   internalSolve();
     void   LineSearchSecant();
@@ -64,6 +65,7 @@ void SolverCG<howmany, n_str>::internalSolve()
         printf("\n# Start FANS - Conjugate Gradient Solver \n");
 
     bool islinear = this->matmanager->all_linear;
+    alpha_warm    = 0.1;
 
     s_real.setZero();
     d_real.setZero();
@@ -118,11 +120,11 @@ template <int howmany, int n_str>
 void SolverCG<howmany, n_str>::LineSearchSecant()
 {
     double       err        = 10.0;
-    const int    MaxIter    = 5;
-    const double tol        = 1e-2;
+    const int    MaxIter    = this->reader.ls_max_iter;
+    const double tol        = this->reader.ls_tol;
     int          _iter      = 0;
     double       alpha_prev = 0.0;
-    double       alpha_curr = 0.1;
+    double       alpha_curr = alpha_warm;
 
     double rpd = dotProduct(v_r_real, d_real);
     v_u_real += d_real * alpha_curr;
@@ -151,7 +153,8 @@ void SolverCG<howmany, n_str>::LineSearchSecant()
         this->template compute_residual<0>(rnew_real, v_u_real);
         r1pd = dotProduct(rnew_real, d_real);
     }
-    v_r_real = rnew_real;
+    alpha_warm = (_iter == MaxIter && err > tol) ? 0.1 : alpha_curr;
+    v_r_real   = rnew_real;
     if (this->world_rank == 0)
         printf("line search iter %i, alpha %f - error %e - ", _iter, alpha_curr, err);
 }
