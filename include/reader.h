@@ -30,6 +30,9 @@ class Reader {
     json             materialProperties;
     double           TOL;
     json             errorParameters;
+    int              ls_max_iter{5};
+    double           ls_tol{1e-2};
+    bool             extrapolate_displacement{true};
     json             microstructure;
     int              n_it;
     vector<LoadCase> load_cases;

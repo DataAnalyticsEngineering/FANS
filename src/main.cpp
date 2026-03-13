@@ -34,6 +34,8 @@ void runSolver(Reader &reader)
             }
             solver->solve();
             solver->postprocess(reader, load_path_idx, time_step_idx);
+            if (reader.extrapolate_displacement)
+                solver->extrapolateDisplacement();
         }
         delete solver;
         delete matmanager;
