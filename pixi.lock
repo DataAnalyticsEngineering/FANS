@@ -6367,7 +6367,7 @@ packages:
   timestamp: 1756729456476
 - conda: .
   name: fans
-  version: 0.6.1
+  version: 0.6.2
   build: h0dc7051_0
   subdir: osx-64
   variants:
@@ -6379,7 +6379,7 @@ packages:
   - fftw * mpi_openmpi_*
 - conda: .
   name: fans
-  version: 0.6.1
+  version: 0.6.2
   build: h1235946_0
   subdir: linux-64
   variants:
@@ -6393,7 +6393,7 @@ packages:
   - fftw * mpi_openmpi_*
 - conda: .
   name: fans
-  version: 0.6.1
+  version: 0.6.2
   build: hcb8d3e5_0
   subdir: osx-arm64
   variants:
@@ -6406,7 +6406,7 @@ packages:
   - fftw * mpi_openmpi_*
 - conda: .
   name: fans
-  version: 0.6.1
+  version: 0.6.2
   build: he8cfe8b_0
   subdir: linux-aarch64
   variants:
