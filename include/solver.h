@@ -62,6 +62,7 @@ class Solver : private MixedBCController<howmany> {
     double compute_error(RealArray &r);
     void   CreateFFTWPlans(double *in, fftw_complex *transformed, double *out);
 
+    VectorXd homogenized_strain;
     VectorXd homogenized_stress;
     VectorXd get_homogenized_stress();
 
@@ -583,6 +584,8 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
             printf("%+.12f ", strain_average[i]);
         printf(") \n\n");
     }
+    homogenized_stress = stress_average;
+    homogenized_strain = strain_average;
 
     /* ====================================================================== *
      *  u_total = g0·X  +  ũ          (vector or scalar, decided at compile time)
