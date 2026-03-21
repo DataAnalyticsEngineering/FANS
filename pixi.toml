@@ -24,7 +24,7 @@ args = ["file", { arg = "extra", default = "" }]
 cmd  = "cd \"$INIT_CWD\" && python -m MSUtils.general.h52xdmf {{ extra }} {{ file }}"
 
 [feature.dev.dependencies]
-cmake = ">=4.2.3,<5"
+cmake = ">=4.3.0,<5"
 openmpi-mpicxx = ">=5.0.10,<6"
 hdf5 = { version = ">=1.14.6,<2", build = "mpi_openmpi_*" }
 fftw = { version = ">=3.3.10,<4", build = "mpi_openmpi_*" }
