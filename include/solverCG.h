@@ -139,7 +139,7 @@ void SolverCG<howmany, n_str>::LineSearchSecant()
             break;
 
         alpha_next = alpha_curr - r1pd * (alpha_curr - alpha_prev) / denom;
-        if (alpha_next <= 0.0)
+        if (alpha_next <= 0.0 || alpha_next > 10.0)
             alpha_next = 0.5 * (alpha_prev + alpha_curr);
         err = fabs(alpha_next - alpha_curr);
 
@@ -149,7 +149,7 @@ void SolverCG<howmany, n_str>::LineSearchSecant()
         alpha_curr = alpha_next;
         _iter++;
 
-        this->updateMixedBC();
+        // this->updateMixedBC();
         this->template compute_residual<0>(rnew_real, v_u_real);
         r1pd = dotProduct(rnew_real, d_real);
     }
