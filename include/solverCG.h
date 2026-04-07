@@ -24,6 +24,7 @@ class SolverCG : public Solver<howmany, n_str> {
     RealArray d_real;
     RealArray rnew_real;
     double    alpha_warm{0.1};
+    bool      ls_converged{true};
 
     void   internalSolve();
     void   LineSearchSecant();
@@ -91,7 +92,7 @@ void SolverCG<howmany, n_str>::internalSolve()
         delta0 = delta;
         delta  = dotProduct(v_r_real, s_real);
 
-        d_real = s_real + fmax(0, (delta - deltamid) / delta0) * d_real;
+        d_real = s_real + (ls_converged ? fmax(0.0, (delta - deltamid) / delta0) : 0.0) * d_real;
 
         if (islinear && !this->isMixedBCActive()) {
             Matrix<double, howmany * 8, 1> res_e;
@@ -119,29 +120,28 @@ void SolverCG<howmany, n_str>::internalSolve()
 template <int howmany, int n_str>
 void SolverCG<howmany, n_str>::LineSearchSecant()
 {
-    double       err        = 10.0;
     const int    MaxIter    = this->reader.ls_max_iter;
     const double tol        = this->reader.ls_tol;
     int          _iter      = 0;
     double       alpha_prev = 0.0;
     double       alpha_curr = alpha_warm;
 
-    double rpd = dotProduct(v_r_real, d_real);
+    const double rpd0 = dotProduct(v_r_real, d_real);
+    double       rpd  = rpd0;
     v_u_real += d_real * alpha_curr;
     this->updateMixedBC();
     this->template compute_residual<0>(rnew_real, v_u_real);
     double r1pd = dotProduct(rnew_real, d_real);
 
     double denom, alpha_next;
-    while (_iter < MaxIter && err > tol) {
+    while (_iter < MaxIter && fabs(r1pd) > tol * fabs(rpd0)) {
         denom = r1pd - rpd;
         if (fabs(denom) < 1e-14 * (fabs(r1pd) + fabs(rpd)))
             break;
 
         alpha_next = alpha_curr - r1pd * (alpha_curr - alpha_prev) / denom;
-        if (alpha_next <= 0.0)
+        if (alpha_next <= 0.0 || alpha_next > 10.0)
             alpha_next = 0.5 * (alpha_prev + alpha_curr);
-        err = fabs(alpha_next - alpha_curr);
 
         v_u_real += d_real * (alpha_next - alpha_curr);
         alpha_prev = alpha_curr;
@@ -149,14 +149,14 @@ void SolverCG<howmany, n_str>::LineSearchSecant()
         alpha_curr = alpha_next;
         _iter++;
 
-        this->updateMixedBC();
         this->template compute_residual<0>(rnew_real, v_u_real);
         r1pd = dotProduct(rnew_real, d_real);
     }
-    alpha_warm = (_iter == MaxIter && err > tol) ? 0.1 : alpha_curr;
-    v_r_real   = rnew_real;
+    ls_converged = (fabs(r1pd) <= tol * fabs(rpd0));
+    alpha_warm   = ls_converged ? alpha_curr : 0.1;
+    v_r_real     = rnew_real;
     if (this->world_rank == 0)
-        printf("line search iter %i, alpha %f - error %e - ", _iter, alpha_curr, err);
+        printf("line search iter %i, alpha %f - error %e - ", _iter, alpha_curr, fabs(rpd0) > 0.0 ? fabs(r1pd) / fabs(rpd0) : 0.0);
 }
 
 template <int howmany, int n_str>
