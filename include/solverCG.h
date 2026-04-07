@@ -92,9 +92,8 @@ void SolverCG<howmany, n_str>::internalSolve()
         delta0 = delta;
         delta  = dotProduct(v_r_real, s_real);
 
-        d_real = s_real + (ls_converged ? fmax(0.0, (delta - deltamid) / delta0) : 0.0) * d_real;
-
         if (islinear && !this->isMixedBCActive()) {
+            d_real = s_real + fmax(0.0, (delta - deltamid) / delta0) * d_real;
             Matrix<double, howmany * 8, 1> res_e;
             this->template compute_residual_basic<0>(rnew_real, d_real,
                                                      [&](Matrix<double, howmany * 8, 1> &ue, int phase_id, ptrdiff_t element_idx) -> Matrix<double, howmany * 8, 1> & {
@@ -107,11 +106,15 @@ void SolverCG<howmany, n_str>::internalSolve()
             v_r_real -= alpha * rnew_real;
             v_u_real -= alpha * d_real;
         } else {
+            d_real = s_real + (ls_converged ? fmax(0.0, (delta - deltamid) / delta0) : 0.0) * d_real;
             LineSearchSecant();
         }
 
         iter++;
         err_rel = this->compute_error(v_r_real);
+
+        if (iter >= 2 && this->err_all[iter] > this->err_all[iter - 1] && this->err_all[iter - 1] > this->err_all[iter - 2])
+            ls_converged = false; // Force a CG restart
     }
     if (this->world_rank == 0)
         printf("# Complete FANS - Conjugate Gradient Solver \n");
@@ -126,15 +129,20 @@ void SolverCG<howmany, n_str>::LineSearchSecant()
     double       alpha_prev = 0.0;
     double       alpha_curr = alpha_warm;
 
-    const double rpd0 = dotProduct(v_r_real, d_real);
-    double       rpd  = rpd0;
+    double rpd = dotProduct(v_r_real, d_real);
+    if (rpd >= 0.0) {
+        ls_converged = false;
+        alpha_warm   = 0.1;
+        return;
+    }
     v_u_real += d_real * alpha_curr;
     this->updateMixedBC();
     this->template compute_residual<0>(rnew_real, v_u_real);
-    double r1pd = dotProduct(rnew_real, d_real);
+    double       r1pd  = dotProduct(rnew_real, d_real);
+    const double r1pd0 = r1pd;
 
     double denom, alpha_next;
-    while (_iter < MaxIter && fabs(r1pd) > tol * fabs(rpd0)) {
+    while (_iter < MaxIter && fabs(r1pd) > tol * fabs(r1pd0)) {
         denom = r1pd - rpd;
         if (fabs(denom) < 1e-14 * (fabs(r1pd) + fabs(rpd)))
             break;
@@ -152,11 +160,17 @@ void SolverCG<howmany, n_str>::LineSearchSecant()
         this->template compute_residual<0>(rnew_real, v_u_real);
         r1pd = dotProduct(rnew_real, d_real);
     }
-    ls_converged = (fabs(r1pd) <= tol * fabs(rpd0));
-    alpha_warm   = ls_converged ? alpha_curr : 0.1;
-    v_r_real     = rnew_real;
+    ls_converged = (fabs(r1pd) <= tol * fabs(r1pd0));
+    if (ls_converged) {
+        alpha_warm = alpha_curr;
+        v_r_real   = rnew_real;
+    } else {
+        v_u_real -= d_real * alpha_curr;
+        alpha_warm = 0.1;
+    }
+
     if (this->world_rank == 0)
-        printf("line search iter %i, alpha %f - error %e - ", _iter, alpha_curr, fabs(rpd0) > 0.0 ? fabs(r1pd) / fabs(rpd0) : 0.0);
+        printf("line search iter %i, alpha %f - error %e - ", _iter, alpha_curr, fabs(r1pd0) > 0.0 ? fabs(r1pd) / fabs(r1pd0) : 0.0);
 }
 
 template <int howmany, int n_str>
