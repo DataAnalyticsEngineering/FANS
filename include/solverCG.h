@@ -139,7 +139,7 @@ void SolverCG<howmany, n_str>::LineSearchSecant()
     this->updateMixedBC();
     this->template compute_residual<0>(rnew_real, v_u_real);
     double       r1pd  = dotProduct(rnew_real, d_real);
-    const double r1pd0 = r1pd;
+    const double r1pd0 = this->isMixedBCActive() ? r1pd : rpd;
 
     double denom, alpha_next;
     while (_iter < MaxIter && fabs(r1pd) > tol * fabs(r1pd0)) {
