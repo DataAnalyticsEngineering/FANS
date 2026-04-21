@@ -91,12 +91,17 @@ void Reader::ReadJson(json j)
         Log::io->trace() << "Running with total ranks=" << world_size << ", rank=" << world_rank << "\n";
 
         microstructure = j["microstructure"];
-        strcpy(ms_filename, microstructure["filepath"].get<string>().c_str());
-        strcpy(ms_datasetname, microstructure["datasetname"].get<string>().c_str());
+        std::snprintf(ms_filename, sizeof(ms_filename), "%s", microstructure["filepath"].get<std::string>().c_str());
+        // dataset name handling
+        const auto tmp_str = microstructure["datasetname"].get<std::string>();
+        if (tmp_str.empty())
+            throw std::invalid_argument("datasetname must not be empty and must refer to a valid HDF5 path");
+        // Ensure absolute HDF5 path, leading slash
+        std::snprintf(ms_datasetname, sizeof(ms_datasetname), "%s%s", tmp_str.front() == '/' ? "" : "/", tmp_str.c_str());
         L = microstructure["L"].get<vector<double>>();
 
         if (j.contains("results_prefix")) {
-            strcpy(results_prefix, j["results_prefix"].get<string>().c_str());
+            std::snprintf(results_prefix, sizeof(results_prefix), "%s", j["results_prefix"].get<std::string>().c_str());
         } else {
             strcpy(results_prefix, "");
         }
@@ -107,6 +112,15 @@ void Reader::ReadJson(json j)
         errorParameters = j["error_parameters"];
         TOL             = errorParameters["tolerance"].get<double>();
         n_it            = j["n_it"].get<int>();
+
+        extrapolate_displacement = j.value("extrapolate_displacement", extrapolate_displacement);
+
+        if (j.contains("linesearch_parameters")) {
+            ls_max_iter = j["linesearch_parameters"].value("max_iter", ls_max_iter);
+            ls_tol      = j["linesearch_parameters"].value("tol", ls_tol);
+            if (ls_max_iter < 1 || ls_tol <= 0.0)
+                throw std::invalid_argument("linesearch_parameters: max_iter >= 1 and tol > 0 required");
+        }
 
         problemType = j["problem_type"].get<string>();
         method      = j["method"].get<string>();
@@ -176,9 +190,8 @@ void Reader::ReadJson(json j)
         Log::io->info() << "# Max iterations: \t " << n_it << "\n";
 
     } catch (const std::exception &e) {
-        Log::io->error() << "ERROR trying to read input json for FANS\n";
+        Log::io->error() << "ERROR trying to read input file '" << input_fn << "' for FANS: " << e.what() << "\n";
         Log::finalize();
-        exit(10);
     }
 }
 

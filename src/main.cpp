@@ -8,7 +8,7 @@
 #include "version.h"
 
 template <int howmany, int n_str>
-void runSolver(Reader &reader)
+void runSolver(Reader &reader, char input_fn[])
 {
     reader.ReadMS(howmany);
 
@@ -31,6 +31,8 @@ void runSolver(Reader &reader)
             }
             solver->solve();
             solver->postprocess(reader, load_path_idx, time_step_idx);
+            if (reader.extrapolate_displacement)
+                solver->extrapolateDisplacement();
         }
         delete solver;
         delete matmanager;
@@ -58,11 +60,11 @@ int main(int argc, char *argv[])
     reader.OpenResultsFile(argv[2]);
 
     if (reader.problemType == "thermal") {
-        runSolver<1, 3>(reader);
+        runSolver<1, 3>(reader, argv[1]);
     } else if (reader.problemType == "mechanical" && reader.strain_type == "small") {
-        runSolver<3, 6>(reader);
+        runSolver<3, 6>(reader, argv[1]);
     } else if (reader.problemType == "mechanical" && reader.strain_type == "large") {
-        runSolver<3, 9>(reader);
+        runSolver<3, 9>(reader, argv[1]);
     } else {
         throw std::invalid_argument(reader.problemType + " is not a valid problem type");
     }

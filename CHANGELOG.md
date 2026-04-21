@@ -1,5 +1,9 @@
 # FANS Changelog
 
+## v0.6.2
+
+- Fix bug demanding a leading slash in the datasetname and exiting ungracefully [#123](https://github.com/DataAnalyticsEngineering/FANS/pull/123)
+
 ## v0.6.1
 
 - Add pyFANS support for large strain, fixed pyFANS MPI, added preliminary pyFANS state setting&loading and added logging [#124](https://github.com/DataAnalyticsEngineering/FANS/pull/124)

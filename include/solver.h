@@ -68,6 +68,7 @@ class Solver : MixedBCController<howmany> {
     double compute_error(RealArray &r);
     void   CreateFFTWPlans(double *in, fftw_complex *transformed, double *out);
 
+    VectorXd homogenized_strain;
     VectorXd homogenized_stress;
     VectorXd get_homogenized_stress();
 
@@ -590,6 +591,9 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
         Log::solver->info(true) << std::showpos << std::fixed << std::setprecision(12) << strain_average[i] << " " << std::noshowpos << std::defaultfloat;
     Log::solver->info(true) << ") \n\n";
 
+    homogenized_stress = stress_average;
+    homogenized_strain = strain_average;
+
     /* ====================================================================== *
      *  u_total = g0·X  +  ũ          (vector or scalar, decided at compile time)
      * ====================================================================== */
@@ -705,7 +709,6 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
                             << std::setprecision(12) << homogenized_tangent << std::defaultfloat << "\n\n";
         reader.writeData("homogenized_tangent", load_idx, time_idx, homogenized_tangent.data(), dims, 2);
     }
-    extrapolateDisplacement(); // prepare v_u for next time step
 }
 
 template <int howmany, int n_str>

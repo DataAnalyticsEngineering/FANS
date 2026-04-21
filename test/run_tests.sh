@@ -1,4 +1,5 @@
 #!/bin/bash
+export LC_NUMERIC=C
 
 # Check if the number of processes is provided as a command line argument
 if [ $# -ne 2 ] || [ "$1" != "-n" ]; then
