@@ -42,6 +42,7 @@ class PyFANS_CLASS_NAME {
     void     set_state(const py::dict &state);
 
     int get_id();
+    void set_id(int id);
 
   private:
     int    _sim_id;
