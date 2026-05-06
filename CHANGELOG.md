@@ -2,6 +2,7 @@
 
 ## latest
 
+- Added logging for FANS [#143](https://github.com/DataAnalyticsEngineering/FANS/pull/143)
 - Bugfix: mem-leak while reading microstructure and added wider CMake support [#140](https://github.com/DataAnalyticsEngineering/FANS/pull/140)
 - Added MPI communicator abstraction [#139](https://github.com/DataAnalyticsEngineering/FANS/pull/139)
 
