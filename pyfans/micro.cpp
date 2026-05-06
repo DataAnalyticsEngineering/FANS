@@ -6,6 +6,7 @@
 #include "micro.hpp"
 #include "setup.h"
 #include "matmodel.h"
+#include "mpi.h"
 
 py::array_t<double> merge_arrays(py::array_t<double> array1, py::array_t<double> array2)
 {
@@ -57,6 +58,9 @@ MicroSimulation::MicroSimulation(int sim_id, const std::string &input_file, cons
         reader.communicator = MPI_COMM_SELF;
     MPI_Comm_rank(reader.communicator, &reader.world_rank);
     MPI_Comm_size(reader.communicator, &reader.world_size);
+
+    // initialize loggers
+    Log::init(reader.world_rank, reader.world_size, reader.communicator);
 
     // Input file name is hardcoded. TODO: Make it configurable
     reader.ReadInputFile(input_file);

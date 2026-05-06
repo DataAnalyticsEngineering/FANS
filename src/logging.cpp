@@ -2,8 +2,10 @@
 #include "mpi.h"
 #include <utility>
 #include <iomanip>
+#include <atomic>
 
-int active_rank = 0;
+int              active_rank    = 0;
+std::atomic<int> is_initialized = 0;
 
 Log::MPI_TraceSync::MPI_TraceSync(Logger &log, bool append)
     : _log(log), _append(append) {}
@@ -160,6 +162,9 @@ void Log::Logger::progress(const std::string &prefix, int step, int max) const
 
 void Log::init(int comm_rank, int comm_size, const MPI_Comm &comm)
 {
+    if (is_initialized.fetch_or(1))
+        return;
+
     Level level = Log::Error;
     if constexpr (VERBOSITY <= 0)
         level = Error;
@@ -173,6 +178,7 @@ void Log::init(int comm_rank, int comm_size, const MPI_Comm &comm)
         level = All;
 
     active_level = level;
+    active_rank  = 0;
     general      = std::make_unique<Logger>("\t[FANS-GENERAL] ", comm_rank, comm_size, comm);
     solver       = std::make_unique<Logger>("\t[FANS-SOLVER] ", comm_rank, comm_size, comm);
     io           = std::make_unique<Logger>("\t[FANS-IO] ", comm_rank, comm_size, comm);
