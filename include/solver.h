@@ -61,7 +61,7 @@ class Solver : private MixedBCController<howmany> {
     void postprocess(Reader &reader, int load_idx, int time_idx); //!< Computes Strain and stress
 
     void   convolution();
-    double compute_error(RealArray &r);
+    double compute_error(RealArray &r, bool has_log_prefix = false);
     void   CreateFFTWPlans(double *in, fftw_complex *transformed, double *out);
 
     VectorXd homogenized_strain;
@@ -151,7 +151,8 @@ Solver<howmany, n_str>::Solver(Reader &reader, MaterialManager<howmany, n_str> *
 template <int howmany, int n_str>
 void Solver<howmany, n_str>::computeFundamentalSolution()
 {
-    Log::solver->info() << "\n# Start creating Fundamental Solution(s) \n";
+    Log::solver->info() << "\n";
+    Log::solver->info() << "# Start creating Fundamental Solution(s) \n";
     clock_t tot_time = clock();
 
     Matrix<double, howmany * 8, howmany * 8> Ker0 = matmanager->models[0]->Compute_Reference_ElementStiffness(matmanager->kapparef_mat);
@@ -412,7 +413,7 @@ void Solver<howmany, n_str>::convolution()
 }
 
 template <int howmany, int n_str>
-double Solver<howmany, n_str>::compute_error(RealArray &r)
+double Solver<howmany, n_str>::compute_error(RealArray &r, const bool has_log_prefix)
 {
     double             err_local;
     const std::string &measure = reader.errorParameters["measure"].get<std::string>();
@@ -436,7 +437,7 @@ double Solver<howmany, n_str>::compute_error(RealArray &r)
     if (iter == 0) {
         Log::solver->info() << Log::format("Before 1st iteration: %16.8e\n", err0);
     } else {
-        Log::solver->info(true) << Log::format("it %3lu .... err %16.8e  / %8.4e, ratio: %4.8e, FFT time: %2.6f sec\n", iter, err, err / err0, (iter == 1 ? 0.0 : err / err_all[iter - 1]), double(buftime) / CLOCKS_PER_SEC);
+        Log::solver->info(has_log_prefix) << Log::format("it %3lu .... err %16.8e  / %8.4e, ratio: %4.8e, FFT time: %2.6f sec\n", iter, err, err / err0, (iter == 1 ? 0.0 : err / err_all[iter - 1]), double(buftime) / CLOCKS_PER_SEC);
     }
 
     const std::string &error_type = reader.errorParameters["type"].get<std::string>();
@@ -692,12 +693,11 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     // Compute homogenized tangent only if requested
     if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "homogenized_tangent") != reader.resultsToWrite.end()) {
         homogenized_tangent = get_homogenized_tangent(1e-6);
-        hsize_t dims[2]     = {static_cast<hsize_t>(n_str), static_cast<hsize_t>(n_str)};
-        if (world_rank == 0) {
-            Log::solver->info() << "# Homogenized tangent: \n"
-                                << std::setprecision(12) << homogenized_tangent
-                                << std::defaultfloat << "\n\n";
-        }
+        hsize_t  dims[2]    = {static_cast<hsize_t>(n_str), static_cast<hsize_t>(n_str)};
+        IOFormat tangent_format{StreamPrecision, 0, " ", "\n", "\t\t"};
+        Log::solver->info() << "# Homogenized tangent: \n"
+                            << std::setprecision(12) << homogenized_tangent.format(tangent_format)
+                            << std::defaultfloat << "\n\n";
         reader.writeData("homogenized_tangent", load_idx, time_idx, homogenized_tangent.data(), dims, 2);
     }
 }

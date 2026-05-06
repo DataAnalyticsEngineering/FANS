@@ -111,9 +111,11 @@ class MaterialManager {
         compute_reference_stiffness(reader);
 
         // Print detailed information about material configuration for logging
-        Log::io->info() << "\n# MaterialManager initialized:\n";
+        Log::io->info() << "\n";
+        Log::io->info() << "# MaterialManager initialized:\n";
         Log::io->info() << Log::format("#   Number of material models: %zu\n", models.size());
-        Log::io->info() << Log::format("#   Number of phases: %d\n#\n", n_phases);
+        Log::io->info() << Log::format("#   Number of phases: %d\n", n_phases);
+        Log::io->info() << "#\n";
 
         for (size_t i = 0; i < mats.size(); ++i) {
             const auto &mg = mats[i];

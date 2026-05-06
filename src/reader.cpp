@@ -288,18 +288,17 @@ void Reader ::ReadMS(int hm)
     l_e[1] = L[1] / double(dims[1]);
     l_e[2] = L[2] / double(dims[2]);
 
-    if (world_rank == 0) {
-        Log::io->info() << Log::format("# grid size set to [%i x %i x %i] --> %i voxels \nMicrostructure length: [%3.6f x %3.6f x %3.6f]\n", dims[0], dims[1], dims[2], dims[0] * dims[1] * dims[2], L[0], L[1], L[2]);
-        if (dims[0] % 2 != 0)
-            Log::io->error() << "[ FANS3D_Grid ] WARNING: n_x is not a multiple of 2\n";
-        if (dims[1] % 2 != 0)
-            Log::io->error() << "[ FANS3D_Grid ] WARNING: n_y is not a multiple of 2\n";
-        if (dims[2] % 2 != 0)
-            Log::io->error() << "[ FANS3D_Grid ] WARNING: n_z is not a multiple of 2\n";
-        if (dims[0] / 4 < world_size)
-            throw std::runtime_error("[ FANS3D_Grid ] ERROR: Please decrease the number of processes or increase the grid size to ensure that each process has at least 4 boxels in the x direction.");
-        Log::io->info() << Log::format("Voxel length: [%1.8f, %1.8f, %1.8f]\n", l_e[0], l_e[1], l_e[2]);
-    }
+    Log::io->info() << Log::format("# grid size set to [%i x %i x %i] --> %i voxels \n", dims[0], dims[1], dims[2], dims[0] * dims[1] * dims[2]);
+    Log::io->info() << Log::format("Microstructure length: [%3.6f x %3.6f x %3.6f]\n", L[0], L[1], L[2]);
+    if (dims[0] % 2 != 0)
+        Log::io->error() << "[ FANS3D_Grid ] WARNING: n_x is not a multiple of 2\n";
+    if (dims[1] % 2 != 0)
+        Log::io->error() << "[ FANS3D_Grid ] WARNING: n_y is not a multiple of 2\n";
+    if (dims[2] % 2 != 0)
+        Log::io->error() << "[ FANS3D_Grid ] WARNING: n_z is not a multiple of 2\n";
+    if (dims[0] / 4 < world_size)
+        throw std::runtime_error("[ FANS3D_Grid ] ERROR: Please decrease the number of processes or increase the grid size to ensure that each process has at least 4 boxels in the x direction.");
+    Log::io->info() << Log::format("Voxel length: [%1.8f, %1.8f, %1.8f]\n", l_e[0], l_e[1], l_e[2]);
 
     const ptrdiff_t n[3]   = {dims[0], dims[1], dims[2] / 2 + 1};
     ptrdiff_t       block0 = FFTW_MPI_DEFAULT_BLOCK;

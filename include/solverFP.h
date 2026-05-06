@@ -50,7 +50,6 @@ void SolverFP<howmany, n_str>::internalSolve()
         iter++;
         err_rel = this->compute_error(v_r_real);
     }
-    if (this->world_rank == 0)
-        Log::solver->info() << "# Complete FANS - Fixed Point Solver \n";
+    Log::solver->info() << "# Complete FANS - Fixed Point Solver \n";
 }
 #endif

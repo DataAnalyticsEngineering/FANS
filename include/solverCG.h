@@ -63,7 +63,8 @@ double SolverCG<howmany, n_str>::dotProduct(RealArray &a, RealArray &b)
 template <int howmany, int n_str>
 void SolverCG<howmany, n_str>::internalSolve()
 {
-    Log::solver->info() << "\t# Start FANS - Conjugate Gradient Solver \n";
+    Log::solver->info() << "\n";
+    Log::solver->info() << "# Start FANS - Conjugate Gradient Solver \n";
 
     bool islinear = this->matmanager->all_linear;
     alpha_warm    = 0.1;
@@ -92,7 +93,8 @@ void SolverCG<howmany, n_str>::internalSolve()
         delta0 = delta;
         delta  = dotProduct(v_r_real, s_real);
 
-        if (islinear && !this->isMixedBCActive()) {
+        const bool no_lss = islinear && !this->isMixedBCActive();
+        if (no_lss) {
             d_real = s_real + fmax(0.0, (delta - deltamid) / delta0) * d_real;
             Matrix<double, howmany * 8, 1> res_e;
             this->template compute_residual_basic<0>(rnew_real, d_real,
@@ -111,7 +113,7 @@ void SolverCG<howmany, n_str>::internalSolve()
         }
 
         iter++;
-        err_rel = this->compute_error(v_r_real);
+        err_rel = this->compute_error(v_r_real, not no_lss);
 
         if (iter >= 2 && this->err_all[iter] > this->err_all[iter - 1] && this->err_all[iter - 1] > this->err_all[iter - 2])
             ls_converged = false; // Force a CG restart
