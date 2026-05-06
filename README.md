@@ -292,6 +292,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
                      "tolerance": 1e-10
                    },
 "n_it": 100,
+"no_mpi": true,
 ```
 
 - `FE_type`: This specifies the type of finite element to be used. Common options include:
@@ -304,6 +305,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
   - `type`: Defines the type of error measurement. Options are `absolute` or `relative`.
   - `tolerance`: Sets the tolerance level for the solver, defining the convergence criterion based on the chosen error measure. The solver iterates until the solution meets this tolerance.
 - `n_it`: Specifies the maximum number of iterations allowed for the FANS solver.
+- `no_mpi`: Turns off parallel MPI computation and forces the usage of `MPI_COMM_SELF`
 
 ### Macroscale loading conditions
 
