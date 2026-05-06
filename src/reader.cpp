@@ -395,7 +395,8 @@ void Reader ::ReadMS(int hm)
         FANS_free(tmp);
     } else {
         /* XYZ case: the slab is already in correct order */
-        ms = tmp; // steal the buffer; no copy
+        FANS_free(ms); // dealloc mem
+        ms = tmp;      // steal the buffer; no copy
     }
 
     /*--------------------------------------------------------------------
