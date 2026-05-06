@@ -695,8 +695,8 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
         hsize_t dims[2]     = {static_cast<hsize_t>(n_str), static_cast<hsize_t>(n_str)};
         if (world_rank == 0) {
             Log::solver->info() << "# Homogenized tangent: \n"
-                << std::setprecision(12) << homogenized_tangent
-                << std::defaultfloat << "\n\n";
+                                << std::setprecision(12) << homogenized_tangent
+                                << std::defaultfloat << "\n\n";
         }
         reader.writeData("homogenized_tangent", load_idx, time_idx, homogenized_tangent.data(), dims, 2);
     }

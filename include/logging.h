@@ -100,9 +100,9 @@ void finalize();
  * @return formatted string
  */
 template <typename... Args>
-std::string format(const std::string &fmt, Args&&... args)
+std::string format(const std::string &fmt, Args &&...args)
 {
-    const int buf_size = std::snprintf(nullptr, 0, fmt.c_str(), args...);
+    const int         buf_size = std::snprintf(nullptr, 0, fmt.c_str(), args...);
     std::vector<char> buf(buf_size + 1);
     std::snprintf(buf.data(), buf.size(), fmt.c_str(), args...);
     return {buf.data(), static_cast<std::string::size_type>(buf_size)};

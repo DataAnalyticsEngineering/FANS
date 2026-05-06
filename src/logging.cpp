@@ -108,15 +108,14 @@ std::ostream &Log::Logger::trace_impl(bool append)
 
 std::tuple<int, int, int> Log::Logger::get_elapsed_time() const
 {
-    const auto now         = std::chrono::steady_clock::now();
+    const auto now             = std::chrono::steady_clock::now();
     const auto elapsed_seconds = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(now - _start_time).count()) / 1000;
-    const auto seconds = elapsed_seconds % 60;
-    const auto hours = elapsed_seconds / 3600;
-    const auto minutes = (elapsed_seconds - seconds - 3600 * hours) / 60;
+    const auto seconds         = elapsed_seconds % 60;
+    const auto hours           = elapsed_seconds / 3600;
+    const auto minutes         = (elapsed_seconds - seconds - 3600 * hours) / 60;
 
     return std::make_tuple(hours, minutes, seconds);
 }
-
 
 void Log::Logger::progress(const std::string &prefix, int step, int max) const
 {

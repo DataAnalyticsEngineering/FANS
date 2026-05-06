@@ -61,7 +61,7 @@ void Reader::ComputeVolumeFractions()
         MPI_Allreduce(&(vol_frac[i]), &vf, 1, MPI_LONG, MPI_SUM, communicator);
         v_frac[i] = double(vf) / double(dims[0] * dims[1] * dims[2]);
         Log::io->info() << Log::format("# material %4u    vol. frac. %10.4f%%  \n",
-            static_cast<unsigned int>(i) + global_min, 100. * v_frac[i]);
+                                       static_cast<unsigned int>(i) + global_min, 100. * v_frac[i]);
     }
 }
 

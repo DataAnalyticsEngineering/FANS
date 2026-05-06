@@ -17,12 +17,12 @@ void runSolver(Reader &reader, char input_fn[])
         Solver<howmany, n_str>          *solver     = createSolver(reader, matmanager);
 
         Log::general->info(true) << Log::format("\n╔════════════════════════════════════════════════════════════ Load case %zu/%zu: %zu time steps ════════════════════════════════════════════════════════════╗\n",
-                   load_path_idx + 1, reader.load_cases.size(), reader.load_cases[load_path_idx].n_steps);
+                                                load_path_idx + 1, reader.load_cases.size(), reader.load_cases[load_path_idx].n_steps);
 
         for (size_t time_step_idx = 0; time_step_idx < reader.load_cases[load_path_idx].n_steps; ++time_step_idx) {
             Log::general->info(true) << Log::format("║   ▶ Time step %zu/%zu (load case %zu/%zu) ◀ \n",
-                       time_step_idx + 1, reader.load_cases[load_path_idx].n_steps,
-                       load_path_idx + 1, reader.load_cases.size());
+                                                    time_step_idx + 1, reader.load_cases[load_path_idx].n_steps,
+                                                    load_path_idx + 1, reader.load_cases.size());
             if (reader.load_cases[load_path_idx].mixed) {
                 solver->enableMixedBC(reader.load_cases[load_path_idx].mbc, time_step_idx);
             } else {
