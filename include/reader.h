@@ -67,6 +67,7 @@ class Reader {
     // void Setup(ptrdiff_t howmany);
     void ReadInputFile(const std::string &input_fn);
     void ReadMS(int hm);
+    void FreeMS();
     void ComputeVolumeFractions();
     // void ReadHDF5(char file_name[], char dset_name[]);
     void safe_create_group(hid_t file, const char *const name);

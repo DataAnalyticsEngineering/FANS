@@ -5,6 +5,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <variant>
 
 #include "pybind11/pybind11.h"
 #include "pybind11/numpy.h" // numpy arrays
@@ -19,16 +20,24 @@ namespace py = pybind11;
 
 class MicroSimulation {
   public:
-    MicroSimulation(int sim_id, const std::string &input_file = "input.json", const std::string &config_file = "pyfans-config.json");
-    py::dict solve(py::dict macro_write_data, double dt);
+    MicroSimulation(int sim_id, bool late_init = false, const std::string &input_file = "input.json", const std::string &config_file = "pyfans-config.json");
+    py::dict solve(const py::dict &macro_write_data, double dt);
+
+    py::dict get_state();
+    void     set_state(const py::dict &state);
+
+    int  get_id();
+    void set_id(int id);
 
   private:
     int    _sim_id;
     Reader reader;
     // Hardcoding mechanical models because these definitions need information from the input file.
-    MaterialManager<3, 6> *matmanager;
-    Solver<3, 6>          *solver;
-    double                 pert_param = 1e-6; // scalar strain perturbation parameter
+    using matmanager_t = std::variant<MaterialManager<3, 6> *, MaterialManager<3, 9> *>;
+    using solver_t     = std::variant<Solver<3, 6> *, Solver<3, 9> *>;
+    matmanager_t matmanager;
+    solver_t     solver;
+    double       pert_param = 1e-6; // scalar strain perturbation parameter
 };
 
 struct PyFANSConfig {
