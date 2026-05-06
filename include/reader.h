@@ -17,12 +17,14 @@ class Reader {
   public:
     // Default constructor
     Reader() = default;
+    Reader(const MPI_Comm &comm);
 
     // Destructor to free allocated memory
     ~Reader();
 
-    // MPI controlls
-    bool     force_single_rank;
+    // MPI
+    int      world_rank;
+    int      world_size;
     MPI_Comm communicator;
 
     // contents of input file:
@@ -57,9 +59,6 @@ class Reader {
     unsigned short *ms{nullptr}; // Micro-structure
     bool            is_zyx = true;
 
-    int world_rank;
-    int world_size;
-
     ptrdiff_t alloc_local;
     ptrdiff_t local_n0;
     ptrdiff_t local_0_start; // this is the x-value of the start point, not the index in the array
@@ -67,8 +66,7 @@ class Reader {
     ptrdiff_t local_1_start;
 
     // void Setup(ptrdiff_t howmany);
-    void ReadInputFile(char input_fn[]);
-    void ReadJson(const json &j);
+    void ReadInputFile(const std::string &input_fn);
     void ReadMS(int hm);
     void ComputeVolumeFractions();
     // void ReadHDF5(char file_name[], char dset_name[]);

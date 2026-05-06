@@ -10,6 +10,13 @@
 #include "H5FDmpi.h"
 #include "H5FDmpio.h"
 
+Reader::Reader(const MPI_Comm &comm)
+    : communicator(comm)
+{
+    MPI_Comm_rank(communicator, &world_rank);
+    MPI_Comm_size(communicator, &world_size);
+}
+
 void Reader::ComputeVolumeFractions()
 {
     unsigned short local_max  = 0;
@@ -60,136 +67,119 @@ void Reader::ComputeVolumeFractions()
     }
 }
 
-void Reader ::ReadInputFile(char input_fn[])
+void Reader ::ReadInputFile(const std::string &input_fn)
 {
     try {
         ifstream i(input_fn);
         json     j;
         i >> j;
-        ReadJson(j);
+        inputJson      = j; // Store complete input JSON for MaterialManager
+        microstructure = j["microstructure"];
+        std::snprintf(ms_filename, sizeof(ms_filename), "%s", microstructure["filepath"].get<std::string>().c_str());
+        // dataset name handling
+        const auto tmp_str = microstructure["datasetname"].get<std::string>();
+        if (tmp_str.empty())
+            throw std::invalid_argument("datasetname must not be empty and must refer to a valid HDF5 path");
+        // Ensure absolute HDF5 path, leading slash
+        std::snprintf(ms_datasetname, sizeof(ms_datasetname), "%s%s", tmp_str.front() == '/' ? "" : "/", tmp_str.c_str());
+        L = microstructure["L"].get<vector<double>>();
+
+        if (j.contains("results_prefix")) {
+            std::snprintf(results_prefix, sizeof(results_prefix), "%s", j["results_prefix"].get<std::string>().c_str());
+        } else {
+            strcpy(results_prefix, "");
+        }
+
+        // Construct dataset_name as "<ms_datasetname>_results/<results_prefix>"
+        std::snprintf(dataset_name, sizeof(dataset_name), "%s_results/%s", ms_datasetname, results_prefix);
+
+        errorParameters = j["error_parameters"];
+        TOL             = errorParameters["tolerance"].get<double>();
+        n_it            = j["n_it"].get<int>();
+
+        extrapolate_displacement = j.value("extrapolate_displacement", extrapolate_displacement);
+
+        if (j.contains("linesearch_parameters")) {
+            ls_max_iter = j["linesearch_parameters"].value("max_iter", ls_max_iter);
+            ls_tol      = j["linesearch_parameters"].value("tol", ls_tol);
+            if (ls_max_iter < 1 || ls_tol <= 0.0)
+                throw std::invalid_argument("linesearch_parameters: max_iter >= 1 and tol > 0 required");
+        }
+
+        problemType = j["problem_type"].get<string>();
+        method      = j["method"].get<string>();
+
+        // Parse strain_type (optional, defaults to "small")
+        if (j.contains("strain_type")) {
+            strain_type = j["strain_type"].get<string>();
+            if (strain_type != "small" && strain_type != "large") {
+                throw std::invalid_argument("strain_type must be either 'small' or 'large'");
+            }
+        } else {
+            strain_type = "small"; // Default to small strain
+        }
+
+        // Parse FE_type (optional, defaults to "HEX8")
+        if (j.contains("FE_type")) {
+            FE_type = j["FE_type"].get<string>();
+            if (FE_type != "HEX8" && FE_type != "HEX8R" && FE_type != "BBAR") {
+                throw std::invalid_argument("FE_type must be one of: 'HEX8', 'HEX8R', or 'BBAR'");
+            }
+        } else {
+            FE_type = "HEX8"; // Default to full integration
+        }
+
+        resultsToWrite = j["results"].get<vector<string>>(); // Read the results_to_write field
+
+        load_cases.clear();
+        const auto &ml = j["macroscale_loading"];
+        if (!ml.is_array())
+            throw std::runtime_error("macroscale_loading must be an array");
+
+        // Determine the size of loading vector based on problem type and strain formulation
+        int n_str;
+        if (problemType == "thermal") {
+            n_str = 3; // Temperature gradient components
+        } else if (strain_type == "large") {
+            n_str = 9; // Deformation gradient components (F11, F12, F13, F21, F22, F23, F31, F32, F33)
+        } else {
+            n_str = 6; // Small strain components (eps11, eps22, eps33, eps12, eps13, eps23)
+        }
+
+        for (const auto &entry : ml) {
+            LoadCase lc;
+            if (entry.is_array()) { // ---------- legacy pure-strain ----------
+                lc.mixed   = false;
+                lc.g0_path = entry.get<vector<vector<double>>>();
+                lc.n_steps = lc.g0_path.size();
+                if (lc.g0_path[0].size() != static_cast<size_t>(n_str))
+                    throw std::invalid_argument("Invalid length of loading vector: expected " +
+                                                std::to_string(n_str) + " components but got " +
+                                                std::to_string(lc.g0_path[0].size()));
+            } else { // ---------- mixed BC object ------------
+                lc.mixed   = true;
+                lc.mbc     = MixedBC::from_json(entry, n_str);
+                lc.n_steps = lc.mbc.F_E_path.rows();
+            }
+            load_cases.push_back(std::move(lc));
+        }
+
+        if (world_rank == 0) {
+            printf("# microstructure file name: \t '%s'\n", ms_filename);
+            printf("# microstructure dataset name: \t '%s'\n", ms_datasetname);
+            printf("# strain type: \t %s\n", strain_type.c_str());
+            printf("# problem type: \t %s\n", problemType.c_str());
+            printf("# FE type: \t %s\n", FE_type.c_str());
+            printf(
+                "# FANS error measure: \t %s %s error  \n",
+                errorParameters["type"].get<string>().c_str(),
+                errorParameters["measure"].get<string>().c_str());
+            printf("# FANS Tolerance: \t %10.5e\n", errorParameters["tolerance"].get<double>());
+            printf("# Max iterations: \t %6i\n", n_it);
+        }
     } catch (const std::exception &e) {
-        fprintf(stderr, "ERROR trying to read input file '%s' for FANS: %s\n", input_fn, e.what());
+        fprintf(stderr, "ERROR trying to read input file '%s' for FANS: %s\n", input_fn.c_str(), e.what());
         exit(10);
-    }
-}
-
-void Reader::ReadJson(const json &j)
-{
-    inputJson = j; // Store complete input JSON for MaterialManager
-
-    if (j.contains("no_mpi") && j["no_mpi"].get<bool>()) {
-        force_single_rank = true;
-        communicator      = MPI_COMM_SELF;
-    } else {
-        force_single_rank = false;
-        communicator      = MPI_COMM_WORLD;
-    }
-
-    MPI_Comm_rank(communicator, &world_rank);
-    MPI_Comm_size(communicator, &world_size);
-
-    microstructure = j["microstructure"];
-    std::snprintf(ms_filename, sizeof(ms_filename), "%s", microstructure["filepath"].get<std::string>().c_str());
-    // dataset name handling
-    const auto tmp_str = microstructure["datasetname"].get<std::string>();
-    if (tmp_str.empty())
-        throw std::invalid_argument("datasetname must not be empty and must refer to a valid HDF5 path");
-    // Ensure absolute HDF5 path, leading slash
-    std::snprintf(ms_datasetname, sizeof(ms_datasetname), "%s%s", tmp_str.front() == '/' ? "" : "/", tmp_str.c_str());
-    L = microstructure["L"].get<vector<double>>();
-
-    if (j.contains("results_prefix")) {
-        std::snprintf(results_prefix, sizeof(results_prefix), "%s", j["results_prefix"].get<std::string>().c_str());
-    } else {
-        strcpy(results_prefix, "");
-    }
-
-    // Construct dataset_name as "<ms_datasetname>_results/<results_prefix>"
-    std::snprintf(dataset_name, sizeof(dataset_name), "%s_results/%s", ms_datasetname, results_prefix);
-
-    errorParameters = j["error_parameters"];
-    TOL             = errorParameters["tolerance"].get<double>();
-    n_it            = j["n_it"].get<int>();
-
-    extrapolate_displacement = j.value("extrapolate_displacement", extrapolate_displacement);
-
-    if (j.contains("linesearch_parameters")) {
-        ls_max_iter = j["linesearch_parameters"].value("max_iter", ls_max_iter);
-        ls_tol      = j["linesearch_parameters"].value("tol", ls_tol);
-        if (ls_max_iter < 1 || ls_tol <= 0.0)
-            throw std::invalid_argument("linesearch_parameters: max_iter >= 1 and tol > 0 required");
-    }
-
-    problemType = j["problem_type"].get<string>();
-    method      = j["method"].get<string>();
-
-    // Parse strain_type (optional, defaults to "small")
-    if (j.contains("strain_type")) {
-        strain_type = j["strain_type"].get<string>();
-        if (strain_type != "small" && strain_type != "large") {
-            throw std::invalid_argument("strain_type must be either 'small' or 'large'");
-        }
-    } else {
-        strain_type = "small"; // Default to small strain
-    }
-
-    // Parse FE_type (optional, defaults to "HEX8")
-    if (j.contains("FE_type")) {
-        FE_type = j["FE_type"].get<string>();
-        if (FE_type != "HEX8" && FE_type != "HEX8R" && FE_type != "BBAR") {
-            throw std::invalid_argument("FE_type must be one of: 'HEX8', 'HEX8R', or 'BBAR'");
-        }
-    } else {
-        FE_type = "HEX8"; // Default to full integration
-    }
-
-    resultsToWrite = j["results"].get<vector<string>>(); // Read the results_to_write field
-
-    load_cases.clear();
-    const auto &ml = j["macroscale_loading"];
-    if (!ml.is_array())
-        throw std::runtime_error("macroscale_loading must be an array");
-
-    // Determine the size of loading vector based on problem type and strain formulation
-    int n_str;
-    if (problemType == "thermal") {
-        n_str = 3; // Temperature gradient components
-    } else if (strain_type == "large") {
-        n_str = 9; // Deformation gradient components (F11, F12, F13, F21, F22, F23, F31, F32, F33)
-    } else {
-        n_str = 6; // Small strain components (eps11, eps22, eps33, eps12, eps13, eps23)
-    }
-
-    for (const auto &entry : ml) {
-        LoadCase lc;
-        if (entry.is_array()) { // ---------- legacy pure-strain ----------
-            lc.mixed   = false;
-            lc.g0_path = entry.get<vector<vector<double>>>();
-            lc.n_steps = lc.g0_path.size();
-            if (lc.g0_path[0].size() != static_cast<size_t>(n_str))
-                throw std::invalid_argument("Invalid length of loading vector: expected " +
-                                            std::to_string(n_str) + " components but got " +
-                                            std::to_string(lc.g0_path[0].size()));
-        } else { // ---------- mixed BC object ------------
-            lc.mixed   = true;
-            lc.mbc     = MixedBC::from_json(entry, n_str);
-            lc.n_steps = lc.mbc.F_E_path.rows();
-        }
-        load_cases.push_back(std::move(lc));
-    }
-
-    if (world_rank == 0) {
-        printf("# microstructure file name: \t '%s'\n", ms_filename);
-        printf("# microstructure dataset name: \t '%s'\n", ms_datasetname);
-        printf("# strain type: \t %s\n", strain_type.c_str());
-        printf("# problem type: \t %s\n", problemType.c_str());
-        printf("# FE type: \t %s\n", FE_type.c_str());
-        printf(
-            "# FANS error measure: \t %s %s error  \n",
-            errorParameters["type"].get<string>().c_str(),
-            errorParameters["measure"].get<string>().c_str());
-        printf("# FANS Tolerance: \t %10.5e\n", errorParameters["tolerance"].get<double>());
-        printf("# Max iterations: \t %6i\n", n_it);
     }
 }
 
@@ -247,9 +237,7 @@ void Reader ::ReadMS(int hm)
     hid_t   plist_id; /* property list identifier */
     herr_t  status;
 
-    MPI_Comm_rank(communicator, &world_rank);
-    MPI_Comm_size(communicator, &world_size);
-    MPI_Info info = MPI_INFO_NULL;
+    // MPI_Info info = MPI_INFO_NULL;
 
     // Set up file access property list with parallel I/O access
     plist_id = H5Pcreate(H5P_FILE_ACCESS);
