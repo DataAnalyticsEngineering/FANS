@@ -3,6 +3,7 @@
 
 #include "general.h"
 #include "matmodel.h"
+#include "logging.h"
 
 template <int howmany, int n_str>
 Matmodel<howmany, n_str> *createMatmodel(const Reader &reader);
@@ -110,51 +111,49 @@ class MaterialManager {
         compute_reference_stiffness(reader);
 
         // Print detailed information about material configuration for logging
-        if (reader.world_rank == 0) {
-            printf("\n# MaterialManager initialized:\n");
-            printf("#   Number of material models: %zu\n", models.size());
-            printf("#   Number of phases: %d\n#\n", n_phases);
+        Log::io->info() << "\n# MaterialManager initialized:\n";
+        Log::io->info() << Log::format("#   Number of material models: %zu\n", models.size());
+        Log::io->info() << Log::format("#   Number of phases: %d\n#\n", n_phases);
 
-            for (size_t i = 0; i < mats.size(); ++i) {
-                const auto &mg = mats[i];
-                printf("# Material Model %zu: %s\n", i + 1, mg["matmodel"].get<string>().c_str());
+        for (size_t i = 0; i < mats.size(); ++i) {
+            const auto &mg = mats[i];
+            Log::io->info() << Log::format("# Material Model %zu: %s\n", i + 1, mg["matmodel"].get<string>().c_str());
 
-                // Print phases
-                auto phases = mg["phases"].get<vector<int>>();
-                printf("#   Phases: [");
-                for (size_t j = 0; j < phases.size(); ++j) {
-                    printf("%d", phases[j]);
-                    if (j < phases.size() - 1)
-                        printf(", ");
-                }
-                printf("]\n");
-
-                // Print material properties
-                printf("#   Material properties:\n");
-                const auto &props = mg["material_properties"];
-                for (auto it = props.begin(); it != props.end(); ++it) {
-                    printf("#     %s: ", it.key().c_str());
-                    if (it.value().is_array()) {
-                        printf("[");
-                        for (size_t k = 0; k < it.value().size(); ++k) {
-                            if (it.value()[k].is_number()) {
-                                printf("%.5g", it.value()[k].get<double>());
-                            } else if (it.value()[k].is_string()) {
-                                printf("\"%s\"", it.value()[k].get<string>().c_str());
-                            }
-                            if (k < it.value().size() - 1)
-                                printf(", ");
-                        }
-                        printf("]");
-                    } else if (it.value().is_number()) {
-                        printf("%.5g", it.value().get<double>());
-                    } else if (it.value().is_string()) {
-                        printf("\"%s\"", it.value().get<string>().c_str());
-                    }
-                    printf("\n");
-                }
-                printf("#\n");
+            // Print phases
+            auto phases = mg["phases"].get<vector<int>>();
+            Log::io->info() << "#   Phases: [";
+            for (size_t j = 0; j < phases.size(); ++j) {
+                Log::io->info(true) << Log::format("%d", phases[j]);
+                if (j < phases.size() - 1)
+                    Log::io->info(true) << ", ";
             }
+            Log::io->info(true) << "]\n";
+
+            // Print material properties
+            Log::io->info() << "#   Material properties:\n";
+            const auto &props = mg["material_properties"];
+            for (auto it = props.begin(); it != props.end(); ++it) {
+                Log::io->info() << Log::format("#     %s: ", it.key().c_str());
+                if (it.value().is_array()) {
+                    Log::io->info(true) << "[";
+                    for (size_t k = 0; k < it.value().size(); ++k) {
+                        if (it.value()[k].is_number()) {
+                            Log::io->info(true) << Log::format("%.5g", it.value()[k].get<double>());
+                        } else if (it.value()[k].is_string()) {
+                            Log::io->info(true) << Log::format("\"%s\"", it.value()[k].get<string>().c_str());
+                        }
+                        if (k < it.value().size() - 1)
+                            Log::io->info(true) << ", ";
+                    }
+                    Log::io->info(true) << "]";
+                } else if (it.value().is_number()) {
+                    Log::io->info(true) << Log::format("%.5g", it.value().get<double>());
+                } else if (it.value().is_string()) {
+                    Log::io->info(true) << Log::format("\"%s\"", it.value().get<string>().c_str());
+                }
+                Log::io->info(true) << "\n";
+            }
+            Log::io->info() << "#\n";
         }
     }
 
@@ -191,9 +190,7 @@ class MaterialManager {
                 throw std::invalid_argument("reference_material must be symmetric positive definite");
             }
 
-            if (reader.world_rank == 0) {
-                cout << "# Using user-defined reference material for fundamental solution." << endl;
-            }
+            Log::io->info() << "# Using user-defined reference material for fundamental solution.\n";
         } else {
             // Default: simple average of reference stiffness across all material models
             kapparef_mat = Matrix<double, n_str, n_str>::Zero();

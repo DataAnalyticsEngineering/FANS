@@ -2,6 +2,7 @@
 #define SOLVER_CG_H
 
 #include "solver.h"
+#include "logging.h"
 
 template <int howmany, int n_str>
 class SolverCG : public Solver<howmany, n_str> {
@@ -62,8 +63,7 @@ double SolverCG<howmany, n_str>::dotProduct(RealArray &a, RealArray &b)
 template <int howmany, int n_str>
 void SolverCG<howmany, n_str>::internalSolve()
 {
-    if (this->world_rank == 0)
-        printf("\n# Start FANS - Conjugate Gradient Solver \n");
+    Log::solver->info() << "\t# Start FANS - Conjugate Gradient Solver \n";
 
     bool islinear = this->matmanager->all_linear;
     alpha_warm    = 0.1;
@@ -116,8 +116,7 @@ void SolverCG<howmany, n_str>::internalSolve()
         if (iter >= 2 && this->err_all[iter] > this->err_all[iter - 1] && this->err_all[iter - 1] > this->err_all[iter - 2])
             ls_converged = false; // Force a CG restart
     }
-    if (this->world_rank == 0)
-        printf("# Complete FANS - Conjugate Gradient Solver \n");
+    Log::solver->info() << "# Complete FANS - Conjugate Gradient Solver \n";
 }
 
 template <int howmany, int n_str>
@@ -169,8 +168,7 @@ void SolverCG<howmany, n_str>::LineSearchSecant()
         alpha_warm = 0.1;
     }
 
-    if (this->world_rank == 0)
-        printf("line search iter %i, alpha %f - error %e - ", _iter, alpha_curr, fabs(r1pd0) > 0.0 ? fabs(r1pd) / fabs(r1pd0) : 0.0);
+    Log::solver->info() << Log::format("line search iter %i, alpha %f - error %e - ", _iter, alpha_curr, fabs(r1pd0) > 0.0 ? fabs(r1pd) / fabs(r1pd0) : 0.0);
 }
 
 template <int howmany, int n_str>

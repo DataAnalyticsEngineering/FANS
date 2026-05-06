@@ -2,6 +2,7 @@
 #include "matmodel.h"
 #include "setup.h"
 #include "solver.h"
+#include "logging.h"
 
 // Version
 #include "version.h"
@@ -15,17 +16,13 @@ void runSolver(Reader &reader, char input_fn[])
         MaterialManager<howmany, n_str> *matmanager = createMaterialManager<howmany, n_str>(reader);
         Solver<howmany, n_str>          *solver     = createSolver(reader, matmanager);
 
-        if (reader.world_rank == 0) {
-            printf("\n╔════════════════════════════════════════════════════════════ Load case %zu/%zu: %zu time steps ════════════════════════════════════════════════════════════╗\n",
+        Log::general->info(true) << Log::format("\n╔════════════════════════════════════════════════════════════ Load case %zu/%zu: %zu time steps ════════════════════════════════════════════════════════════╗\n",
                    load_path_idx + 1, reader.load_cases.size(), reader.load_cases[load_path_idx].n_steps);
-        }
 
         for (size_t time_step_idx = 0; time_step_idx < reader.load_cases[load_path_idx].n_steps; ++time_step_idx) {
-            if (reader.world_rank == 0) {
-                printf("║   ▶ Time step %zu/%zu (load case %zu/%zu) ◀ \n",
+            Log::general->info(true) << Log::format("║   ▶ Time step %zu/%zu (load case %zu/%zu) ◀ \n",
                        time_step_idx + 1, reader.load_cases[load_path_idx].n_steps,
                        load_path_idx + 1, reader.load_cases.size());
-            }
             if (reader.load_cases[load_path_idx].mixed) {
                 solver->enableMixedBC(reader.load_cases[load_path_idx].mbc, time_step_idx);
             } else {
@@ -39,9 +36,7 @@ void runSolver(Reader &reader, char input_fn[])
         }
         delete solver;
         delete matmanager;
-        if (reader.world_rank == 0) {
-            printf("╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝\n");
-        }
+        Log::general->info(true) << "╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝\n";
     }
 }
 
@@ -59,6 +54,11 @@ int main(int argc, char *argv[])
 
     MPI_Init(NULL, NULL);
     fftw_mpi_init();
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    Log::init(rank, size, MPI_COMM_WORLD);
+    Log::setActiveRank(0);
 
     Reader reader{MPI_COMM_WORLD};
     reader.ReadInputFile(argv[1]);
@@ -75,6 +75,7 @@ int main(int argc, char *argv[])
     }
     reader.CloseResultsFile();
 
+    Log::finalize();
     MPI_Finalize();
     return 0;
 }

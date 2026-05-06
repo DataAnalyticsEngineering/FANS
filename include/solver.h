@@ -3,6 +3,7 @@
 
 #include "matmodel.h"
 #include "MaterialManager.h"
+#include "logging.h"
 
 class J2Plasticity;
 
@@ -133,12 +134,15 @@ Solver<howmany, n_str>::Solver(Reader &reader, MaterialManager<howmany, n_str> *
       rhat((std::complex<double> *) v_r, local_n1 * n_x * (n_z / 2 + 1) * howmany), // actual initialization is below
       buffer_padding(fftw_alloc_real(n_y * (n_z + 2) * howmany))
 {
+    Log::solver->trace() << "Start constructing solver\n";
+
     v_u_real.setZero();
     for (ptrdiff_t i = local_n0 * n_y * n_z * howmany; i < (local_n0 + 1) * n_y * n_z * howmany; i++) {
         this->v_u[i] = 0;
     }
     std::memset(v_u_prev, 0, local_n0 * n_y * n_z * howmany * sizeof(double));
 
+    Log::solver->trace() << "Init internal vars.\n";
     matmanager->initialize_internal_variables(local_n0 * n_y * n_z, matmanager->models[0]->n_gp);
 
     computeFundamentalSolution();
@@ -147,9 +151,7 @@ Solver<howmany, n_str>::Solver(Reader &reader, MaterialManager<howmany, n_str> *
 template <int howmany, int n_str>
 void Solver<howmany, n_str>::computeFundamentalSolution()
 {
-    if (world_rank == 0) {
-        printf("\n# Start creating Fundamental Solution(s) \n");
-    }
+    Log::solver->info() << "\n# Start creating Fundamental Solution(s) \n";
     clock_t tot_time = clock();
 
     Matrix<double, howmany * 8, howmany * 8> Ker0 = matmanager->models[0]->Compute_Reference_ElementStiffness(matmanager->kapparef_mat);
@@ -201,9 +203,7 @@ void Solver<howmany, n_str>::computeFundamentalSolution()
     fundamentalSolution /= (double) (n_x * n_y * n_z);
 
     tot_time = clock() - tot_time;
-    if (world_rank == 0) {
-        printf("# Complete; Time for construction of Fundamental Solution(s): %f seconds\n", double(tot_time) / CLOCKS_PER_SEC);
-    }
+    Log::solver->info() << Log::format("# Complete; Time for construction of Fundamental Solution(s): %f seconds\n", double(tot_time) / CLOCKS_PER_SEC);
 }
 
 template <int howmany, int n_str>
@@ -291,14 +291,11 @@ void Solver<howmany, n_str>::solve()
     clock_t tot_time = clock();
     internalSolve();
     tot_time = clock() - tot_time;
-    // if( VERBOSITY > 5 ){
-    if (world_rank == 0) {
-        printf("# FFT Time per iteration .......   %2.6f sec\n", double(fft_time) / CLOCKS_PER_SEC / iter);
-        printf("# Total FFT Time ...............   %2.6f sec\n", double(fft_time) / CLOCKS_PER_SEC);
-        printf("# Total Time per iteration .....   %2.6f sec\n", double(tot_time) / CLOCKS_PER_SEC / iter);
-        printf("# Total Time ...................   %2.6f sec\n", double(tot_time) / CLOCKS_PER_SEC);
-        printf("# FFT contribution to total time   %2.6f %% \n", 100. * double(fft_time) / double(tot_time));
-    }
+    Log::solver->info() << Log::format("# FFT Time per iteration .......   %2.6f sec\n", double(fft_time) / CLOCKS_PER_SEC / iter);
+    Log::solver->info() << Log::format("# Total FFT Time ...............   %2.6f sec\n", double(fft_time) / CLOCKS_PER_SEC);
+    Log::solver->info() << Log::format("# Total Time per iteration .....   %2.6f sec\n", double(tot_time) / CLOCKS_PER_SEC / iter);
+    Log::solver->info() << Log::format("# Total Time ...................   %2.6f sec\n", double(tot_time) / CLOCKS_PER_SEC);
+    Log::solver->info() << Log::format("# FFT contribution to total time   %2.6f %% \n", 100. * double(fft_time) / double(tot_time));
     matmanager->update_internal_variables();
 }
 
@@ -436,12 +433,10 @@ double Solver<howmany, n_str>::compute_error(RealArray &r)
     double err0    = err_all[0];
     double err_rel = (iter == 0 ? 100 : err / err0);
 
-    if (world_rank == 0) {
-        if (iter == 0) {
-            printf("Before 1st iteration: %16.8e\n", err0);
-        } else {
-            printf("it %3lu .... err %16.8e  / %8.4e, ratio: %4.8e, FFT time: %2.6f sec\n", iter, err, err / err0, (iter == 1 ? 0.0 : err / err_all[iter - 1]), double(buftime) / CLOCKS_PER_SEC);
-        }
+    if (iter == 0) {
+        Log::solver->info() << Log::format("Before 1st iteration: %16.8e\n", err0);
+    } else {
+        Log::solver->info(true) << Log::format("it %3lu .... err %16.8e  / %8.4e, ratio: %4.8e, FFT time: %2.6f sec\n", iter, err, err / err0, (iter == 1 ? 0.0 : err / err_all[iter - 1]), double(buftime) / CLOCKS_PER_SEC);
     }
 
     const std::string &error_type = reader.errorParameters["type"].get<std::string>();
@@ -576,16 +571,14 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
         }
     }
 
-    if (world_rank == 0) {
-        printf("# Effective Stress .. (");
-        for (int i = 0; i < n_str; ++i)
-            printf("%+.12f ", stress_average[i]);
-        printf(") \n");
-        printf("# Effective Strain .. (");
-        for (int i = 0; i < n_str; ++i)
-            printf("%+.12f ", strain_average[i]);
-        printf(") \n\n");
-    }
+    Log::solver->info() << "# Effective Stress .. (";
+    for (int i = 0; i < n_str; ++i)
+        Log::solver->info(true) << Log::format("%+.12f ", stress_average[i]);
+    Log::solver->info(true) << ") \n";
+    Log::solver->info() << "# Effective Strain .. (";
+    for (int i = 0; i < n_str; ++i)
+        Log::solver->info(true) << Log::format("%+.12f ", strain_average[i]);
+    Log::solver->info(true) << ") \n\n";
     homogenized_stress = stress_average;
     homogenized_strain = strain_average;
 
@@ -701,9 +694,9 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
         homogenized_tangent = get_homogenized_tangent(1e-6);
         hsize_t dims[2]     = {static_cast<hsize_t>(n_str), static_cast<hsize_t>(n_str)};
         if (world_rank == 0) {
-            cout << "# Homogenized tangent: " << endl
-                 << setprecision(12) << homogenized_tangent << endl
-                 << endl;
+            Log::solver->info() << "# Homogenized tangent: \n"
+                << std::setprecision(12) << homogenized_tangent
+                << std::defaultfloat << "\n\n";
         }
         reader.writeData("homogenized_tangent", load_idx, time_idx, homogenized_tangent.data(), dims, 2);
     }
