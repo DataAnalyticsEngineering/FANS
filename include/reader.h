@@ -21,6 +21,10 @@ class Reader {
     // Destructor to free allocated memory
     ~Reader();
 
+    // MPI controlls
+    bool     force_single_rank;
+    MPI_Comm communicator;
+
     // contents of input file:
     char             ms_filename[4096]{};    // Name of Micro-structure hdf5 file
     char             ms_datasetname[4096]{}; // Absolute path of Micro-structure in hdf5 file
@@ -64,6 +68,7 @@ class Reader {
 
     // void Setup(ptrdiff_t howmany);
     void ReadInputFile(char input_fn[]);
+    void ReadJson(const json &j);
     void ReadMS(int hm);
     void ComputeVolumeFractions();
     // void ReadHDF5(char file_name[], char dset_name[]);

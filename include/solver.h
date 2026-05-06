@@ -18,6 +18,7 @@ class Solver : private MixedBCController<howmany> {
 
     const int world_rank;
     const int world_size;
+    MPI_Comm  communicator;
 
     const ptrdiff_t n_x, n_y, n_z;
     // NOTE: the order in the declaration is very important because it is the same order in which the later initialization via member initializer lists takes place
@@ -109,6 +110,7 @@ Solver<howmany, n_str>::Solver(Reader &reader, MaterialManager<howmany, n_str> *
       matmanager(matmgr),
       world_rank(reader.world_rank),
       world_size(reader.world_size),
+      communicator(reader.communicator),
       n_x(reader.dims[0]),
       n_y(reader.dims[1]),
       n_z(reader.dims[2]),
@@ -219,8 +221,8 @@ void Solver<howmany, n_str>::CreateFFTWPlans(double *in, fftw_complex *transform
     // But, according to https://fftw.org/doc/MPI-Plan-Creation.html the BLOCK sizes must be the same:
     // "These must be the same block sizes as were passed to the corresponding ‘local_size’ function"
     const ptrdiff_t n[3] = {n_x, n_y, n_z};
-    planfft              = fftw_mpi_plan_many_dft_r2c(rank, n, howmany, iblock, oblock, in, transformed, MPI_COMM_WORLD, FFTW_MEASURE | FFTW_MPI_TRANSPOSED_OUT);
-    planifft             = fftw_mpi_plan_many_dft_c2r(rank, n, howmany, iblock, oblock, transformed, out, MPI_COMM_WORLD, FFTW_MEASURE | FFTW_MPI_TRANSPOSED_IN);
+    planfft              = fftw_mpi_plan_many_dft_r2c(rank, n, howmany, iblock, oblock, in, transformed, communicator, FFTW_MEASURE | FFTW_MPI_TRANSPOSED_OUT);
+    planifft             = fftw_mpi_plan_many_dft_c2r(rank, n, howmany, iblock, oblock, transformed, out, communicator, FFTW_MEASURE | FFTW_MPI_TRANSPOSED_IN);
 
     // see https://eigen.tuxfamily.org/dox/group__TutorialMapClass.html#title3
     new (&rhat) Map<VectorXcd>((std::complex<double> *) transformed, local_n1 * n_x * (n_z / 2 + 1) * howmany);
@@ -243,7 +245,7 @@ void Solver<howmany, n_str>::compute_residual_basic(RealArray &r_matrix, RealArr
     // int MPI_Sendrecv(void *sendbuf, int sendcount, MPI_Datatype sendtype, int dest, int sendtag, void *recvbuf,
     //           int recvcount, MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm, MPI_Status *status)
     MPI_Sendrecv(u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
-                 u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
 
     Matrix<double, howmany * 8, 1> ue;
 
@@ -263,7 +265,7 @@ void Solver<howmany, n_str>::compute_residual_basic(RealArray &r_matrix, RealArr
     });
 
     MPI_Sendrecv(r + local_n0 * n_y * (n_z + padding) * howmany, n_y * (n_z + padding) * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0,
-                 buffer_padding, n_y * (n_z + padding) * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 buffer_padding, n_y * (n_z + padding) * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
 
     RealArray b(buffer_padding, n_z * howmany, n_y, OuterStride<>((n_z + padding) * howmany)); // NOTE: for any padding of more than 2, the buffer_padding has to be extended
 
@@ -428,7 +430,7 @@ double Solver<howmany, n_str>::compute_error(RealArray &r)
     }
 
     double err;
-    MPI_Allreduce(&err_local, &err, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    MPI_Allreduce(&err_local, &err, 1, MPI_DOUBLE, MPI_MAX, communicator);
 
     err_all[iter]  = err;
     double err0    = err_all[0];
@@ -496,7 +498,7 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     vector<int>      phase_counts(n_mat, 0);
 
     MPI_Sendrecv(v_u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
-                 v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
 
     Matrix<double, howmany * 8, 1> ue;
     int                            phase_id;
@@ -556,16 +558,16 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
         });
     }
 
-    MPI_Allreduce(MPI_IN_PLACE, stress_average.data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-    MPI_Allreduce(MPI_IN_PLACE, strain_average.data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, stress_average.data(), n_str, MPI_DOUBLE, MPI_SUM, communicator);
+    MPI_Allreduce(MPI_IN_PLACE, strain_average.data(), n_str, MPI_DOUBLE, MPI_SUM, communicator);
     stress_average /= (n_x * n_y * n_z);
     strain_average /= (n_x * n_y * n_z);
 
     // Reduce per-phase accumulations across all processes
     for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
-        MPI_Allreduce(MPI_IN_PLACE, phase_stress_average[mat_index].data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(MPI_IN_PLACE, phase_strain_average[mat_index].data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(MPI_IN_PLACE, &phase_counts[mat_index], 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(MPI_IN_PLACE, phase_stress_average[mat_index].data(), n_str, MPI_DOUBLE, MPI_SUM, communicator);
+        MPI_Allreduce(MPI_IN_PLACE, phase_strain_average[mat_index].data(), n_str, MPI_DOUBLE, MPI_SUM, communicator);
+        MPI_Allreduce(MPI_IN_PLACE, &phase_counts[mat_index], 1, MPI_INT, MPI_SUM, communicator);
 
         // Compute average for each phase
         if (phase_counts[mat_index] > 0) {
@@ -716,7 +718,7 @@ VectorXd Solver<howmany, n_str>::get_homogenized_stress()
     homogenized_stress = VectorXd::Zero(n_str);
 
     MPI_Sendrecv(v_u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
-                 v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
 
     Matrix<double, howmany * 8, 1> ue;
     int                            phase_id;
@@ -733,7 +735,7 @@ VectorXd Solver<howmany, n_str>::get_homogenized_stress()
         homogenized_stress += stress.segment(n_str * idx[0], n_str);
     });
 
-    MPI_Allreduce(MPI_IN_PLACE, homogenized_stress.data(), n_str, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+    MPI_Allreduce(MPI_IN_PLACE, homogenized_stress.data(), n_str, MPI_DOUBLE, MPI_SUM, communicator);
     homogenized_stress /= (n_x * n_y * n_z);
 
     return homogenized_stress;
