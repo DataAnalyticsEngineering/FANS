@@ -194,6 +194,7 @@ cd ../test
 | `FANS_LIBRARY_FOR_MICRO_MANAGER`     | Build Python bindings using Pybind11 (needed)                                       | `OFF`               |
 | `FANS_ENABLE_SANITIZERS`             | Enable runtime sanitizers (AddressSanitizer and LeakSanitizer) for memory debugging | `OFF`               |
 | `FANS_VERBOSITY`                     | Set to value between 0 (none) and 4 (all)                                           | `3`                 |
+
 ---
 
 ## Python environment for the FANS dashboard
