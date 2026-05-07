@@ -24,10 +24,39 @@ py::array_t<double> merge_arrays(py::array_t<double> array1, py::array_t<double>
     return result;
 }
 
-MicroSimulation::MicroSimulation(int sim_id, char *input_file)
+PyFANSConfig load_config(const std::string &file_path)
+{
+    PyFANSConfig config{};
+
+    try {
+        ifstream i(file_path);
+        json     j;
+        i >> j;
+
+        if (j.contains("no_mpi") && j["no_mpi"].get<bool>())
+            config.disable_mpi = true;
+        // ... more entries
+    } catch (const std::exception &e) {
+        printf("ERROR trying to read config file '%s' for pyFANS: %s\n", file_path.c_str(), e.what());
+        printf("Falling back to default values.\n");
+    }
+
+    return config;
+}
+
+MicroSimulation::MicroSimulation(int sim_id, const std::string &input_file, const std::string &config_file)
 {
     // initialize fftw mpi
     fftw_mpi_init();
+
+    const auto config = load_config(config_file);
+
+    // Avoiding reader re-initialization due to unnecessary buffer copies
+    reader.communicator = MPI_COMM_WORLD;
+    if (config.disable_mpi)
+        reader.communicator = MPI_COMM_SELF;
+    MPI_Comm_rank(reader.communicator, &reader.world_rank);
+    MPI_Comm_size(reader.communicator, &reader.world_size);
 
     // Input file name is hardcoded. TODO: Make it configurable
     reader.ReadInputFile(input_file);

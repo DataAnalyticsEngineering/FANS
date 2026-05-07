@@ -17,6 +17,7 @@ class Reader {
   public:
     // Default constructor
     Reader() = default;
+    Reader(const MPI_Comm &comm);
 
     // Destructor to free allocated memory
     ~Reader();
@@ -53,8 +54,9 @@ class Reader {
     unsigned short *ms{nullptr}; // Micro-structure
     bool            is_zyx = true;
 
-    int world_rank;
-    int world_size;
+    int      world_rank;
+    int      world_size;
+    MPI_Comm communicator;
 
     ptrdiff_t alloc_local;
     ptrdiff_t local_n0;
@@ -63,7 +65,7 @@ class Reader {
     ptrdiff_t local_1_start;
 
     // void Setup(ptrdiff_t howmany);
-    void ReadInputFile(char input_fn[]);
+    void ReadInputFile(const std::string &input_fn);
     void ReadMS(int hm);
     void ComputeVolumeFractions();
     // void ReadHDF5(char file_name[], char dset_name[]);
