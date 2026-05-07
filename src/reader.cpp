@@ -73,7 +73,8 @@ void Reader ::ReadInputFile(const std::string &input_fn)
         ifstream i(input_fn);
         json     j;
         i >> j;
-        inputJson      = j; // Store complete input JSON for MaterialManager
+        inputJson = j; // Store complete input JSON for MaterialManager
+
         microstructure = j["microstructure"];
         std::snprintf(ms_filename, sizeof(ms_filename), "%s", microstructure["filepath"].get<std::string>().c_str());
         // dataset name handling
@@ -236,8 +237,6 @@ void Reader ::ReadMS(int hm)
     hsize_t offset[3];
     hid_t   plist_id; /* property list identifier */
     herr_t  status;
-
-    // MPI_Info info = MPI_INFO_NULL;
 
     // Set up file access property list with parallel I/O access
     plist_id = H5Pcreate(H5P_FILE_ACCESS);

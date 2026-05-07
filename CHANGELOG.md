@@ -2,7 +2,7 @@
 
 ## latest
 
-- Added switching of MPI communicator [#139](https://github.com/DataAnalyticsEngineering/FANS/pull/139)
+- Added MPI communicator abstraction [#139](https://github.com/DataAnalyticsEngineering/FANS/pull/139)
 
 ## v0.6.2
 

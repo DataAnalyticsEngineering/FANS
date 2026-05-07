@@ -22,11 +22,6 @@ class Reader {
     // Destructor to free allocated memory
     ~Reader();
 
-    // MPI
-    int      world_rank;
-    int      world_size;
-    MPI_Comm communicator;
-
     // contents of input file:
     char             ms_filename[4096]{};    // Name of Micro-structure hdf5 file
     char             ms_datasetname[4096]{}; // Absolute path of Micro-structure in hdf5 file
@@ -58,6 +53,10 @@ class Reader {
     vector<double>  L;
     unsigned short *ms{nullptr}; // Micro-structure
     bool            is_zyx = true;
+
+    int      world_rank;
+    int      world_size;
+    MPI_Comm communicator;
 
     ptrdiff_t alloc_local;
     ptrdiff_t local_n0;
