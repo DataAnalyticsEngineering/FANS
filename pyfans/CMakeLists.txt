@@ -9,6 +9,7 @@ set(MicroSimulationSuffix "" CACHE STRING "Optional numeric variant suffix")
 if(MicroSimulationSuffix STREQUAL "")
     set(CLASS_NAME MicroSimulation)
     set(INPUT_NAME input.json)
+    set(CONFIG_NAME pyfans-config.json)
     set(MODULE_NAME PyFANS)
 else()
     if(NOT MicroSimulationSuffix MATCHES "^[0-9]+$")
@@ -17,6 +18,7 @@ else()
 
     set(CLASS_NAME MicroSimulation${MicroSimulationSuffix})
     set(INPUT_NAME input${MicroSimulationSuffix}.json)
+    set(CONFIG_NAME pyfans-config${MicroSimulationSuffix}.json)
     set(MODULE_NAME PyFANS${MicroSimulationSuffix})
     message("Using MicroSimulationSuffix: ${MicroSimulationSuffix}")
 endif()
@@ -26,6 +28,7 @@ target_compile_definitions(PyFANS PRIVATE
         PyFANS_CLASS_NAME=${CLASS_NAME}
         PyFANS_CLASS_NAME_STR="${CLASS_NAME}"
         PyFANS_INPUT_NAME="${INPUT_NAME}"
+        PyFANS_CONFIG_NAME="${CONFIG_NAME}"
         PyFANS_MODULE_NAME=${MODULE_NAME}
 )
 
