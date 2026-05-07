@@ -10,6 +10,13 @@
 #include "H5FDmpi.h"
 #include "H5FDmpio.h"
 
+Reader::Reader(const MPI_Comm &comm)
+    : communicator(comm)
+{
+    MPI_Comm_rank(communicator, &world_rank);
+    MPI_Comm_size(communicator, &world_size);
+}
+
 void Reader::ComputeVolumeFractions()
 {
     unsigned short local_max  = 0;
@@ -29,8 +36,8 @@ void Reader::ComputeVolumeFractions()
 
     // Find the global maximum and minimum material indices
     unsigned short global_max, global_min;
-    MPI_Allreduce(&local_max, &global_max, 1, MPI_UNSIGNED_SHORT, MPI_MAX, MPI_COMM_WORLD);
-    MPI_Allreduce(&local_min, &global_min, 1, MPI_UNSIGNED_SHORT, MPI_MIN, MPI_COMM_WORLD);
+    MPI_Allreduce(&local_max, &global_max, 1, MPI_UNSIGNED_SHORT, MPI_MAX, communicator);
+    MPI_Allreduce(&local_min, &global_min, 1, MPI_UNSIGNED_SHORT, MPI_MIN, communicator);
 
     // Calculate total number of materials
     n_mat = global_max - global_min + 1;
@@ -52,7 +59,7 @@ void Reader::ComputeVolumeFractions()
 
     for (int i = 0; i < n_mat; i++) {
         long vf;
-        MPI_Allreduce(&(vol_frac[i]), &vf, 1, MPI_LONG, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(&(vol_frac[i]), &vf, 1, MPI_LONG, MPI_SUM, communicator);
         v_frac[i] = double(vf) / double(dims[0] * dims[1] * dims[2]);
         if (world_rank == 0)
             printf("# material %4u    vol. frac. %10.4f%%  \n",
@@ -60,13 +67,9 @@ void Reader::ComputeVolumeFractions()
     }
 }
 
-void Reader ::ReadInputFile(char input_fn[])
+void Reader ::ReadInputFile(const std::string &input_fn)
 {
     try {
-
-        MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-        MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-
         ifstream i(input_fn);
         json     j;
         i >> j;
@@ -175,9 +178,8 @@ void Reader ::ReadInputFile(char input_fn[])
             printf("# FANS Tolerance: \t %10.5e\n", errorParameters["tolerance"].get<double>());
             printf("# Max iterations: \t %6i\n", n_it);
         }
-
     } catch (const std::exception &e) {
-        fprintf(stderr, "ERROR trying to read input file '%s' for FANS: %s\n", input_fn, e.what());
+        fprintf(stderr, "ERROR trying to read input file '%s' for FANS: %s\n", input_fn.c_str(), e.what());
         exit(10);
     }
 }
@@ -235,10 +237,6 @@ void Reader ::ReadMS(int hm)
     hsize_t offset[3];
     hid_t   plist_id; /* property list identifier */
     herr_t  status;
-
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
-    MPI_Info info = MPI_INFO_NULL;
 
     // Set up file access property list with parallel I/O access
     plist_id = H5Pcreate(H5P_FILE_ACCESS);
@@ -324,11 +322,11 @@ void Reader ::ReadMS(int hm)
       ptrdiff_t *local_n1, ptrdiff_t *local_1_start);		\
     */
 
-    alloc_local = fftw_mpi_local_size_many_transposed(rank, n, hm, block0, block1, MPI_COMM_WORLD, &local_n0, &local_0_start, &local_n1, &local_1_start);
+    alloc_local = fftw_mpi_local_size_many_transposed(rank, n, hm, block0, block1, communicator, &local_n0, &local_0_start, &local_n1, &local_1_start);
 
     if (local_n0 < 4)
         throw std::runtime_error("[ FANS3D_Grid ] ERROR: Number of voxels in x-direction is less than 4 in process " + to_string(world_rank));
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(communicator);
 
     hsize_t fcount[3], foffset[3];
     if (is_zyx) {              /* file layout  Z Y X */
@@ -415,7 +413,7 @@ void Reader::OpenResultsFile(const char *output_fn)
 {
     std::snprintf(results_filename, sizeof(results_filename), "%s", output_fn);
     hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
-    H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, MPI_INFO_NULL);
+    H5Pset_fapl_mpio(plist_id, communicator, MPI_INFO_NULL);
     results_file_id = H5Fcreate(results_filename, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
     H5Pclose(plist_id);
 

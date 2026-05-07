@@ -19,7 +19,7 @@ namespace py = pybind11;
 
 class MicroSimulation {
   public:
-    MicroSimulation(int sim_id, char *input_file = "input.json");
+    MicroSimulation(int sim_id, const std::string &input_file = "input.json", const std::string &config_file = "pyfans-config.json");
     py::dict solve(py::dict macro_write_data, double dt);
 
   private:
@@ -29,4 +29,8 @@ class MicroSimulation {
     MaterialManager<3, 6> *matmanager;
     Solver<3, 6>          *solver;
     double                 pert_param = 1e-6; // scalar strain perturbation parameter
+};
+
+struct PyFANSConfig {
+    bool disable_mpi = false;
 };

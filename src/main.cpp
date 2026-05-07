@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     MPI_Init(NULL, NULL);
     fftw_mpi_init();
 
-    Reader reader;
+    Reader reader{MPI_COMM_WORLD};
     reader.ReadInputFile(argv[1]);
     reader.OpenResultsFile(argv[2]);
 

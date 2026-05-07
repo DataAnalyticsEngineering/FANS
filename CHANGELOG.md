@@ -3,6 +3,7 @@
 ## latest
 
 - Bugfix: mem-leak while reading microstructure and added wider CMake support [#140](https://github.com/DataAnalyticsEngineering/FANS/pull/140)
+- Added MPI communicator abstraction [#139](https://github.com/DataAnalyticsEngineering/FANS/pull/139)
 
 ## v0.6.2
 
