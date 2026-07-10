@@ -16,6 +16,7 @@ def pytest_addoption(parser):
         "test_J2Plasticity",
         "test_LinearElastic",
         "test_LinearThermal",
+        "test_GBDiffusion",
         "test_PseudoPlastic",
         "test_MixedBCs",
         "test_CompressibleNeoHookean",

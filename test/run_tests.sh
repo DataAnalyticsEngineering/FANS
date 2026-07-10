@@ -23,6 +23,7 @@ FANS_TEST_CASES=(
     # "J2Plasticity"
     # "LinearElastic"
     # "LinearThermal"
+    # "GBDiffusion"
     # "PseudoPlastic"
     # "MixedBCs"
     # "CompressibleNeoHookean"

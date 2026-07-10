@@ -22,7 +22,7 @@ jobs:
     steps:
 
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Generate build directory
       run: mkdir -p ${{ env.FANS_BUILD_DIR }}
@@ -41,7 +41,7 @@ jobs:
       run: |
         python3 -m venv .venv
         . .venv/bin/activate
-        pip install micro-manager-precice
+        pip install micro-manager-precice==0.8.0
 
     - name: Configure
       working-directory: ${{ env.FANS_BUILD_DIR }}

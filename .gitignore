@@ -199,10 +199,12 @@ test/input_files/**/*.json
 
 # Test microstructure files
 !sphere32.h5
+!diamond_GB.h5
 
 # Test input files
 !test_LinearElastic.json
 !test_LinearThermal.json
+!test_GBDiffusion.json
 !test_PseudoPlastic.json
 !test_J2Plasticity.json
 !test_MixedBCs.json
