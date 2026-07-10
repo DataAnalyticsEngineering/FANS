@@ -24,9 +24,9 @@
  *   - Provides visualization of grain boundary normals in post-processing
  *
  * Required material parameters in JSON format:
- *   - GB_unformity: Boolean flag for uniform GB properties
+ *   - GB_uniformity: Boolean flag for uniform GB properties
  *
- *   When GB_unformity is true (uniform properties):
+ *   When GB_uniformity is true (uniform properties):
  *   {
  *     "GB_unformity": true,
  *     "D_bulk": 1.0,        // Isotropic diffusion coefficient for all crystals
@@ -69,13 +69,13 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
                 GBnormals[(tag) * 3 + 1] = normal[1].get<double>();
                 GBnormals[(tag) * 3 + 2] = normal[2].get<double>();
             }
-            GB_unformity = reader.materialProperties["GB_unformity"].get<bool>();
+            GB_uniformity = reader.materialProperties["GB_uniformity"].get<bool>();
 
             D_bulk.resize(n_mat, 0.0);
             D_par.resize(n_mat, 0.0);
             D_perp.resize(n_mat, 0.0);
 
-            if (GB_unformity) {
+            if (GB_uniformity) {
                 double bulk_val = reader.materialProperties["D_bulk"].get<double>();
                 double par_val  = reader.materialProperties["D_par"].get<double>();
                 double perp_val = reader.materialProperties["D_perp"].get<double>();
@@ -187,7 +187,7 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
   private:
     int  num_crystals = 0;
     int  num_GB       = 0;
-    bool GB_unformity;
+    bool GB_uniformity;
 
     vector<double> D_bulk;
     vector<double> D_par;

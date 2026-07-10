@@ -260,6 +260,8 @@ class MaterialManager {
         temp_reader.method      = base_reader.method;
         temp_reader.l_e         = base_reader.l_e;
         temp_reader.dims        = base_reader.dims;
+        std::snprintf(temp_reader.ms_filename, sizeof(temp_reader.ms_filename), "%s", base_reader.ms_filename);
+        std::snprintf(temp_reader.ms_datasetname, sizeof(temp_reader.ms_datasetname), "%s", base_reader.ms_datasetname);
 
         // Override material properties and n_mat for this specific material group
         temp_reader.materialProperties = mat_group["material_properties"];
