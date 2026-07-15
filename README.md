@@ -7,6 +7,7 @@
   <a href="https://anaconda.org/conda-forge/fans"><img src="https://anaconda.org/conda-forge/fans/badges/platforms.svg" alt="Anaconda-Server Badge"></a>
   <a href="https://github.com/DataAnalyticsEngineering/FANS/actions"><img src="https://github.com/DataAnalyticsEngineering/FANS/workflows/Build%20and%20test%20pixi-build/badge.svg" alt="Build and test pixi-build"></a>
   <a href="https://anaconda.org/conda-forge/fans"><img src="https://anaconda.org/conda-forge/fans/badges/downloads.svg" alt="Anaconda-Server Badge"></a>
+  <a href="https://deepwiki.com/DataAnalyticsEngineering/FANS"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
   <a href="https://prefix.dev/channels/conda-forge/packages/fans"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json" alt="Pixi Badge"></a>
   <img src="https://img.shields.io/github/last-commit/DataAnalyticsEngineering/FANS" alt="Last commit">
   <a href="https://github.com/DataAnalyticsEngineering/FANS/blob/main/LICENSE"><img src="https://img.shields.io/github/license/DataAnalyticsEngineering/FANS" alt="License"></a>

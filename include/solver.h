@@ -592,14 +592,15 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     /* ====================================================================== *
      *  u_total = g0·X  +  ũ          (vector or scalar, decided at compile time)
      * ====================================================================== */
-    const double     dx  = reader.l_e[0];
-    const double     dy  = reader.l_e[1];
-    const double     dz  = reader.l_e[2];
-    const double     Lx2 = reader.L[0] / 2.0;
-    const double     Ly2 = reader.L[1] / 2.0;
-    const double     Lz2 = reader.L[2] / 2.0;
-    constexpr double rs2 = 0.7071067811865475; // 1.0 / std::sqrt(2.0)
-    VectorXd         u_total(local_n0 * n_y * n_z * howmany);
+    const vector<double> &ml  = matmanager->models[0]->macroscale_loading;
+    const double          dx  = reader.l_e[0];
+    const double          dy  = reader.l_e[1];
+    const double          dz  = reader.l_e[2];
+    const double          Lx2 = reader.L[0] / 2.0;
+    const double          Ly2 = reader.L[1] / 2.0;
+    const double          Lz2 = reader.L[2] / 2.0;
+    constexpr double      rs2 = 0.7071067811865475; // 1.0 / std::sqrt(2.0)
+    VectorXd              u_total(local_n0 * n_y * n_z * howmany);
     /* ---------- single sweep ------------------------------------------------- */
     ptrdiff_t n = 0;
     for (ptrdiff_t ix = 0; ix < local_n0; ++ix) {
@@ -610,13 +611,13 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
                 const double z = iz * dz - Lz2;
                 if (howmany == 3) { /* ===== mechanics (vector) ===== */
                     if constexpr (n_str == 6) {
-                        /* Small strain: strain_average contains 6 Voigt components */
-                        const double    g11 = strain_average[0];
-                        const double    g22 = strain_average[1];
-                        const double    g33 = strain_average[2];
-                        const double    g12 = strain_average[3] * rs2;
-                        const double    g13 = strain_average[4] * rs2;
-                        const double    g23 = strain_average[5] * rs2;
+                        /* Small strain: ml holds 6 Mandel components of the mean strain */
+                        const double    g11 = ml[0];
+                        const double    g22 = ml[1];
+                        const double    g33 = ml[2];
+                        const double    g12 = ml[3] * rs2;
+                        const double    g13 = ml[4] * rs2;
+                        const double    g23 = ml[5] * rs2;
                         const double    ux  = g11 * x + g12 * y + g13 * z;
                         const double    uy  = g12 * x + g22 * y + g23 * z;
                         const double    uz  = g13 * x + g23 * y + g33 * z;
@@ -625,16 +626,16 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
                         u_total[b + 1]      = v_u[b + 1] + uy;
                         u_total[b + 2]      = v_u[b + 2] + uz;
                     } else if constexpr (n_str == 9) {
-                        /* Large strain: strain_average contains 9 components of F */
-                        const double F11 = strain_average[0];
-                        const double F12 = strain_average[1];
-                        const double F13 = strain_average[2];
-                        const double F21 = strain_average[3];
-                        const double F22 = strain_average[4];
-                        const double F23 = strain_average[5];
-                        const double F31 = strain_average[6];
-                        const double F32 = strain_average[7];
-                        const double F33 = strain_average[8];
+                        /* Large strain: ml holds 9 components of the mean deformation gradient F */
+                        const double F11 = ml[0];
+                        const double F12 = ml[1];
+                        const double F13 = ml[2];
+                        const double F21 = ml[3];
+                        const double F22 = ml[4];
+                        const double F23 = ml[5];
+                        const double F31 = ml[6];
+                        const double F32 = ml[7];
+                        const double F33 = ml[8];
                         // u = (F - I) * X
                         const double    ux = (F11 - 1.0) * x + F12 * y + F13 * z;
                         const double    uy = F21 * x + (F22 - 1.0) * y + F23 * z;
@@ -645,10 +646,7 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
                         u_total[b + 2]     = v_u[b + 2] + uz;
                     }
                 } else { /* ===== scalar (howmany==1) ==== */
-                    const double g1 = strain_average[0];
-                    const double g2 = strain_average[1];
-                    const double g3 = strain_average[2];
-                    u_total[n]      = v_u[n] + (g1 * x + g2 * y + g3 * z);
+                    u_total[n] = v_u[n] + (ml[0] * x + ml[1] * y + ml[2] * z);
                 }
             }
         }
