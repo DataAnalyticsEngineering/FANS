@@ -2,6 +2,7 @@
 
 ## latest
 
+- Added large strain support for pyFANS [#141](https://github.com/DataAnalyticsEngineering/FANS/pull/141)
 - Bugfix: fixes GBDiffusion post MaterialManager update and adds a test case [#147](https://github.com/DataAnalyticsEngineering/FANS/pull/147)
 - Bugfix: mem-leak while reading microstructure and added wider CMake support [#140](https://github.com/DataAnalyticsEngineering/FANS/pull/140)
 - Added MPI communicator abstraction [#139](https://github.com/DataAnalyticsEngineering/FANS/pull/139)

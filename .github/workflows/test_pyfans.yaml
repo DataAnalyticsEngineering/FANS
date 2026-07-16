@@ -41,7 +41,7 @@ jobs:
       run: |
         python3 -m venv .venv
         . .venv/bin/activate
-        pip install micro-manager-precice==0.8.0
+        pip install micro-manager-precice
 
     - name: Configure
       working-directory: ${{ env.FANS_BUILD_DIR }}
