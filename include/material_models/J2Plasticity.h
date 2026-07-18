@@ -6,6 +6,11 @@
 
 class J2Plasticity : public SmallStrainMechModel {
   public:
+    struct YieldStressResponse {
+        double value;
+        double derivative;
+    };
+
     J2Plasticity(const Reader &reader)
         : SmallStrainMechModel(reader)
     {
@@ -17,19 +22,20 @@ class J2Plasticity : public SmallStrainMechModel {
             H             = reader.materialProperties["kinematic_hardening_parameter"].get<vector<double>>(); // Kinematic hardening parameter
             eta           = reader.materialProperties["viscosity"].get<vector<double>>();                     // Viscosity parameter
             dt            = reader.materialProperties["time_step"].get<double>();                             // Time step
-        } catch (const std::out_of_range &e) {
-            throw std::runtime_error("Missing material properties for the requested material model.");
+        } catch (const std::exception &e) {
+            throw std::runtime_error("Missing or invalid material properties for J2Plasticity.");
         }
         n_mat = bulk_modulus.size();
+        if (n_mat == 0 || shear_modulus.size() != n_mat || yield_stress.size() != n_mat ||
+            K.size() != n_mat || H.size() != n_mat || eta.size() != n_mat)
+            throw std::runtime_error("Inconsistent J2Plasticity material-property sizes.");
 
-        // Allocate the member matrices/vectors for performance optimization
-        sqrt_two_over_three = sqrt(2.0 / 3.0);
-        sigma_trial_n1.setZero();
-        dev.setZero();
-        qbar_trial_n1.setZero();
-        n.setZero();
-        eps_elastic.setZero();
-        dev_minus_qbar.setZero();
+        if (dt <= 0.0)
+            throw std::runtime_error("J2Plasticity requires time_step > 0.");
+
+        lambda.resize(n_mat);
+        for (int m = 0; m < n_mat; ++m)
+            lambda[m] = bulk_modulus[m] - two_thirds * shear_modulus[m];
     }
 
     /**
@@ -44,78 +50,106 @@ class J2Plasticity : public SmallStrainMechModel {
      *
      * @note Variables with the suffix '_t' represent values from the previous time step.
      */
-    virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) override
+    void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) override
     {
+        const ptrdiff_t num_states = num_elements * num_gauss_points;
         // Initialize plastic strain and other internal variables
-        plasticStrain.resize(num_elements, Matrix<double, 6, Dynamic>::Zero(6, num_gauss_points));
-        plasticStrain_t.resize(num_elements, Matrix<double, 6, Dynamic>::Zero(6, num_gauss_points));
-        psi.resize(num_elements, VectorXd::Zero(num_gauss_points));
-        psi_t.resize(num_elements, VectorXd::Zero(num_gauss_points));
-        psi_bar.resize(num_elements, Matrix<double, 6, Dynamic>::Zero(6, num_gauss_points));
-        psi_bar_t.resize(num_elements, Matrix<double, 6, Dynamic>::Zero(6, num_gauss_points));
+        plasticStrain.setZero(6, num_states);
+        plasticStrain_t.setZero(6, num_states);
+        q.setZero(num_states);
+        q_t.setZero(num_states);
+        alpha.setZero(6, num_states);
+        alpha_t.setZero(6, num_states);
     }
 
-    virtual void updateInternalVariables() override
+    void updateInternalVariables() override
     {
-        plasticStrain_t = plasticStrain;
-        psi_t           = psi;
-        psi_bar_t       = psi_bar;
+        plasticStrain.swap(plasticStrain_t);
+        q.swap(q_t);
+        alpha.swap(alpha_t);
     }
 
     void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override
     {
-        // Elastic Predictor
-        eps_elastic = eps.block<6, 1>(i, 0) - plasticStrain_t[element_idx].col(i / 6);
-        treps       = eps_elastic.head<3>().sum();
+        const int                  gp        = i / 6;
+        const ptrdiff_t            state_idx = element_idx * n_gp + gp;
+        const double               G         = shear_modulus[mat_index];
+        const Matrix<double, 6, 1> e         = eps.segment<6>(i);
+        const Matrix<double, 6, 1> ep_in     = plasticStrain_t.col(state_idx);
+        const Matrix<double, 6, 1> alpha_in  = alpha_t.col(state_idx);
+        const double               q_in      = q_t(state_idx);
 
-        // Compute trial stress
-        sigma_trial_n1.head<3>().setConstant((bulk_modulus[mat_index] - 2.0 * shear_modulus[mat_index] / 3.0) * treps);
-        sigma_trial_n1.head<3>() += 2 * shear_modulus[mat_index] * eps_elastic.head<3>();
-        sigma_trial_n1.tail<3>() = 2 * shear_modulus[mat_index] * eps_elastic.tail<3>();
+        // Elastic trial stress
+        const Matrix<double, 6, 1> ee_t = e - ep_in;
+        Matrix<double, 6, 1>       s    = 2.0 * G * ee_t;
+        s.head<3>().array() += lambda[mat_index] * ee_t.head<3>().sum();
 
-        // Deviatoric stress and norm
-        dev = sigma_trial_n1;
-        dev.head<3>().array() -= sigma_trial_n1.head<3>().mean();
+        // Shifted trial deviatoric stress
+        Matrix<double, 6, 1> xi_t = s - alpha_in;
+        xi_t.head<3>().array() -= s.head<3>().mean();
 
-        // Compute trial q and q_bar
-        q_trial_n1    = compute_q_trial(psi_t[element_idx](i / 6), mat_index);
-        qbar_trial_n1 = -(2.0 / 3.0) * H[mat_index] * psi_bar_t[element_idx].col(i / 6);
+        const YieldStressResponse yield       = compute_yield_stress(q_in, mat_index);
+        const double              tolerance   = 1e-12 * std::max(1.0, yield.value);
+        const double              yield_limit = c23 * yield.value + tolerance;
+        const double              xi_norm_sq  = xi_t.squaredNorm();
 
-        // Calculate the trial yield function
-        dev_minus_qbar      = dev - qbar_trial_n1;
-        norm_dev_minus_qbar = dev_minus_qbar.norm();
-
-        // Avoid division by zero
-        if (norm_dev_minus_qbar < 1e-12) {
-            n.setZero();
-        } else {
-            n = dev_minus_qbar / norm_dev_minus_qbar;
+        // Elastic step
+        if (xi_norm_sq <= yield_limit * yield_limit) {
+            plasticStrain.col(state_idx) = ep_in;
+            q(state_idx)                 = q_in;
+            alpha.col(state_idx)         = alpha_in;
+            sigma.segment<6>(i)          = s;
+            return;
         }
 
-        f_trial = norm_dev_minus_qbar - sqrt_two_over_three * (yield_stress[mat_index] - q_trial_n1);
+        // Plastic step
+        const double               xi_norm = std::sqrt(xi_norm_sq);
+        const double               phi     = xi_norm - c23 * yield.value; // Trial Von-Mises yield function: phi = ||xi_trial|| - sqrt(2/3) sigma_y
+        const Matrix<double, 6, 1> n       = xi_t / xi_norm;
+        const double               dgamma  = compute_gamma(phi, q_in, yield, mat_index);
 
-        // Compute plastic multiplier
-        gamma_n1 = (f_trial < 0) ? 0 : compute_gamma(f_trial, mat_index, i, element_idx);
+        s -= 2.0 * G * dgamma * n;
 
-        // Update stress and internal variables
-        sigma_trial_n1 -= gamma_n1 * 2 * shear_modulus[mat_index] * n;
-        plasticStrain[element_idx].col(i / 6) = plasticStrain_t[element_idx].col(i / 6) + gamma_n1 * n;
-        psi[element_idx](i / 6) += gamma_n1 * sqrt_two_over_three;
-        psi_bar[element_idx].col(i / 6) -= gamma_n1 * n;
+        plasticStrain.col(state_idx) = ep_in + dgamma * n;
+        q(state_idx)                 = q_in + c23 * dgamma;
+        alpha.col(state_idx)         = alpha_in + two_thirds * H[mat_index] * dgamma * n;
 
-        // Assign final stress
-        sigma.block<6, 1>(i, 0) = sigma_trial_n1;
+        sigma.segment<6>(i) = s;
     }
 
-    // Virtual methods for derived classes to implement different behaviors
-    virtual double compute_q_trial(double psi_val, int mat_index)                             = 0;
-    virtual double compute_gamma(double f_trial, int mat_index, int i, ptrdiff_t element_idx) = 0;
+    virtual YieldStressResponse compute_yield_stress(double q, int mat_index) const = 0;
+
+    double compute_gamma(double phi, double q_in, const YieldStressResponse &yield_response_in, int mat_index) const
+    {
+        const double D                   = 2.0 * shear_modulus[mat_index] + two_thirds * H[mat_index] + eta[mat_index] / dt;
+        const double initial_denominator = D + two_thirds * yield_response_in.derivative;
+        const double residual_tolerance  = 1e-12 * std::max(1.0, std::max(std::abs(phi), std::abs(yield_response_in.value)));
+        const int    max_iterations      = 50;
+
+        double dgamma = phi / initial_denominator;
+        int    iter   = 0;
+
+        while (iter < max_iterations) {
+            const double              q_new              = q_in + c23 * dgamma;
+            const YieldStressResponse yield_response_new = compute_yield_stress(q_new, mat_index);
+            const double              residual           = phi - D * dgamma - c23 * (yield_response_new.value - yield_response_in.value);
+
+            if (std::abs(residual) <= residual_tolerance)
+                return dgamma;
+
+            const double derivative = -D - two_thirds * yield_response_new.derivative;
+            dgamma -= residual / derivative;
+            ++iter;
+        }
+
+        throw std::runtime_error("J2Plasticity return mapping did not converge.");
+    }
 
     Matrix<double, 6, 6> get_reference_stiffness() const override
     {
         const double Kbar      = std::accumulate(bulk_modulus.begin(), bulk_modulus.end(), 0.0) / static_cast<double>(n_mat);
         const double Gbar      = std::accumulate(shear_modulus.begin(), shear_modulus.end(), 0.0) / static_cast<double>(n_mat);
-        const double lambdabar = Kbar - 2.0 * Gbar / 3.0;
+        const double lambdabar = Kbar - two_thirds * Gbar;
 
         Matrix<double, 6, 6> kappa_ref = Matrix<double, 6, 6>::Zero();
         kappa_ref.topLeftCorner(3, 3).setConstant(lambdabar);
@@ -130,32 +164,22 @@ class J2Plasticity : public SmallStrainMechModel {
     vector<double> bulk_modulus;
     vector<double> shear_modulus;
     vector<double> yield_stress;
-    vector<double> K;   // Isotropic hardening parameter
-    vector<double> H;   // Kinematic hardening parameter
-    vector<double> eta; // Viscosity parameter
-    double         dt;  // Time step
+    vector<double> K;      // Isotropic hardening parameter
+    vector<double> H;      // Kinematic hardening parameter
+    vector<double> eta;    // Viscosity parameter
+    vector<double> lambda; // First Lame parameter
+    double         dt;     // Time step
 
     // Internal variables
-    vector<Matrix<double, 6, Dynamic>> plasticStrain;
-    vector<Matrix<double, 6, Dynamic>> plasticStrain_t;
-    vector<VectorXd>                   psi;
-    vector<VectorXd>                   psi_t;
-    vector<Matrix<double, 6, Dynamic>> psi_bar;
-    vector<Matrix<double, 6, Dynamic>> psi_bar_t;
+    Matrix<double, 6, Dynamic> plasticStrain;
+    Matrix<double, 6, Dynamic> plasticStrain_t;
+    VectorXd                   q;
+    VectorXd                   q_t;
+    Matrix<double, 6, Dynamic> alpha;
+    Matrix<double, 6, Dynamic> alpha_t;
 
-    // Preallocated member variables for reuse
-    Matrix<double, 6, 1> sigma_trial_n1;
-    Matrix<double, 6, 1> dev;
-    Matrix<double, 6, 1> qbar_trial_n1;
-    Matrix<double, 6, 1> n;
-    Matrix<double, 6, 1> eps_elastic;
-    double               treps;
-    double               q_trial_n1;
-    double               f_trial;
-    Matrix<double, 6, 1> dev_minus_qbar;
-    double               norm_dev_minus_qbar;
-    double               gamma_n1;
-    double               sqrt_two_over_three;
+    static constexpr double c23        = 0.81649658092772603273;
+    static constexpr double two_thirds = 2.0 / 3.0;
 };
 
 // Derived Class Linear Isotropic Hardening
@@ -166,14 +190,9 @@ class J2ViscoPlastic_LinearIsotropicHardening : public J2Plasticity {
     {
     }
 
-    double compute_q_trial(double psi_val, int mat_index) override
+    YieldStressResponse compute_yield_stress(double q, int mat_index) const override
     {
-        return -K[mat_index] * psi_val;
-    }
-
-    double compute_gamma(double f_trial, int mat_index, int i, ptrdiff_t element_idx) override
-    {
-        return f_trial / (2 * shear_modulus[mat_index] + (2.0 / 3.0) * (K[mat_index] + H[mat_index]) + eta[mat_index] / dt);
+        return {yield_stress[mat_index] + K[mat_index] * q, K[mat_index]};
     }
 };
 
@@ -184,141 +203,103 @@ class J2ViscoPlastic_NonLinearIsotropicHardening : public J2Plasticity {
         : J2Plasticity(reader)
     {
         try {
-            sigma_inf = reader.materialProperties["saturation_stress"].get<vector<double>>();   // Saturation stress
-            delta     = reader.materialProperties["saturation_exponent"].get<vector<double>>(); // Saturation exponent
-        } catch (const std::out_of_range &e) {
-            throw std::runtime_error("Missing material properties for the requested material model.");
+            sigma_inf = reader.materialProperties["saturation_stress"].get<vector<double>>();
+            delta     = reader.materialProperties["saturation_exponent"].get<vector<double>>();
+        } catch (const std::exception &e) {
+            throw std::runtime_error("Missing or invalid nonlinear J2Plasticity properties.");
         }
 
-        // Precompute constants for optimization
-        denominator.resize(n_mat);
-        sigma_diff.resize(n_mat);
-        for (size_t i = 0; i < n_mat; ++i) {
-            denominator[i] = 2 * shear_modulus[i] + (2.0 / 3.0) * (K[i] + H[i]) + eta[i] / dt;
-            sigma_diff[i]  = sqrt_two_over_three * (sigma_inf[i] - yield_stress[i]);
-        }
+        if (sigma_inf.size() != static_cast<size_t>(n_mat) ||
+            delta.size() != static_cast<size_t>(n_mat))
+            throw std::runtime_error("Nonlinear J2Plasticity property vectors have invalid size.");
     }
 
-    double compute_q_trial(double psi_val, int mat_index) override
+    YieldStressResponse compute_yield_stress(double q, int mat_index) const override
     {
-        return -K[mat_index] * psi_val - (sigma_inf[mat_index] - yield_stress[mat_index]) * (1 - exp(-delta[mat_index] * psi_val));
-    }
+        const double A           = sigma_inf[mat_index] - yield_stress[mat_index];
+        const double exponential = std::exp(-delta[mat_index] * q);
 
-    double compute_gamma(double f_trial, int mat_index, int i, ptrdiff_t element_idx) override
-    {
-        gamma_n1  = 0;
-        gamma_inc = 1;
-        NR_iter   = 0;
-        while (gamma_inc > NR_tol && NR_iter < NR_max_iter) {
-            g = f_trial - gamma_n1 * denominator[mat_index] -
-                sigma_diff[mat_index] *
-                    (-exp(-delta[mat_index] * (psi_t[element_idx](i / 6) + sqrt_two_over_three * gamma_n1)) + exp(-delta[mat_index] * psi_t[element_idx](i / 6)));
-            dg = -denominator[mat_index] -
-                 (2 / 3) * (sigma_inf[mat_index] - yield_stress[mat_index]) * delta[mat_index] * exp(-delta[mat_index] * (psi_t[element_idx](i / 6) + sqrt_two_over_three * gamma_n1));
-            gamma_inc = -g / dg;
-            gamma_n1 += gamma_inc;
-            NR_iter++;
-        }
-        return gamma_n1;
+        return {yield_stress[mat_index] + K[mat_index] * q + A * (1.0 - exponential),
+                K[mat_index] + A * delta[mat_index] * exponential};
     }
 
   protected:
     // Material properties
     vector<double> sigma_inf; // Saturation stress
     vector<double> delta;     // Saturation exponent
-  private:
-    // Newton-Raphson parameters
-    double NR_tol      = 1e-10;
-    int    NR_max_iter = 10;
-    int    NR_iter;
-
-    // Preallocated member variables for reuse
-    double gamma_inc;
-    double g;
-    double dg;
-
-    // Precomputed constants
-    vector<double> denominator; // 2 * mu + H * (2/3) + eta/dt
-    vector<double> sigma_diff;  // sqrt(2/3) * (sigma_inf - yield_stress)
 };
 
 inline void J2Plasticity::postprocess(Solver<3, 6> &solver, Reader &reader, int load_idx, int time_idx)
 {
-    int n_str = 6;
-    int n_gp  = plasticStrain_t[0].cols();
+    const int       n_str  = 6;
+    const ptrdiff_t n_elem = solver.local_n0 * solver.n_y * solver.n_z;
 
     // Check what user requested
-    auto &results                = reader.resultsToWrite;
-    bool  need_plastic_strain    = std::find(results.begin(), results.end(), "plastic_strain") != results.end();
-    bool  need_plastic_strain_gp = std::find(results.begin(), results.end(), "plastic_strain_gp") != results.end();
-    bool  need_iso_hard          = std::find(results.begin(), results.end(), "isotropic_hardening_variable") != results.end();
-    bool  need_iso_hard_gp       = std::find(results.begin(), results.end(), "isotropic_hardening_variable_gp") != results.end();
-    bool  need_kin_hard          = std::find(results.begin(), results.end(), "kinematic_hardening_variable") != results.end();
-    bool  need_kin_hard_gp       = std::find(results.begin(), results.end(), "kinematic_hardening_variable_gp") != results.end();
+    auto      &results                = reader.resultsToWrite;
+    const bool need_plastic_strain    = std::find(results.begin(), results.end(), "plastic_strain") != results.end();
+    const bool need_plastic_strain_gp = std::find(results.begin(), results.end(), "plastic_strain_gp") != results.end();
+    const bool need_iso_hard          = std::find(results.begin(), results.end(), "isotropic_hardening_variable") != results.end();
+    const bool need_iso_hard_gp       = std::find(results.begin(), results.end(), "isotropic_hardening_variable_gp") != results.end();
+    const bool need_kin_hard          = std::find(results.begin(), results.end(), "kinematic_hardening_variable") != results.end();
+    const bool need_kin_hard_gp       = std::find(results.begin(), results.end(), "kinematic_hardening_variable_gp") != results.end();
 
-    // Conditional allocation
-    VectorXd *plastic_strain_elem = need_plastic_strain ? new VectorXd(solver.local_n0 * solver.n_y * solver.n_z * n_str) : nullptr;
-    VectorXd *plastic_strain_gp   = need_plastic_strain_gp ? new VectorXd(solver.local_n0 * solver.n_y * solver.n_z * n_gp * n_str) : nullptr;
-    VectorXd *iso_hard_elem       = need_iso_hard ? new VectorXd(solver.local_n0 * solver.n_y * solver.n_z) : nullptr;
-    VectorXd *iso_hard_gp         = need_iso_hard_gp ? new VectorXd(solver.local_n0 * solver.n_y * solver.n_z * n_gp) : nullptr;
-    VectorXd *kin_hard_elem       = need_kin_hard ? new VectorXd(solver.local_n0 * solver.n_y * solver.n_z * n_str) : nullptr;
-    VectorXd *kin_hard_gp         = need_kin_hard_gp ? new VectorXd(solver.local_n0 * solver.n_y * solver.n_z * n_gp * n_str) : nullptr;
+    VectorXd plastic_strain_elem, plastic_strain_gp_data;
+    VectorXd iso_hard_elem, iso_hard_gp_data;
+    VectorXd kin_hard_elem, kin_hard_gp_data;
 
-    for (ptrdiff_t elem_idx = 0; elem_idx < solver.local_n0 * solver.n_y * solver.n_z; ++elem_idx) {
+    if (need_plastic_strain)
+        plastic_strain_elem.resize(n_elem * n_str);
+    if (need_plastic_strain_gp)
+        plastic_strain_gp_data.resize(n_elem * n_gp * n_str);
+    if (need_iso_hard)
+        iso_hard_elem.resize(n_elem);
+    if (need_iso_hard_gp)
+        iso_hard_gp_data.resize(n_elem * n_gp);
+    if (need_kin_hard)
+        kin_hard_elem.resize(n_elem * n_str);
+    if (need_kin_hard_gp)
+        kin_hard_gp_data.resize(n_elem * n_gp * n_str);
+
+    for (ptrdiff_t elem_idx = 0; elem_idx < n_elem; ++elem_idx) {
+        const ptrdiff_t state_offset = elem_idx * n_gp;
         // Element averages
-        if (need_plastic_strain) {
-            (*plastic_strain_elem).segment(n_str * elem_idx, n_str) = plasticStrain_t[elem_idx].rowwise().mean();
-        }
-        if (need_iso_hard) {
-            (*iso_hard_elem)(elem_idx) = psi_t[elem_idx].mean();
-        }
-        if (need_kin_hard) {
-            (*kin_hard_elem).segment(n_str * elem_idx, n_str) = psi_bar_t[elem_idx].rowwise().mean();
-        }
+        if (need_plastic_strain)
+            plastic_strain_elem.segment(n_str * elem_idx, n_str) = plasticStrain_t.middleCols(state_offset, n_gp).rowwise().mean();
+
+        if (need_iso_hard)
+            iso_hard_elem(elem_idx) = q_t.segment(state_offset, n_gp).mean();
+
+        if (need_kin_hard)
+            kin_hard_elem.segment(n_str * elem_idx, n_str) = alpha_t.middleCols(state_offset, n_gp).rowwise().mean();
 
         // All Gauss point data
-        if (need_plastic_strain_gp || need_iso_hard_gp || need_kin_hard_gp) {
-            for (int gp = 0; gp < n_gp; ++gp) {
-                if (need_plastic_strain_gp) {
-                    (*plastic_strain_gp).segment(n_str * n_gp * elem_idx + n_str * gp, n_str) = plasticStrain_t[elem_idx].col(gp);
-                }
-                if (need_iso_hard_gp) {
-                    (*iso_hard_gp)(n_gp *elem_idx + gp) = psi_t[elem_idx](gp);
-                }
-                if (need_kin_hard_gp) {
-                    (*kin_hard_gp).segment(n_str * n_gp * elem_idx + n_str * gp, n_str) = psi_bar_t[elem_idx].col(gp);
-                }
-            }
+        for (int gp = 0; gp < n_gp; ++gp) {
+            const ptrdiff_t state_idx = state_offset + gp;
+
+            if (need_plastic_strain_gp)
+                plastic_strain_gp_data.segment(n_str * n_gp * elem_idx + n_str * gp, n_str) = plasticStrain_t.col(state_idx);
+
+            if (need_iso_hard_gp)
+                iso_hard_gp_data(n_gp * elem_idx + gp) = q_t(state_idx);
+
+            if (need_kin_hard_gp)
+                kin_hard_gp_data.segment(n_str * n_gp * elem_idx + n_str * gp, n_str) = alpha_t.col(state_idx);
         }
     }
 
     // Write only what was requested
     if (need_plastic_strain)
-        reader.writeSlab("plastic_strain", load_idx, time_idx, plastic_strain_elem->data(), {n_str});
+        reader.writeSlab("plastic_strain", load_idx, time_idx, plastic_strain_elem.data(), {n_str});
     if (need_plastic_strain_gp)
-        reader.writeSlab("plastic_strain_gp", load_idx, time_idx, plastic_strain_gp->data(), {n_gp, n_str});
+        reader.writeSlab("plastic_strain_gp", load_idx, time_idx, plastic_strain_gp_data.data(), {n_gp, n_str});
     if (need_iso_hard)
-        reader.writeSlab("isotropic_hardening_variable", load_idx, time_idx, iso_hard_elem->data(), {1});
+        reader.writeSlab("isotropic_hardening_variable", load_idx, time_idx, iso_hard_elem.data(), {1});
     if (need_iso_hard_gp)
-        reader.writeSlab("isotropic_hardening_variable_gp", load_idx, time_idx, iso_hard_gp->data(), {n_gp});
+        reader.writeSlab("isotropic_hardening_variable_gp", load_idx, time_idx, iso_hard_gp_data.data(), {n_gp});
     if (need_kin_hard)
-        reader.writeSlab("kinematic_hardening_variable", load_idx, time_idx, kin_hard_elem->data(), {n_str});
+        reader.writeSlab("kinematic_hardening_variable", load_idx, time_idx, kin_hard_elem.data(), {n_str});
     if (need_kin_hard_gp)
-        reader.writeSlab("kinematic_hardening_variable_gp", load_idx, time_idx, kin_hard_gp->data(), {n_gp, n_str});
-
-    // Cleanup
-    if (plastic_strain_elem)
-        delete plastic_strain_elem;
-    if (plastic_strain_gp)
-        delete plastic_strain_gp;
-    if (iso_hard_elem)
-        delete iso_hard_elem;
-    if (iso_hard_gp)
-        delete iso_hard_gp;
-    if (kin_hard_elem)
-        delete kin_hard_elem;
-    if (kin_hard_gp)
-        delete kin_hard_gp;
+        reader.writeSlab("kinematic_hardening_variable_gp", load_idx, time_idx, kin_hard_gp_data.data(), {n_gp, n_str});
 }
 
 #endif // J2PLASTICITY_H
