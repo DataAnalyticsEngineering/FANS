@@ -293,9 +293,9 @@ void Solver<howmany, n_str>::solve()
     tot_time = clock() - tot_time;
     // if( VERBOSITY > 5 ){
     if (world_rank == 0) {
-        printf("# FFT Time per iteration .......   %2.6f sec\n", double(fft_time) / CLOCKS_PER_SEC / iter);
+        printf("# FFT Time per iteration .......   %2.6f sec\n", iter == 0 ? 0.0 : double(fft_time) / CLOCKS_PER_SEC / iter);
         printf("# Total FFT Time ...............   %2.6f sec\n", double(fft_time) / CLOCKS_PER_SEC);
-        printf("# Total Time per iteration .....   %2.6f sec\n", double(tot_time) / CLOCKS_PER_SEC / iter);
+        printf("# Total Time per iteration .....   %2.6f sec\n", iter == 0 ? 0.0 : double(tot_time) / CLOCKS_PER_SEC / iter);
         printf("# Total Time ...................   %2.6f sec\n", double(tot_time) / CLOCKS_PER_SEC);
         printf("# FFT contribution to total time   %2.6f %% \n", 100. * double(fft_time) / double(tot_time));
     }
@@ -434,13 +434,13 @@ double Solver<howmany, n_str>::compute_error(RealArray &r)
 
     err_all[iter]  = err;
     double err0    = err_all[0];
-    double err_rel = (iter == 0 ? 100 : err / err0);
+    double err_rel = (err0 == 0.0 ? 0.0 : err / err0);
 
     if (world_rank == 0) {
         if (iter == 0) {
             printf("Before 1st iteration: %16.8e\n", err0);
         } else {
-            printf("it %3lu .... err %16.8e  / %8.4e, ratio: %4.8e, FFT time: %2.6f sec\n", iter, err, err / err0, (iter == 1 ? 0.0 : err / err_all[iter - 1]), double(buftime) / CLOCKS_PER_SEC);
+            printf("it %3lu .... err %16.8e  / %8.4e, ratio: %4.8e, FFT time: %2.6f sec\n", iter, err, err_rel, (iter == 1 || err_all[iter - 1] == 0.0 ? 0.0 : err / err_all[iter - 1]), double(buftime) / CLOCKS_PER_SEC);
         }
     }
 
