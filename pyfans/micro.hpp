@@ -18,9 +18,25 @@
 
 namespace py = pybind11;
 
-class MicroSimulation {
+#ifndef PyFANS_CLASS_NAME
+#define PyFANS_CLASS_NAME MicroSimulation
+#endif
+#ifndef PyFANS_CLASS_NAME_STR
+#define PyFANS_CLASS_NAME_STR "MicroSimulation"
+#endif
+#ifndef PyFANS_INPUT_NAME
+#define PyFANS_INPUT_NAME "input.json"
+#endif
+#ifndef PyFANS_CONFIG_NAME
+#define PyFANS_CONFIG_NAME "pyfans-config.json"
+#endif
+#ifndef PyFANS_MODULE_NAME
+#define PyFANS_MODULE_NAME PyFANS
+#endif
+
+class PyFANS_CLASS_NAME {
   public:
-    MicroSimulation(int sim_id, bool late_init = false, const std::string &input_file = "input.json", const std::string &config_file = "pyfans-config.json");
+    PyFANS_CLASS_NAME(int sim_id, bool late_init = false, const std::string &input_file = PyFANS_INPUT_NAME, const std::string &config_file = PyFANS_CONFIG_NAME);
     py::dict solve(const py::dict &macro_write_data, double dt);
 
     py::dict get_state();
