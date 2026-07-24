@@ -36,8 +36,8 @@ class J2PlasticityNew : public SmallStrainMechModel {
 
     virtual void updateInternalVariables() override
     {
-        plasticStrain_t = plasticStrain;
-        q_t             = q;
+        plasticStrain.swap(plasticStrain_t);
+        q.swap(q_t);
     }
 
     void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override
@@ -108,7 +108,7 @@ class J2PlasticityNew : public SmallStrainMechModel {
         sigma.block<6, 1>(i, 0) = s;
     }
 
-    Matrix<double, 6, 6> get_reference_stiffness() const override
+    Matrix<double, 6, 6> get_reference_stiffness() override
     {
         const double Kbar      = std::accumulate(bulk_modulus.begin(), bulk_modulus.end(), 0.0) / static_cast<double>(n_mat);
         const double Gbar      = std::accumulate(shear_modulus.begin(), shear_modulus.end(), 0.0) / static_cast<double>(n_mat);

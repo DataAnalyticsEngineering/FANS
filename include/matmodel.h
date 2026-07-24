@@ -49,7 +49,7 @@ class Matmodel {
     virtual void updateInternalVariables() {}
 
     vector<double>                       macroscale_loading;
-    virtual Matrix<double, n_str, n_str> get_reference_stiffness() const = 0;
+    virtual Matrix<double, n_str, n_str> get_reference_stiffness() = 0;
 
     virtual ~Matmodel() = default;
 

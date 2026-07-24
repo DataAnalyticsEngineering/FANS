@@ -279,6 +279,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
     - `J2ViscoPlastic_LinearIsotropicHardening` / `J2ViscoPlastic_NonLinearIsotropicHardening` for rate-independent / dependent J2 plasticity model with kinematic and linear/nonlinear isotropic hardening.
     - `SaintVenantKirchhoff` for the hyperelastic Saint Venant-Kirchhoff material model.
     - `CompressibleNeoHookean` for the compressible Neo-Hookean material model.
+    - `FiniteStrainJ2Plasticity` for rate-independent finite-strain J2 plasticity with linear isotropic hardening.
 
   - `material_properties`: Material parameters specific to the chosen model. Properties are defined as arrays, where each element corresponds to one of the phases listed in the `phases` array.
 

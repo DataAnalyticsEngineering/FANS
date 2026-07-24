@@ -40,7 +40,7 @@ class PseudoPlastic : public SmallStrainMechModel {
 
     virtual void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override = 0; // Pure virtual method
 
-    Matrix<double, 6, 6> get_reference_stiffness() const override
+    Matrix<double, 6, 6> get_reference_stiffness() override
     {
         const double Kbar      = std::accumulate(bulk_modulus.begin(), bulk_modulus.end(), 0.0) / static_cast<double>(n_mat);
         const double Gbar      = std::accumulate(shear_modulus.begin(), shear_modulus.end(), 0.0) / static_cast<double>(n_mat);
