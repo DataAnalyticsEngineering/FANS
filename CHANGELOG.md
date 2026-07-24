@@ -2,7 +2,7 @@
 
 ## latest
 
-- Add rate-independent finite-strain J2 plasticity with linear isotropic hardening.
+- Add rate-independent finite-strain J2 plasticity with linear isotropic hardening [#149](https://github.com/DataAnalyticsEngineering/FANS/pull/149)
 - Added large strain support for pyFANS [#141](https://github.com/DataAnalyticsEngineering/FANS/pull/141)
 - Bugfix: fixes GBDiffusion post MaterialManager update and adds a test case [#147](https://github.com/DataAnalyticsEngineering/FANS/pull/147)
 - Bugfix: mem-leak while reading microstructure and added wider CMake support [#140](https://github.com/DataAnalyticsEngineering/FANS/pull/140)
