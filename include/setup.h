@@ -2,19 +2,19 @@
 #include "solverFP.h"
 
 // Thermal models
-#include "material_models/LinearThermal.h"
-#include "material_models/GBDiffusion.h"
+#include "material_models/thermal/LinearThermal.h"
+#include "material_models/thermal/GBDiffusion.h"
 
 // Small strain mechanical models
-#include "material_models/LinearElastic.h"
-#include "material_models/PseudoPlastic.h"
-#include "material_models/J2Plasticity.h"
-#include "material_models/J2PlasticityNew.h"
+#include "material_models/small_strain/LinearElastic.h"
+#include "material_models/small_strain/PseudoPlastic.h"
+#include "material_models/small_strain/J2Plasticity.h"
+#include "material_models/small_strain/J2PlasticityNew.h"
 
 // Large strain mechanical models
-#include "material_models/SaintVenantKirchhoff.h"
-#include "material_models/CompressibleNeoHookean.h"
-#include "material_models/FiniteStrainJ2Plasticity.h"
+#include "material_models/large_strain/SaintVenantKirchhoff.h"
+#include "material_models/large_strain/CompressibleNeoHookean.h"
+#include "material_models/large_strain/FiniteStrainJ2Plasticity.h"
 
 template <int howmany, int n_str>
 Matmodel<howmany, n_str> *createMatmodel(const Reader &reader);
