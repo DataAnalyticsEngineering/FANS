@@ -39,7 +39,7 @@ class LinearThermalIsotropic : public ThermalModel, public LinearModel<1, 3> {
         sigma(i + 2, 0) = conductivity[mat_index] * eps(i + 2, 0);
     }
 
-    Matrix3d get_reference_stiffness() const override
+    Matrix3d get_reference_stiffness() override
     {
         return kappa_average;
     }
@@ -106,7 +106,7 @@ class LinearThermalTriclinic : public ThermalModel, public LinearModel<1, 3> {
         sigma.segment<3>(i) = K_mats[mat_index] * eps.segment<3>(i);
     }
 
-    Matrix3d get_reference_stiffness() const override
+    Matrix3d get_reference_stiffness() override
     {
         return kappa_average;
     }

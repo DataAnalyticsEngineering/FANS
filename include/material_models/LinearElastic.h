@@ -52,7 +52,7 @@ class LinearElasticIsotropic : public SmallStrainMechModel, public LinearModel<3
         sigma(i + 5, 0) = buf2 * eps(i + 5, 0);
     }
 
-    Matrix<double, 6, 6> get_reference_stiffness() const override
+    Matrix<double, 6, 6> get_reference_stiffness() override
     {
         // Return the reference stiffness computed in constructor
         double lambda_ref = (*std::max_element(lambda.begin(), lambda.end()) +
@@ -143,7 +143,7 @@ class LinearElasticTriclinic : public SmallStrainMechModel, public LinearModel<3
         sigma.segment<6>(i) = C_mats[mat_index] * eps.segment<6>(i);
     }
 
-    Matrix<double, 6, 6> get_reference_stiffness() const override
+    Matrix<double, 6, 6> get_reference_stiffness() override
     {
         // Simple average of all stiffness matrices
         Matrix<double, 6, 6> avg = Matrix<double, 6, 6>::Zero();

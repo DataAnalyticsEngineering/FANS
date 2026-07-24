@@ -151,6 +151,7 @@ target_include_directories(FANS_FANS PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SO
 set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/general.h
         include/matmodel.h
+        include/LargeStrainMechModel.h
         include/MaterialManager.h
         include/reader.h
         include/solverCG.h
@@ -169,6 +170,7 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
 
         include/material_models/SaintVenantKirchhoff.h
         include/material_models/CompressibleNeoHookean.h
+        include/material_models/FiniteStrainJ2Plasticity.h
 )
 
 # version.h is generated and added to the build include directory

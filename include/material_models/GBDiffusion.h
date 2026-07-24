@@ -126,7 +126,7 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
         phase_stiffness = nullptr;
     }
 
-    Matrix3d get_reference_stiffness() const override
+    Matrix3d get_reference_stiffness() override
     {
         return kappa_average;
     }

@@ -14,6 +14,7 @@
 // Large strain mechanical models
 #include "material_models/SaintVenantKirchhoff.h"
 #include "material_models/CompressibleNeoHookean.h"
+#include "material_models/FiniteStrainJ2Plasticity.h"
 
 template <int howmany, int n_str>
 Matmodel<howmany, n_str> *createMatmodel(const Reader &reader);
@@ -67,6 +68,8 @@ Matmodel<3, 9> *createMatmodel<3, 9>(const Reader &reader)
         return new SaintVenantKirchhoff(reader);
     } else if (reader.matmodel == "CompressibleNeoHookean") {
         return new CompressibleNeoHookean(reader);
+    } else if (reader.matmodel == "FiniteStrainJ2Plasticity") {
+        return new FiniteStrainJ2Plasticity(reader);
     } else {
         throw std::invalid_argument(reader.matmodel + " is not a valid large strain material model");
     }

@@ -20,6 +20,7 @@ set(FANS_TEST_CASES
     PseudoPlastic
     MixedBCs
     CompressibleNeoHookean
+    FiniteStrainJ2Plasticity
     MixedBCs_LargeStrain
 )
 
