@@ -11,6 +11,7 @@
 #include <iomanip>
 #include <iostream>
 #include <map>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -27,6 +28,7 @@ using namespace nlohmann;
 
 #include "H5Cpp.h"
 
+#include "logging.h"
 #include "reader.h"
 
 #include <Eigen/Dense>
@@ -57,7 +59,5 @@ inline void FANS_free(V *p)
     fftw_free(p);
 }
 #endif // FANS_MALLOC_H
-
-#define VERBOSITY 0
 
 // #define EIGEN_RUNTIME_NO_MALLOC

@@ -72,6 +72,7 @@ FANS requires the following dependencies:
 | **FFTW3** | FFT computations | **with MPI support** |
 | **Eigen3** | Linear algebra | ≥ 3.4 |
 | **nlohmann-json** | JSON parsing | ≥ 3.11 |
+| **spdlog** | Logging | ≥ 1.17 |
 
 ### Installing dependencies
 
@@ -109,7 +110,8 @@ apt-get install -y \
     libeigen3-dev \
     libfftw3-dev \
     libfftw3-mpi-dev \
-    nlohmann-json3-dev
+    nlohmann-json3-dev \
+    libspdlog-dev
 ```
 
 </details>
@@ -123,7 +125,7 @@ We recommend installing the dependencies using [`brew`](https://brew.sh):
 brew install gnu-time cmake gcc@15
 brew install open-mpi --build-from-source --cc=gcc-15
 brew install hdf5-mpi --build-from-source --cc=gcc-15
-brew install fftw eigen nlohmann-json
+brew install fftw eigen nlohmann-json spdlog
 
 # Set environment variables
 export CC=gcc-15 CXX=g++-15 MPICC=mpicc MPICXX=mpicxx
@@ -143,9 +145,10 @@ spack install hdf5+cxx+mpi
 spack install eigen
 spack install fftw+mpi
 spack install nlohmann-json
+spack install spdlog
 
 # Load dependencies
-spack load cmake mpi hdf5 eigen fftw nlohmann-json
+spack load cmake mpi hdf5 eigen fftw nlohmann-json spdlog
 ```
 
 Additionally, optimized FFTW implementations can be used depending on your system's architecture:

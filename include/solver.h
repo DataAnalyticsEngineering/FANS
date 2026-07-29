@@ -60,7 +60,7 @@ class Solver : private MixedBCController<howmany> {
     void postprocess(Reader &reader, int load_idx, int time_idx); //!< Computes Strain and stress
 
     void   convolution();
-    double compute_error(RealArray &r);
+    double compute_error(RealArray &r, const std::string &details = {});
     void   CreateFFTWPlans(double *in, fftw_complex *transformed, double *out);
 
     VectorXd homogenized_strain;
@@ -147,9 +147,7 @@ Solver<howmany, n_str>::Solver(Reader &reader, MaterialManager<howmany, n_str> *
 template <int howmany, int n_str>
 void Solver<howmany, n_str>::computeFundamentalSolution()
 {
-    if (world_rank == 0) {
-        printf("\n# Start creating Fundamental Solution(s) \n");
-    }
+    Log::logger().info("# Start creating Fundamental Solution(s) ");
     clock_t tot_time = clock();
 
     Matrix<double, howmany * 8, howmany * 8> Ker0 = matmanager->models[0]->Compute_Reference_ElementStiffness(matmanager->kapparef_mat);
@@ -201,9 +199,7 @@ void Solver<howmany, n_str>::computeFundamentalSolution()
     fundamentalSolution /= (double) (n_x * n_y * n_z);
 
     tot_time = clock() - tot_time;
-    if (world_rank == 0) {
-        printf("# Complete; Time for construction of Fundamental Solution(s): %f seconds\n", double(tot_time) / CLOCKS_PER_SEC);
-    }
+    Log::logger().info("# Complete; Time for construction of Fundamental Solution(s): {:.6f} seconds", double(tot_time) / CLOCKS_PER_SEC);
 }
 
 template <int howmany, int n_str>
@@ -291,14 +287,11 @@ void Solver<howmany, n_str>::solve()
     clock_t tot_time = clock();
     internalSolve();
     tot_time = clock() - tot_time;
-    // if( VERBOSITY > 5 ){
-    if (world_rank == 0) {
-        printf("# FFT Time per iteration .......   %2.6f sec\n", iter == 0 ? 0.0 : double(fft_time) / CLOCKS_PER_SEC / iter);
-        printf("# Total FFT Time ...............   %2.6f sec\n", double(fft_time) / CLOCKS_PER_SEC);
-        printf("# Total Time per iteration .....   %2.6f sec\n", iter == 0 ? 0.0 : double(tot_time) / CLOCKS_PER_SEC / iter);
-        printf("# Total Time ...................   %2.6f sec\n", double(tot_time) / CLOCKS_PER_SEC);
-        printf("# FFT contribution to total time   %2.6f %% \n", 100. * double(fft_time) / double(tot_time));
-    }
+    Log::logger().info("# FFT Time per iteration .......   {:.6f} sec", iter == 0 ? 0.0 : double(fft_time) / CLOCKS_PER_SEC / iter);
+    Log::logger().info("# Total FFT Time ...............   {:.6f} sec", double(fft_time) / CLOCKS_PER_SEC);
+    Log::logger().info("# Total Time per iteration .....   {:.6f} sec", iter == 0 ? 0.0 : double(tot_time) / CLOCKS_PER_SEC / iter);
+    Log::logger().info("# Total Time ...................   {:.6f} sec", double(tot_time) / CLOCKS_PER_SEC);
+    Log::logger().info("# FFT contribution to total time   {:.6f} %", 100. * double(fft_time) / double(tot_time));
     matmanager->update_internal_variables();
 }
 
@@ -415,7 +408,7 @@ void Solver<howmany, n_str>::convolution()
 }
 
 template <int howmany, int n_str>
-double Solver<howmany, n_str>::compute_error(RealArray &r)
+double Solver<howmany, n_str>::compute_error(RealArray &r, const std::string &details)
 {
     double             err_local;
     const std::string &measure = reader.errorParameters["measure"].get<std::string>();
@@ -436,13 +429,10 @@ double Solver<howmany, n_str>::compute_error(RealArray &r)
     double err0    = err_all[0];
     double err_rel = (err0 == 0.0 ? 0.0 : err / err0);
 
-    if (world_rank == 0) {
-        if (iter == 0) {
-            printf("Before 1st iteration: %16.8e\n", err0);
-        } else {
-            printf("it %3lu .... err %16.8e  / %8.4e, ratio: %4.8e, FFT time: %2.6f sec\n", iter, err, err_rel, (iter == 1 || err_all[iter - 1] == 0.0 ? 0.0 : err / err_all[iter - 1]), double(buftime) / CLOCKS_PER_SEC);
-        }
-    }
+    if (iter == 0)
+        Log::logger().info("Before 1st iteration: {:16.8e}", err0);
+    else
+        Log::logger().info("it {:3} .... err {:16.8e}  / {:8.4e}, ratio: {:4.8e}, FFT time: {:.6f} sec{}", iter, err, err_rel, iter == 1 || err_all[iter - 1] == 0.0 ? 0.0 : err / err_all[iter - 1], double(buftime) / CLOCKS_PER_SEC, details);
 
     const std::string &error_type = reader.errorParameters["type"].get<std::string>();
     if (error_type == "absolute") {
@@ -576,15 +566,12 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
         }
     }
 
-    if (world_rank == 0) {
-        printf("# Effective Stress .. (");
-        for (int i = 0; i < n_str; ++i)
-            printf("%+.12f ", stress_average[i]);
-        printf(") \n");
-        printf("# Effective Strain .. (");
-        for (int i = 0; i < n_str; ++i)
-            printf("%+.12f ", strain_average[i]);
-        printf(") \n\n");
+    if (Log::logger().should_log(spdlog::level::info)) {
+        std::ostringstream output;
+        output << std::showpos << std::fixed << std::setprecision(12)
+               << "# Effective Stress .. (" << stress_average.transpose()
+               << " ) \n# Effective Strain .. (" << strain_average.transpose() << " ) \n";
+        Log::logger().info("{}", output.str());
     }
     homogenized_stress = stress_average;
     homogenized_strain = strain_average;
@@ -698,10 +685,11 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "homogenized_tangent") != reader.resultsToWrite.end()) {
         homogenized_tangent = get_homogenized_tangent(1e-6);
         hsize_t dims[2]     = {static_cast<hsize_t>(n_str), static_cast<hsize_t>(n_str)};
-        if (world_rank == 0) {
-            cout << "# Homogenized tangent: " << endl
-                 << setprecision(12) << homogenized_tangent << endl
-                 << endl;
+        if (Log::logger().should_log(spdlog::level::info)) {
+            std::ostringstream output;
+            output << "# Homogenized tangent: \n"
+                   << std::setprecision(12) << homogenized_tangent << '\n';
+            Log::logger().info("{}", output.str());
         }
         reader.writeData("homogenized_tangent", load_idx, time_idx, homogenized_tangent.data(), dims, 2);
     }

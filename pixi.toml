@@ -24,12 +24,13 @@ args = ["file", { arg = "extra", default = "" }]
 cmd  = "cd \"$INIT_CWD\" && python -m MSUtils.general.h52xdmf {{ extra }} {{ file }}"
 
 [feature.dev.dependencies]
-cmake = ">=4.4.0,<5"
+cmake = ">=4.4.1,<5"
 openmpi-mpicxx = ">=5.0.10,<6"
 hdf5 = { version = ">=2.1.0,<3", build = "mpi_openmpi_*" }
 fftw = { version = ">=3.3.11,<4", build = "mpi_openmpi_*" }
 eigen = ">=5.0.1,<6"
 nlohmann_json = ">=3.12.0,<4"
+spdlog = ">=1.17.0,<2"
 time = ">=1.10,<2"
 
 [tasks]
@@ -75,3 +76,4 @@ fftw = { version = "*", build = "mpi_openmpi_*" }
 openmpi-mpicxx = "*"
 eigen = "*"
 nlohmann_json = "*"
+spdlog = "*"

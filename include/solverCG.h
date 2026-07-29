@@ -26,9 +26,9 @@ class SolverCG : public Solver<howmany, n_str> {
     double    alpha_warm{0.1};
     bool      ls_converged{true};
 
-    void   internalSolve();
-    void   LineSearchSecant();
-    double dotProduct(RealArray &a, RealArray &b);
+    void        internalSolve();
+    std::string LineSearchSecant();
+    double      dotProduct(RealArray &a, RealArray &b);
 
   protected:
     using Solver<howmany, n_str>::iter;
@@ -62,8 +62,7 @@ double SolverCG<howmany, n_str>::dotProduct(RealArray &a, RealArray &b)
 template <int howmany, int n_str>
 void SolverCG<howmany, n_str>::internalSolve()
 {
-    if (this->world_rank == 0)
-        printf("\n# Start FANS - Conjugate Gradient Solver \n");
+    Log::logger().info("# Start FANS - Conjugate Gradient Solver ");
 
     bool islinear = this->matmanager->all_linear;
     alpha_warm    = 0.1;
@@ -92,6 +91,7 @@ void SolverCG<howmany, n_str>::internalSolve()
         delta0 = delta;
         delta  = dotProduct(v_r_real, s_real);
 
+        std::string details;
         if (islinear && !this->isMixedBCActive()) {
             d_real = s_real + fmax(0.0, (delta - deltamid) / delta0) * d_real;
             Matrix<double, howmany * 8, 1> res_e;
@@ -106,22 +106,21 @@ void SolverCG<howmany, n_str>::internalSolve()
             v_r_real -= alpha * rnew_real;
             v_u_real -= alpha * d_real;
         } else {
-            d_real = s_real + (ls_converged ? fmax(0.0, (delta - deltamid) / delta0) : 0.0) * d_real;
-            LineSearchSecant();
+            d_real  = s_real + (ls_converged ? fmax(0.0, (delta - deltamid) / delta0) : 0.0) * d_real;
+            details = LineSearchSecant();
         }
 
         iter++;
-        err_rel = this->compute_error(v_r_real);
+        err_rel = this->compute_error(v_r_real, details);
 
         if (iter >= 2 && this->err_all[iter] > this->err_all[iter - 1] && this->err_all[iter - 1] > this->err_all[iter - 2])
             ls_converged = false; // Force a CG restart
     }
-    if (this->world_rank == 0)
-        printf("# Complete FANS - Conjugate Gradient Solver \n");
+    Log::logger().info("# Complete FANS - Conjugate Gradient Solver ");
 }
 
 template <int howmany, int n_str>
-void SolverCG<howmany, n_str>::LineSearchSecant()
+std::string SolverCG<howmany, n_str>::LineSearchSecant()
 {
     const int    MaxIter    = this->reader.ls_max_iter;
     const double tol        = this->reader.ls_tol;
@@ -133,7 +132,7 @@ void SolverCG<howmany, n_str>::LineSearchSecant()
     if (rpd >= 0.0) {
         ls_converged = false;
         alpha_warm   = 0.1;
-        return;
+        return {};
     }
     v_u_real += d_real * alpha_curr;
     this->updateMixedBC();
@@ -169,8 +168,7 @@ void SolverCG<howmany, n_str>::LineSearchSecant()
         alpha_warm = 0.1;
     }
 
-    if (this->world_rank == 0)
-        printf("line search iter %i, alpha %f - error %e - ", _iter, alpha_curr, fabs(r1pd0) > 0.0 ? fabs(r1pd) / fabs(r1pd0) : 0.0);
+    return spdlog::fmt_lib::format(" | line search iter {}, alpha {:.6f}, error {:e}", _iter, alpha_curr, fabs(r1pd0) > 0.0 ? fabs(r1pd) / fabs(r1pd0) : 0.0);
 }
 
 template <int howmany, int n_str>
