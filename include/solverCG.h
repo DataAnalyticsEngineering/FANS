@@ -2,6 +2,7 @@
 #define SOLVER_CG_H
 
 #include "solver.h"
+#include <spdlog/fmt/fmt.h>
 
 template <int howmany, int n_str>
 class SolverCG : public Solver<howmany, n_str> {
@@ -168,7 +169,7 @@ std::string SolverCG<howmany, n_str>::LineSearchSecant()
         alpha_warm = 0.1;
     }
 
-    return spdlog::fmt_lib::format(" | line search iter {}, alpha {:.6f}, error {:e}", _iter, alpha_curr, fabs(r1pd0) > 0.0 ? fabs(r1pd) / fabs(r1pd0) : 0.0);
+    return fmt::format(" | line search iter {}, alpha {:.6f}, error {:e}", _iter, alpha_curr, fabs(r1pd0) > 0.0 ? fabs(r1pd) / fabs(r1pd0) : 0.0);
 }
 
 template <int howmany, int n_str>
