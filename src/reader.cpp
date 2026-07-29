@@ -42,10 +42,8 @@ void Reader::ComputeVolumeFractions()
     // Calculate total number of materials
     n_mat = global_max - global_min + 1;
 
-    if (world_rank == 0) {
-        printf("# Number of materials: %i (from %u to %u)\n", n_mat, global_min, global_max);
-        printf("# Volume fractions\n");
-    }
+    Log::logger().info("# Number of materials: {} (from {} to {})", n_mat, global_min, global_max);
+    Log::logger().info("# Volume fractions");
 
     // Using dynamic allocation for arrays since we don't know size at compile time
     std::vector<long>   vol_frac(n_mat, 0);
@@ -61,9 +59,7 @@ void Reader::ComputeVolumeFractions()
         long vf;
         MPI_Allreduce(&(vol_frac[i]), &vf, 1, MPI_LONG, MPI_SUM, communicator);
         v_frac[i] = double(vf) / double(dims[0] * dims[1] * dims[2]);
-        if (world_rank == 0)
-            printf("# material %4u    vol. frac. %10.4f%%  \n",
-                   static_cast<unsigned int>(i) + global_min, 100. * v_frac[i]);
+        Log::logger().info("# material {:4}    vol. frac. {:10.4f}%  ", static_cast<unsigned int>(i) + global_min, 100. * v_frac[i]);
     }
 }
 
@@ -165,21 +161,16 @@ void Reader ::ReadInputFile(const std::string &input_fn)
             load_cases.push_back(std::move(lc));
         }
 
-        if (world_rank == 0) {
-            printf("# microstructure file name: \t '%s'\n", ms_filename);
-            printf("# microstructure dataset name: \t '%s'\n", ms_datasetname);
-            printf("# strain type: \t %s\n", strain_type.c_str());
-            printf("# problem type: \t %s\n", problemType.c_str());
-            printf("# FE type: \t %s\n", FE_type.c_str());
-            printf(
-                "# FANS error measure: \t %s %s error  \n",
-                errorParameters["type"].get<string>().c_str(),
-                errorParameters["measure"].get<string>().c_str());
-            printf("# FANS Tolerance: \t %10.5e\n", errorParameters["tolerance"].get<double>());
-            printf("# Max iterations: \t %6i\n", n_it);
-        }
+        Log::logger().info("# microstructure file name: \t '{}'", ms_filename);
+        Log::logger().info("# microstructure dataset name: \t '{}'", ms_datasetname);
+        Log::logger().info("# strain type: \t {}", strain_type);
+        Log::logger().info("# problem type: \t {}", problemType);
+        Log::logger().info("# FE type: \t {}", FE_type);
+        Log::logger().info("# FANS error measure: \t {} {} error  ", errorParameters["type"].get<string>(), errorParameters["measure"].get<string>());
+        Log::logger().info("# FANS Tolerance: \t {:10.5e}", errorParameters["tolerance"].get<double>());
+        Log::logger().info("# Max iterations: \t {:6}", n_it);
     } catch (const std::exception &e) {
-        fprintf(stderr, "ERROR trying to read input file '%s' for FANS: %s\n", input_fn.c_str(), e.what());
+        Log::logger().error("ERROR trying to read input file '{}' for FANS: {}", input_fn, e.what());
         exit(10);
     }
 }
@@ -269,13 +260,10 @@ void Reader ::ReadMS(int hm)
         H5Aclose(attr_id);
         H5Tclose(attr_type);
     }
-    if (world_rank == 0) {
-        if (is_zyx) {
-            printf("# Using Z-Y-X dimension ordering for the microstructure data\n");
-        } else {
-            printf("# Using X-Y-Z dimension ordering for the microstructure data\n");
-        }
-    }
+    if (is_zyx)
+        Log::logger().info("# Using Z-Y-X dimension ordering for the microstructure data");
+    else
+        Log::logger().info("# Using X-Y-Z dimension ordering for the microstructure data");
 
     dims.resize(3);
     if (is_zyx) {           /* file layout Z Y X  -> logical X Y Z */
@@ -293,18 +281,18 @@ void Reader ::ReadMS(int hm)
     l_e[1] = L[1] / double(dims[1]);
     l_e[2] = L[2] / double(dims[2]);
 
-    if (world_rank == 0) {
-        printf("# grid size set to [%i x %i x %i] --> %i voxels \nMicrostructure length: [%3.6f x %3.6f x %3.6f]\n", dims[0], dims[1], dims[2], dims[0] * dims[1] * dims[2], L[0], L[1], L[2]);
-        if (dims[0] % 2 != 0)
-            fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_x is not a multiple of 2\n");
-        if (dims[1] % 2 != 0)
-            fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_y is not a multiple of 2\n");
-        if (dims[2] % 2 != 0)
-            fprintf(stderr, "[ FANS3D_Grid ] WARNING: n_z is not a multiple of 2\n");
-        if (dims[0] / 4 < world_size)
-            throw std::runtime_error("[ FANS3D_Grid ] ERROR: Please decrease the number of processes or increase the grid size to ensure that each process has at least 4 boxels in the x direction.");
-        printf("Voxel length: [%1.8f, %1.8f, %1.8f]\n", l_e[0], l_e[1], l_e[2]);
-    }
+    Log::logger().info("# Grid size set to [{} x {} x {}] --> {} voxels", dims[0], dims[1], dims[2], dims[0] * dims[1] * dims[2]);
+    Log::logger().info("# Microstructure length: [{:3.6f} x {:3.6f} x {:3.6f}]", L[0], L[1], L[2]);
+    Log::logger().info("# Voxel length: [{:.8f}, {:.8f}, {:.8f}]", l_e[0], l_e[1], l_e[2]);
+
+    if (dims[0] % 2 != 0)
+        Log::logger().warn("[ FANS3D_Grid ] WARNING: n_x is not a multiple of 2");
+    if (dims[1] % 2 != 0)
+        Log::logger().warn("[ FANS3D_Grid ] WARNING: n_y is not a multiple of 2");
+    if (dims[2] % 2 != 0)
+        Log::logger().warn("[ FANS3D_Grid ] WARNING: n_z is not a multiple of 2");
+    if (dims[0] / 4 < world_size)
+        throw std::runtime_error("[ FANS3D_Grid ] ERROR: Please decrease the number of processes or increase the grid size to ensure that each process has at least 4 boxels in the x direction.");
 
     const ptrdiff_t n[3]   = {dims[0], dims[1], dims[2] / 2 + 1};
     ptrdiff_t       block0 = FFTW_MPI_DEFAULT_BLOCK;

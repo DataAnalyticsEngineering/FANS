@@ -41,5 +41,6 @@ class MicroSimulation {
 };
 
 struct PyFANSConfig {
-    bool disable_mpi = false;
+    bool        disable_mpi = false;
+    Log::Config logging;
 };

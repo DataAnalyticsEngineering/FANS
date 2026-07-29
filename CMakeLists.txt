@@ -108,6 +108,7 @@ if (FANS_LIBRARY_FOR_MICRO_MANAGER)
     FetchContent_MakeAvailable(pybind11)
 endif()
 find_package(nlohmann_json REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 # ##############################################################################
 # TARGETS
 # ##############################################################################
@@ -150,6 +151,7 @@ target_include_directories(FANS_FANS PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SO
 # FANS.h header that consuming projects can use
 set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/general.h
+        include/logging.h
         include/matmodel.h
         include/LargeStrainMechModel.h
         include/MaterialManager.h
@@ -217,6 +219,7 @@ target_compile_definitions(FANS_FANS PUBLIC ${FFTW3_DEFINITIONS})
 
 target_link_libraries(FANS_FANS PUBLIC Eigen3::Eigen)
 target_link_libraries(FANS_FANS PUBLIC nlohmann_json::nlohmann_json)
+target_link_libraries(FANS_FANS PUBLIC spdlog::spdlog)
 
 target_include_directories(FANS_main PRIVATE ${HDF5_INCLUDE_DIRS} ${FFTW3_INCLUDE_DIRS})
 target_link_libraries(FANS_main PRIVATE FANS::FANS)

@@ -54,6 +54,8 @@ Each test case has corresponding input JSON files in the `input_files/` director
 mpiexec -n 2 ./FANS input_files/test_LinearElastic.json test_results.h5
 ```
 
+Set rank-0 logging with `--log-level {trace, debug, info, warn, error, critical, off}` (default: `info`).
+
 To quickly visualize the test results, and accompanying XDMF for the HDF5 output can be generated which can be directly opened in ParaView for 3D visualization and analysis:
 
 ```bash

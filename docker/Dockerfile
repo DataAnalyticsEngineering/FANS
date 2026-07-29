@@ -42,6 +42,7 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     libfftw3-dev \
     libfftw3-mpi-dev \
     nlohmann-json3-dev \
+    libspdlog-dev \
 # Required for preCICE Micro Manager Python bindings
     python3-dev \
 # Clean up

@@ -9,7 +9,8 @@
 
 PyFANSConfig load_config(const std::string &file_path)
 {
-    PyFANSConfig config{};
+    PyFANSConfig       config{};
+    const PyFANSConfig defaults = config;
 
     try {
         ifstream i(file_path);
@@ -18,10 +19,12 @@ PyFANSConfig load_config(const std::string &file_path)
 
         if (j.contains("no_mpi") && j["no_mpi"].get<bool>())
             config.disable_mpi = true;
-        // ... more entries
+        if (j.contains("log-level"))
+            config.logging.level = spdlog::level::from_str(j.at("log-level").get<std::string>());
     } catch (const std::exception &e) {
-        printf("ERROR trying to read config file '%s' for pyFANS: %s\n", file_path.c_str(), e.what());
-        printf("Falling back to default values.\n");
+        fprintf(stderr, "ERROR trying to read config file '%s' for pyFANS: %s\n", file_path.c_str(), e.what());
+        fprintf(stderr, "Falling back to default values.\n");
+        return defaults;
     }
 
     return config;
@@ -41,6 +44,8 @@ MicroSimulation::MicroSimulation(int sim_id, bool late_init, const std::string &
         reader.communicator = MPI_COMM_SELF;
     MPI_Comm_rank(reader.communicator, &reader.world_rank);
     MPI_Comm_size(reader.communicator, &reader.world_size);
+
+    Log::init(config.logging);
 
     if (not late_init || sim_id >= 0) {
         // Input file name is hardcoded. TODO: Make it configurable
