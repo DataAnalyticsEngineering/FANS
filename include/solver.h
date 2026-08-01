@@ -568,7 +568,7 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
 
     if (Log::logger().should_log(spdlog::level::info)) {
         std::ostringstream output;
-        output << std::showpos << std::fixed << std::setprecision(12)
+        output << std::showpos << std::scientific << std::setprecision(12)
                << "# Effective Stress .. (" << stress_average.transpose()
                << " ) \n# Effective Strain .. (" << strain_average.transpose() << " ) \n";
         Log::logger().info("{}", output.str());
