@@ -39,6 +39,9 @@ void Reader::ComputeVolumeFractions()
     MPI_Allreduce(&local_max, &global_max, 1, MPI_UNSIGNED_SHORT, MPI_MAX, communicator);
     MPI_Allreduce(&local_min, &global_min, 1, MPI_UNSIGNED_SHORT, MPI_MIN, communicator);
 
+    if (global_min != 0)
+        throw std::invalid_argument("Microstructure phase IDs must start at 0");
+
     // Calculate total number of materials
     n_mat = global_max - global_min + 1;
 

@@ -78,8 +78,8 @@ class MaterialManager {
         }
 
         n_phases = max_phase + 1;
-        if (n_phases == 0)
-            throw std::runtime_error("MaterialManager: No phases defined");
+        if (n_phases != reader.n_mat)
+            throw std::runtime_error("MaterialManager: Material phases do not match the microstructure");
 
         phase_to_info = new MaterialInfo<howmany, n_str>[n_phases]();
 
