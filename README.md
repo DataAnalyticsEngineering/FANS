@@ -25,6 +25,7 @@ Fourier-Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver fo
   - [Installing dependencies](#installing-dependencies)
   - [Building FANS](#building-fans)
 - [Python environment for the FANS dashboard](#python-environment-for-the-fans-dashboard)
+- [Publications using FANS](docs/PUBLICATIONS.md)
 - [Input file format](#input-file-format)
   - [Microstructure definition](#microstructure-definition)
   - [Problem type and material model](#problem-type-and-material-model)
