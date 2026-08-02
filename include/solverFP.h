@@ -32,8 +32,7 @@ SolverFP<howmany, n_str>::SolverFP(Reader &reader, MaterialManager<howmany, n_st
 template <int howmany, int n_str>
 void SolverFP<howmany, n_str>::internalSolve()
 {
-    if (this->world_rank == 0)
-        printf("\n# Start FANS - Fixed Point Solver \n");
+    Log::logger().info("# Start FANS - Fixed Point Solver ");
 
     this->template compute_residual<2>(v_r_real, v_u_real);
 
@@ -50,7 +49,6 @@ void SolverFP<howmany, n_str>::internalSolve()
         iter++;
         err_rel = this->compute_error(v_r_real);
     }
-    if (this->world_rank == 0)
-        printf("# Complete FANS - Fixed Point Solver \n");
+    Log::logger().info("# Complete FANS - Fixed Point Solver ");
 }
 #endif

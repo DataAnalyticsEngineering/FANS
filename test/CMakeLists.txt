@@ -16,9 +16,11 @@ set(FANS_TEST_CASES
     J2Plasticity
     LinearElastic
     LinearThermal
+    GBDiffusion
     PseudoPlastic
     MixedBCs
     CompressibleNeoHookean
+    FiniteStrainJ2Plasticity
     MixedBCs_LargeStrain
 )
 

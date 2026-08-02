@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.21)
 # ##############################################################################
 
 project(FANS
-        VERSION 0.6.2
+        VERSION 0.7.0
         LANGUAGES C CXX
 )
 
@@ -108,6 +108,7 @@ if (FANS_LIBRARY_FOR_MICRO_MANAGER)
     FetchContent_MakeAvailable(pybind11)
 endif()
 find_package(nlohmann_json REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 # ##############################################################################
 # TARGETS
 # ##############################################################################
@@ -150,7 +151,9 @@ target_include_directories(FANS_FANS PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SO
 # FANS.h header that consuming projects can use
 set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/general.h
+        include/logging.h
         include/matmodel.h
+        include/LargeStrainMechModel.h
         include/MaterialManager.h
         include/reader.h
         include/solverCG.h
@@ -159,16 +162,17 @@ set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
         include/setup.h
         include/mixedBCs.h
 
-        include/material_models/LinearThermal.h
-        include/material_models/GBDiffusion.h
+        include/material_models/thermal/LinearThermal.h
+        include/material_models/thermal/GBDiffusion.h
 
-        include/material_models/LinearElastic.h
-        include/material_models/PseudoPlastic.h
-        include/material_models/J2Plasticity.h
-        include/material_models/J2PlasticityNew.h
+        include/material_models/small_strain/LinearElastic.h
+        include/material_models/small_strain/PseudoPlastic.h
+        include/material_models/small_strain/J2Plasticity.h
+        include/material_models/small_strain/J2PlasticityNew.h
 
-        include/material_models/SaintVenantKirchhoff.h
-        include/material_models/CompressibleNeoHookean.h
+        include/material_models/large_strain/SaintVenantKirchhoff.h
+        include/material_models/large_strain/CompressibleNeoHookean.h
+        include/material_models/large_strain/FiniteStrainJ2Plasticity.h
 )
 
 # version.h is generated and added to the build include directory
@@ -215,8 +219,9 @@ target_compile_definitions(FANS_FANS PUBLIC ${FFTW3_DEFINITIONS})
 
 target_link_libraries(FANS_FANS PUBLIC Eigen3::Eigen)
 target_link_libraries(FANS_FANS PUBLIC nlohmann_json::nlohmann_json)
+target_link_libraries(FANS_FANS PUBLIC spdlog::spdlog)
 
-target_include_directories(FANS_main PRIVATE ${HDF5_INCLUDE_DIRS})
+target_include_directories(FANS_main PRIVATE ${HDF5_INCLUDE_DIRS} ${FFTW3_INCLUDE_DIRS})
 target_link_libraries(FANS_main PRIVATE FANS::FANS)
 
 # ##############################################################################

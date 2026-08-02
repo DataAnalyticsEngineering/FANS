@@ -7,6 +7,7 @@
   <a href="https://anaconda.org/conda-forge/fans"><img src="https://anaconda.org/conda-forge/fans/badges/platforms.svg" alt="Anaconda-Server Badge"></a>
   <a href="https://github.com/DataAnalyticsEngineering/FANS/actions"><img src="https://github.com/DataAnalyticsEngineering/FANS/workflows/Build%20and%20test%20pixi-build/badge.svg" alt="Build and test pixi-build"></a>
   <a href="https://anaconda.org/conda-forge/fans"><img src="https://anaconda.org/conda-forge/fans/badges/downloads.svg" alt="Anaconda-Server Badge"></a>
+  <a href="https://deepwiki.com/DataAnalyticsEngineering/FANS"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
   <a href="https://prefix.dev/channels/conda-forge/packages/fans"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json" alt="Pixi Badge"></a>
   <img src="https://img.shields.io/github/last-commit/DataAnalyticsEngineering/FANS" alt="Last commit">
   <a href="https://github.com/DataAnalyticsEngineering/FANS/blob/main/LICENSE"><img src="https://img.shields.io/github/license/DataAnalyticsEngineering/FANS" alt="License"></a>
@@ -24,6 +25,7 @@ Fourier-Accelerated Nodal Solver (FANS) is an FFT-based homogenization solver fo
   - [Installing dependencies](#installing-dependencies)
   - [Building FANS](#building-fans)
 - [Python environment for the FANS dashboard](#python-environment-for-the-fans-dashboard)
+- [Publications using FANS](docs/PUBLICATIONS.md)
 - [Input file format](#input-file-format)
   - [Microstructure definition](#microstructure-definition)
   - [Problem type and material model](#problem-type-and-material-model)
@@ -71,6 +73,7 @@ FANS requires the following dependencies:
 | **FFTW3** | FFT computations | **with MPI support** |
 | **Eigen3** | Linear algebra | ≥ 3.4 |
 | **nlohmann-json** | JSON parsing | ≥ 3.11 |
+| **spdlog** | Logging | ≥ 1.17 |
 
 ### Installing dependencies
 
@@ -108,7 +111,8 @@ apt-get install -y \
     libeigen3-dev \
     libfftw3-dev \
     libfftw3-mpi-dev \
-    nlohmann-json3-dev
+    nlohmann-json3-dev \
+    libspdlog-dev
 ```
 
 </details>
@@ -122,7 +126,7 @@ We recommend installing the dependencies using [`brew`](https://brew.sh):
 brew install gnu-time cmake gcc@15
 brew install open-mpi --build-from-source --cc=gcc-15
 brew install hdf5-mpi --build-from-source --cc=gcc-15
-brew install fftw eigen nlohmann-json
+brew install fftw eigen nlohmann-json spdlog
 
 # Set environment variables
 export CC=gcc-15 CXX=g++-15 MPICC=mpicc MPICXX=mpicxx
@@ -142,9 +146,10 @@ spack install hdf5+cxx+mpi
 spack install eigen
 spack install fftw+mpi
 spack install nlohmann-json
+spack install spdlog
 
 # Load dependencies
-spack load cmake mpi hdf5 eigen fftw nlohmann-json
+spack load cmake mpi hdf5 eigen fftw nlohmann-json spdlog
 ```
 
 Additionally, optimized FFTW implementations can be used depending on your system's architecture:
@@ -278,6 +283,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
     - `J2ViscoPlastic_LinearIsotropicHardening` / `J2ViscoPlastic_NonLinearIsotropicHardening` for rate-independent / dependent J2 plasticity model with kinematic and linear/nonlinear isotropic hardening.
     - `SaintVenantKirchhoff` for the hyperelastic Saint Venant-Kirchhoff material model.
     - `CompressibleNeoHookean` for the compressible Neo-Hookean material model.
+    - `FiniteStrainJ2Plasticity` for rate-independent finite-strain J2 plasticity with linear isotropic hardening.
 
   - `material_properties`: Material parameters specific to the chosen model. Properties are defined as arrays, where each element corresponds to one of the phases listed in the `phases` array.
 

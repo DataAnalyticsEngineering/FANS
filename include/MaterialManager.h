@@ -78,8 +78,8 @@ class MaterialManager {
         }
 
         n_phases = max_phase + 1;
-        if (n_phases == 0)
-            throw std::runtime_error("MaterialManager: No phases defined");
+        if (n_phases != reader.n_mat)
+            throw std::runtime_error("MaterialManager: Material phases do not match the microstructure");
 
         phase_to_info = new MaterialInfo<howmany, n_str>[n_phases]();
 
@@ -110,51 +110,24 @@ class MaterialManager {
         compute_reference_stiffness(reader);
 
         // Print detailed information about material configuration for logging
-        if (reader.world_rank == 0) {
-            printf("\n# MaterialManager initialized:\n");
-            printf("#   Number of material models: %zu\n", models.size());
-            printf("#   Number of phases: %d\n#\n", n_phases);
+        if (Log::logger().should_log(spdlog::level::info)) {
+            std::ostringstream message;
+            message << "\n# MaterialManager initialized:\n"
+                    << "#   Number of material models: " << models.size() << '\n'
+                    << "#   Number of phases: " << n_phases << "\n#\n";
 
             for (size_t i = 0; i < mats.size(); ++i) {
                 const auto &mg = mats[i];
-                printf("# Material Model %zu: %s\n", i + 1, mg["matmodel"].get<string>().c_str());
-
-                // Print phases
-                auto phases = mg["phases"].get<vector<int>>();
-                printf("#   Phases: [");
-                for (size_t j = 0; j < phases.size(); ++j) {
-                    printf("%d", phases[j]);
-                    if (j < phases.size() - 1)
-                        printf(", ");
-                }
-                printf("]\n");
-
-                // Print material properties
-                printf("#   Material properties:\n");
-                const auto &props = mg["material_properties"];
-                for (auto it = props.begin(); it != props.end(); ++it) {
-                    printf("#     %s: ", it.key().c_str());
-                    if (it.value().is_array()) {
-                        printf("[");
-                        for (size_t k = 0; k < it.value().size(); ++k) {
-                            if (it.value()[k].is_number()) {
-                                printf("%.5g", it.value()[k].get<double>());
-                            } else if (it.value()[k].is_string()) {
-                                printf("\"%s\"", it.value()[k].get<string>().c_str());
-                            }
-                            if (k < it.value().size() - 1)
-                                printf(", ");
-                        }
-                        printf("]");
-                    } else if (it.value().is_number()) {
-                        printf("%.5g", it.value().get<double>());
-                    } else if (it.value().is_string()) {
-                        printf("\"%s\"", it.value().get<string>().c_str());
-                    }
-                    printf("\n");
-                }
-                printf("#\n");
+                message << "# Material Model " << i + 1 << ": " << mg["matmodel"].get<string>() << '\n';
+                message << "#   Phases: " << mg["phases"].dump() << '\n'
+                        << "#   Material properties:\n";
+                for (const auto &[name, value] : mg["material_properties"].items())
+                    message << "#     " << name << ": " << value.dump() << '\n';
+                message << '#';
+                if (i + 1 < mats.size())
+                    message << '\n';
             }
+            Log::logger().info("{}", message.str());
         }
     }
 
@@ -191,9 +164,7 @@ class MaterialManager {
                 throw std::invalid_argument("reference_material must be symmetric positive definite");
             }
 
-            if (reader.world_rank == 0) {
-                cout << "# Using user-defined reference material for fundamental solution." << endl;
-            }
+            Log::logger().info("# Using user-defined reference material for fundamental solution.");
         } else {
             // Default: simple average of reference stiffness across all material models
             kapparef_mat = Matrix<double, n_str, n_str>::Zero();
@@ -260,6 +231,8 @@ class MaterialManager {
         temp_reader.method      = base_reader.method;
         temp_reader.l_e         = base_reader.l_e;
         temp_reader.dims        = base_reader.dims;
+        std::snprintf(temp_reader.ms_filename, sizeof(temp_reader.ms_filename), "%s", base_reader.ms_filename);
+        std::snprintf(temp_reader.ms_datasetname, sizeof(temp_reader.ms_datasetname), "%s", base_reader.ms_datasetname);
 
         // Override material properties and n_mat for this specific material group
         temp_reader.materialProperties = mat_group["material_properties"];

@@ -6,7 +6,7 @@
 /**
  * @brief Base class for large strain mechanical material models
  * This class provides the kinematic framework for finite deformation mechanics.
- * Derived classes only need to implement the constitutive response (S from E).
+ * Derived classes may implement the constitutive response through either compute_S() or get_sigma().
  */
 class LargeStrainMechModel : public Matmodel<3, 9> {
   public:
@@ -74,18 +74,20 @@ class LargeStrainMechModel : public Matmodel<3, 9> {
     // ============================================================================
 
     /**
-     * @brief Compute 2nd Piola-Kirchhoff stress and material tangent C = dS/dE from deformation gradient
-     *
-     * This is the core constitutive function that derived classes must implement.
-     * It should compute S based on the material's constitutive law.
-     * @param F Deformation gradient (3×3)
-     * @param mat_index Material index
-     * @param element_idx Element index
-     * @return 2nd Piola-Kirchhoff stress S (symmetric 3×3)
-     * @return the 6×6 material tangent C = dS/dE in Mandel notation: Ordering: (11, 22, 33, sqrt(2)·12, sqrt(2)·13, sqrt(2)·23)
+     * @brief Convenience constitutive interface for models formulated in terms of S
+     * @param F Deformation gradient
+     * @param mat_index Material-property index local to this material model
+     * @param element_idx Local element index
+     * @param i Offset of this Gauss point in the flattened strain vector
      */
-    virtual Matrix3d             compute_S(const Matrix3d &F, int mat_index, ptrdiff_t element_idx) = 0;
-    virtual Matrix<double, 6, 6> compute_material_tangent(const Matrix3d &F, int mat_index)         = 0;
+    virtual Matrix3d compute_S(const Matrix3d &F, int mat_index, ptrdiff_t element_idx, int i)
+    {
+        throw std::logic_error("Large-strain material model must override compute_S() or get_sigma().");
+    }
+    virtual Matrix<double, 6, 6> compute_material_tangent(const Matrix3d &F, int mat_index, ptrdiff_t element_idx, int i)
+    {
+        throw std::logic_error("Algorithmic material tangent is not implemented for this large-strain model.");
+    }
 
     /**
      * @brief Convert material tangent C (dS/dE) to spatial tangent A (dP/dF)
@@ -190,19 +192,19 @@ class LargeStrainMechModel : public Matmodel<3, 9> {
     Matrix<double, 9, 24> Compute_B(const double x, const double y, const double z) override;
 
     /**
-     * @brief Compute stress at Gauss point (implements base class interface)
+     * @brief Default stress update for models formulated in terms of S
      * This function:
      * 1. Extracts F from eps
      * 2. Calls compute_S(F) - material model implements this
      * 3. Computes P = F S
      * 4. Stores P in sigma
      */
-    void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override final
+    void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override
     {
-        Matrix3d F = extract_F(i);                         // Extract deformation gradient
-        Matrix3d S = compute_S(F, mat_index, element_idx); // Material model computes 2nd PK stress from F
-        Matrix3d P = push_forward(F, S);                   // Push forward to 1st PK stress
-        store_P(i, P);                                     // Store in sigma array
+        Matrix3d F = extract_F(i);                            // Extract deformation gradient
+        Matrix3d S = compute_S(F, mat_index, element_idx, i); // Material model computes 2nd PK stress from F
+        Matrix3d P = push_forward(F, S);                      // Push forward to 1st PK stress
+        store_P(i, P);                                        // Store in sigma array
     }
 };
 
