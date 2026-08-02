@@ -1,6 +1,6 @@
 # FANS Changelog
 
-## latest
+## v0.7.0
 
 - Add configurable logging using `spdlog` [#150](https://github.com/DataAnalyticsEngineering/FANS/pull/150)
 - Add rate-independent finite-strain J2 plasticity with linear isotropic hardening [#149](https://github.com/DataAnalyticsEngineering/FANS/pull/149)
