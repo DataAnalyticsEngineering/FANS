@@ -57,12 +57,10 @@ version = "0.7.0"
 backend = { name = "pixi-build-cmake", version = "*" }
 
 [package.build.config]
-extra-args = [
-    "-DFANS_LIBRARY_FOR_MICRO_MANAGER=ON",
-    ]
+extra-args = ["-DFANS_LIBRARY_FOR_MICRO_MANAGER=ON"]
 
 [workspace.build-variants]
-python = ["3.12.*", "3.13.*", "3.14.*"]
+python = ["3.14.*"]
 
 [workspace.target.osx-arm64.build-variants]
 cxx_compiler = ["clangxx"]
