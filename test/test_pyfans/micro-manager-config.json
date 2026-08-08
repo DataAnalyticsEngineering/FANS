@@ -3,8 +3,8 @@
     "coupling_params": {
         "precice_config_file_name": "precice-config.xml",
         "macro_mesh_name": "cube",
-        "read_data_names": ["strains1to3", "strains4to6"],
-        "write_data_names": ["stresses1to3", "stresses4to6", "cmat1", "cmat2", "cmat3", "cmat4", "cmat5", "cmat6", "cmat7"]
+        "read_data_names": ["Strains1to3", "Strains4to6"],
+        "write_data_names": ["Stresses1to3", "Stresses4to6", "Cmat1", "Cmat2", "Cmat3", "Cmat4", "Cmat5", "Cmat6", "Cmat7"]
     },
     "simulation_params": {
         "micro_dt": 1e-1,

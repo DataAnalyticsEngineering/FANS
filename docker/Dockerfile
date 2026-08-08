@@ -30,7 +30,7 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
 # Build basics
     software-properties-common \
     build-essential \
-# CMake + git for FetchContent + file for CPack
+# CMake + git for the CI checkout + file for CPack
     cmake \
     git \
     file \
@@ -45,6 +45,7 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     libspdlog-dev \
 # Required for preCICE Micro Manager Python bindings
     python3-dev \
+    pybind11-dev \
 # Clean up
     && apt-get clean \
     && apt-get autoremove --purge -y \

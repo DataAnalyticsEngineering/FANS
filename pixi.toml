@@ -25,6 +25,8 @@ cmd  = "cd \"$INIT_CWD\" && python -m MSUtils.general.h52xdmf {{ extra }} {{ fil
 
 [feature.dev.dependencies]
 cmake = ">=4.4.2,<5"
+python = ">=3.14.6,<3.15"
+pybind11 = ">=3.0.3,<4"
 openmpi-mpicxx = ">=5.0.10,<6"
 hdf5 = { version = ">=2.1.0,<3", build = "mpi_openmpi_*" }
 fftw = { version = ">=3.3.11,<4", build = "mpi_openmpi_*" }
@@ -58,6 +60,9 @@ extra-args = [
     "-DFANS_LIBRARY_FOR_MICRO_MANAGER=ON",
     ]
 
+[workspace.build-variants]
+python = ["3.12.*", "3.13.*", "3.14.*"]
+
 [workspace.target.osx-arm64.build-variants]
 cxx_compiler = ["clangxx"]
 
@@ -66,11 +71,12 @@ cxx_compiler = ["clangxx"]
 
 [package.build-dependencies]
 cmake = "*"
-pybind11 = "*"
 pkg-config = "*"
 ninja = "*"
 
 [package.host-dependencies]
+python = "*"
+pybind11 = "*"
 hdf5 = { version = ">=1.14.6,<2", build = "mpi_openmpi_*" }
 fftw = { version = "*", build = "mpi_openmpi_*" }
 openmpi-mpicxx = "*"
