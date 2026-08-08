@@ -1,6 +1,6 @@
 # FANS Changelog
 
-## latest
+## v0.8.0
 
 - Make PyFANS installable (also with pixi build) [#152](https://github.com/DataAnalyticsEngineering/FANS/pull/152)
 
