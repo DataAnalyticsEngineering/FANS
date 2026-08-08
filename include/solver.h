@@ -737,9 +737,6 @@ MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
     vector<double> g0       = matmanager->get_info(0).model->macroscale_loading;
     bool           islinear = matmanager->all_linear;
 
-    this->reader.errorParameters["type"] = "relative";
-    this->TOL                            = max(1e-6, this->TOL);
-
     for (auto *model : matmanager->models) {
         if (dynamic_cast<J2Plasticity *>(model) != nullptr) {
             throw std::runtime_error("Homogenized tangent computation not implemented for J2Plasticity models.");

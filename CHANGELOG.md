@@ -1,5 +1,9 @@
 # FANS Changelog
 
+## latest
+
+- Make PyFANS installable (also with pixi build) [#152](https://github.com/DataAnalyticsEngineering/FANS/pull/152)
+
 ## v0.7.0
 
 - Add configurable logging using `spdlog` [#150](https://github.com/DataAnalyticsEngineering/FANS/pull/150)

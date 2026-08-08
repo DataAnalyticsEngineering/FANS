@@ -42,18 +42,18 @@ def main():
 
     # time loop
     while participant.is_coupling_ongoing():
-        stress1to3 = participant.read_data(mesh_name, "stresses1to3", vertex_ids, dt)
-        stress4to6 = participant.read_data(mesh_name, "stresses4to6", vertex_ids, dt)
-        cmat1 = participant.read_data(mesh_name, "cmat1", vertex_ids, dt)
-        cmat2 = participant.read_data(mesh_name, "cmat2", vertex_ids, dt)
-        cmat3 = participant.read_data(mesh_name, "cmat3", vertex_ids, dt)
-        cmat4 = participant.read_data(mesh_name, "cmat4", vertex_ids, dt)
-        cmat5 = participant.read_data(mesh_name, "cmat5", vertex_ids, dt)
-        cmat6 = participant.read_data(mesh_name, "cmat6", vertex_ids, dt)
-        cmat7 = participant.read_data(mesh_name, "cmat7", vertex_ids, dt)
+        stress1to3 = participant.read_data(mesh_name, "Stresses1to3", vertex_ids, dt)
+        stress4to6 = participant.read_data(mesh_name, "Stresses4to6", vertex_ids, dt)
+        cmat1 = participant.read_data(mesh_name, "Cmat1", vertex_ids, dt)
+        cmat2 = participant.read_data(mesh_name, "Cmat2", vertex_ids, dt)
+        cmat3 = participant.read_data(mesh_name, "Cmat3", vertex_ids, dt)
+        cmat4 = participant.read_data(mesh_name, "Cmat4", vertex_ids, dt)
+        cmat5 = participant.read_data(mesh_name, "Cmat5", vertex_ids, dt)
+        cmat6 = participant.read_data(mesh_name, "Cmat6", vertex_ids, dt)
+        cmat7 = participant.read_data(mesh_name, "Cmat7", vertex_ids, dt)
 
-        participant.write_data(mesh_name, "strains1to3", vertex_ids, strains1to3)
-        participant.write_data(mesh_name, "strains4to6", vertex_ids, strains4to6)
+        participant.write_data(mesh_name, "Strains1to3", vertex_ids, strains1to3)
+        participant.write_data(mesh_name, "Strains4to6", vertex_ids, strains4to6)
 
         participant.advance(dt)
         dt = participant.get_max_time_step_size()
