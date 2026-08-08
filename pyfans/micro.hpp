@@ -30,8 +30,9 @@ class MicroSimulation {
     void set_id(int id);
 
   private:
-    int    _sim_id;
-    Reader reader;
+    int         _sim_id;
+    std::string _input_file;
+    Reader      reader;
     // Hardcoding mechanical models because these definitions need information from the input file.
     using matmanager_t = std::variant<MaterialManager<3, 6> *, MaterialManager<3, 9> *>;
     using solver_t     = std::variant<Solver<3, 6> *, Solver<3, 9> *>;
