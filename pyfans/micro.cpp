@@ -213,8 +213,8 @@ PYBIND11_MODULE(PyFANS, m)
     py::class_<MicroSimulation>(m, "MicroSimulation")
         .def(py::init<int, bool, const std::string &, const std::string &>(),
              py::arg("sim_id"),
-             py::arg("late_init")  = false,
-             py::arg("input_file") = "input.json",
+             py::arg("late_init")   = false,
+             py::arg("input_file")  = "input.json",
              py::arg("config_file") = "pyfans-config.json")
         .def("solve", &MicroSimulation::solve, py::return_value_policy::automatic)
         .def("set_state", &MicroSimulation::set_state)
