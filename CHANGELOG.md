@@ -2,7 +2,7 @@
 
 ## latest
 
-- Build pyFANS as a standalone nanobind project against an installed FANS, so FANS itself no longer depends on Python
+- Build pyFANS as a standalone nanobind project against an installed FANS, so FANS itself no longer depends on Python [#155](https://github.com/DataAnalyticsEngineering/FANS/pull/155)
 
 ## v0.8.0
 

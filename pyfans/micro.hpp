@@ -7,8 +7,8 @@
 #include <variant>
 
 #include <nanobind/nanobind.h>
-#include <nanobind/ndarray.h>     // numpy arrays
-#include <nanobind/stl/string.h>  // std::string conversion
+#include <nanobind/ndarray.h>    // numpy arrays
+#include <nanobind/stl/string.h> // std::string conversion
 
 #include "general.h"
 #include "matmodel.h"
