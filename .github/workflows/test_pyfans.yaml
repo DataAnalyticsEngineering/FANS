@@ -45,18 +45,17 @@ jobs:
 
     - name: Build and install FANS
       run: |
-        cmake -S . -B ${{ env.FANS_BUILD_DIR }} -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install
+        cmake -S . -B ${{ env.FANS_BUILD_DIR }}
         cmake --build ${{ env.FANS_BUILD_DIR }} -j
         cmake --install ${{ env.FANS_BUILD_DIR }}
+        ldconfig
 
     - name: Install pyfans against it
       run: |
         . .venv/bin/activate
-        CMAKE_PREFIX_PATH=${{ github.workspace }}/install pip install ./pyfans
+        pip install ./pyfans
 
     - name: Run a dummy macro-micro coupling test
-      env:
-        LD_LIBRARY_PATH: ${{ github.workspace }}/install/lib
       run: |
         . .venv/bin/activate
         cd test/test_pyfans

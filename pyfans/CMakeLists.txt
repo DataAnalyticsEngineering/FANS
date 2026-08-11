@@ -18,7 +18,6 @@ find_package(nanobind CONFIG REQUIRED)
 
 nanobind_add_module(PyFANS STABLE_ABI NB_STATIC micro.hpp micro.cpp)
 target_link_libraries(PyFANS PRIVATE FANS::FANS)
-target_include_directories(PyFANS PRIVATE ${HDF5_INCLUDE_DIRS} ${FFTW3_INCLUDE_DIRS})
 
 # From site-packages, libFANS.so is two levels up in <prefix>/lib.
 if (APPLE)

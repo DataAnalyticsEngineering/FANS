@@ -165,28 +165,16 @@ target_sources(FANS_main PRIVATE
 
 target_link_libraries(FANS_FANS PRIVATE m)
 
-# TODO: when switching to a newer CMake version this can all be done by one
-# call to target_link_libraries(FANS_FANS PUBLIC HDF5::HDF5). But CMake 3.16
-# does not yet support this.
-target_include_directories(FANS_FANS PRIVATE ${HDF5_INCLUDE_DIRS})
-target_link_libraries(FANS_FANS PUBLIC ${HDF5_C_LIBRARIES})
-target_link_libraries(FANS_FANS PUBLIC ${HDF5_CXX_LIBRARIES})
-target_compile_definitions(FANS_FANS PUBLIC ${HDF5_DEFINITIONS})
+target_link_libraries(FANS_FANS PUBLIC HDF5::HDF5)
 if (HDF5_IS_PARALLEL)
     target_compile_definitions(FANS_FANS PUBLIC H5_HAVE_PARALLEL)
 endif ()
-
 target_link_libraries(FANS_FANS PUBLIC MPI::MPI_CXX)
-
-target_include_directories(FANS_FANS PRIVATE ${FFTW3_INCLUDE_DIRS})
-target_link_libraries(FANS_FANS PUBLIC ${FFTW3_LIBRARIES})
-target_compile_definitions(FANS_FANS PUBLIC ${FFTW3_DEFINITIONS})
-
+target_link_libraries(FANS_FANS PUBLIC fftw3::double::serial fftw3::double::mpi)
 target_link_libraries(FANS_FANS PUBLIC Eigen3::Eigen)
 target_link_libraries(FANS_FANS PUBLIC nlohmann_json::nlohmann_json)
 target_link_libraries(FANS_FANS PUBLIC spdlog::spdlog)
 
-target_include_directories(FANS_main PRIVATE ${HDF5_INCLUDE_DIRS} ${FFTW3_INCLUDE_DIRS})
 target_link_libraries(FANS_main PRIVATE FANS::FANS)
 
 # ##############################################################################
