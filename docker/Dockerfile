@@ -30,10 +30,9 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
 # Build basics
     software-properties-common \
     build-essential \
-# CMake + git for the CI checkout + file for CPack
+# CMake + git for the CI checkout
     cmake \
     git \
-    file \
 # FANS dependencies \
     libhdf5-dev \
     libhdf5-openmpi-dev \

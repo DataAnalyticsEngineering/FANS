@@ -24,9 +24,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v7
 
-    - name: Generate build directory
-      run: mkdir -p ${{ env.FANS_BUILD_DIR }}
-
     - name: Install dependencies
       run: |
         apt update

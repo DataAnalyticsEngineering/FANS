@@ -90,15 +90,12 @@ endif ()
 
 set(HDF5_PREFER_PARALLEL TRUE)
 find_package(HDF5 REQUIRED COMPONENTS C CXX)
-
 find_package(Eigen3 REQUIRED)
-
 find_package(MPI REQUIRED)
-
 find_package(FFTW3 REQUIRED COMPONENTS DOUBLE MPI)
-
 find_package(nlohmann_json REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
+
 # ##############################################################################
 # TARGETS
 # ##############################################################################
@@ -136,7 +133,6 @@ target_include_directories(FANS_FANS PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SO
 install(
         DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
-        COMPONENT FANS_Development
         FILES_MATCHING PATTERN "*.h"
 )
 
@@ -151,13 +147,8 @@ target_include_directories(FANS_main PRIVATE "${PROJECT_BINARY_DIR}/include")
 # SOURCES
 # ##############################################################################
 
-target_sources(FANS_FANS PRIVATE
-        src/reader.cpp
-)
-
-target_sources(FANS_main PRIVATE
-        src/main.cpp
-)
+target_sources(FANS_FANS PRIVATE src/reader.cpp)
+target_sources(FANS_main PRIVATE src/main.cpp)
 
 # ##############################################################################
 # LINKING
@@ -194,11 +185,8 @@ install(
         EXPORT FANS
         LIBRARY
         DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        COMPONENT FANS_Runtime
-        NAMELINK_COMPONENT FANS_Development
         ARCHIVE
         DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        COMPONENT FANS_Development
         INCLUDES
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
 )
@@ -207,7 +195,6 @@ install(
         TARGETS FANS_main
         RUNTIME
         DESTINATION ${CMAKE_INSTALL_BINDIR}
-        COMPONENT FANS_Runtime
 )
 
 install(
@@ -215,13 +202,11 @@ install(
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS
         NAMESPACE FANS::
         FILE FANSTargets.cmake
-        COMPONENT FANS_Development
 )
 
 install(
         FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/FindFFTW3.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS/modules
-        COMPONENT FANS_Development
 )
 
 write_basic_package_version_file(
@@ -239,7 +224,6 @@ install(
         FILES ${CMAKE_CURRENT_BINARY_DIR}/FANSConfig.cmake
         ${CMAKE_CURRENT_BINARY_DIR}/FANSConfigVersion.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS
-        COMPONENT FANS_Development
 )
 
 # ##############################################################################
@@ -253,16 +237,4 @@ option(FANS_ENABLE_TESTING "Enable testing" ${FANS_ENABLE_TESTING_DEFAULT})
 if (FANS_ENABLE_TESTING)
     enable_testing()
     add_subdirectory(test)
-endif ()
-
-# ##############################################################################
-# PACKAGING
-# ##############################################################################
-
-if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    set(FANS_ENABLE_PACKAGING_DEFAULT ON)
-endif ()
-option(FANS_ENABLE_PACKAGING "Enable creation of Debian packages" ${FANS_ENABLE_PACKAGING_DEFAULT})
-if (FANS_ENABLE_PACKAGING)
-    add_subdirectory(cmake/packaging)
 endif ()
