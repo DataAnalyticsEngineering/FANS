@@ -97,12 +97,6 @@ find_package(MPI REQUIRED)
 
 find_package(FFTW3 REQUIRED COMPONENTS DOUBLE MPI)
 
-option(FANS_LIBRARY_FOR_MICRO_MANAGER "Building FANS as a library to be used by the Micro Manager." OFF)
-
-if (FANS_LIBRARY_FOR_MICRO_MANAGER)
-    set(PYBIND11_FINDPYTHON ON)
-    find_package(pybind11 CONFIG REQUIRED)
-endif()
 find_package(nlohmann_json REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 # ##############################################################################
@@ -133,42 +127,17 @@ add_custom_command(
         COMMENT "Create a symlink for FANS executable to ${CMAKE_CURRENT_SOURCE_DIR}/test/"
 )
 
-if (FANS_LIBRARY_FOR_MICRO_MANAGER)
-    add_subdirectory(pyfans)
-endif ()
-
 # ##############################################################################
 # HEADERS
 # ##############################################################################
 
 target_include_directories(FANS_FANS PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-# TODO: when creating a shared library in the future, maybe create one single
-# FANS.h header that consuming projects can use
-set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
-        include/general.h
-        include/logging.h
-        include/matmodel.h
-        include/LargeStrainMechModel.h
-        include/MaterialManager.h
-        include/reader.h
-        include/solverCG.h
-        include/solverFP.h
-        include/solver.h
-        include/setup.h
-        include/mixedBCs.h
-
-        include/material_models/thermal/LinearThermal.h
-        include/material_models/thermal/GBDiffusion.h
-
-        include/material_models/small_strain/LinearElastic.h
-        include/material_models/small_strain/PseudoPlastic.h
-        include/material_models/small_strain/J2Plasticity.h
-        include/material_models/small_strain/J2PlasticityNew.h
-
-        include/material_models/large_strain/SaintVenantKirchhoff.h
-        include/material_models/large_strain/CompressibleNeoHookean.h
-        include/material_models/large_strain/FiniteStrainJ2Plasticity.h
+install(
+        DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
+        COMPONENT FANS_Development
+        FILES_MATCHING PATTERN "*.h"
 )
 
 # version.h is generated and added to the build include directory
@@ -244,12 +213,6 @@ install(
         COMPONENT FANS_Development
         INCLUDES
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
-        PUBLIC_HEADER
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
-        COMPONENT FANS_Development
-        PRIVATE_HEADER
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
-        COMPONENT FANS_Development
 )
 
 install(

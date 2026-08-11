@@ -1,0 +1,45 @@
+[project]
+name = "pyfans"
+description = "Python bindings for FANS"
+version = "0.8.0"
+requires-python = ">=3.12"
+
+[build-system]
+requires = ["scikit-build-core>=0.10", "nanobind>=2.0"]
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+# One abi3 wheel for every supported Python. Must agree with STABLE_ABI.
+wheel.py-api = "cp312"
+
+################## Pixi build part ##################
+
+# pixi build. No [tool.pixi.workspace]: pyfans is a member of the FANS
+# workspace above, so `pixi publish` builds it together with `fans`.
+[tool.pixi.package]
+publish = true
+
+[tool.pixi.package.build]
+backend = { name = "pixi-build-python", version = "*" }
+
+[tool.pixi.package.build-dependencies]
+cmake = "*"
+ninja = "*"
+
+[tool.pixi.package.build.config]
+# abi3 makes the module independent of the Python version, not the platform.
+noarch = false
+abi3 = true
+
+[tool.pixi.package.host-dependencies]
+python = ">=3.12"
+scikit-build-core = ">=0.10,<1"
+nanobind = ">=2.0,<3"
+fans = { path = ".." }
+
+openmpi-mpicxx = "*"
+eigen = "*"
+nlohmann_json = "*"
+
+[tool.pixi.package.run-dependencies]
+fans = { path = ".." }

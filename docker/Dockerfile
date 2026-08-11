@@ -43,9 +43,8 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     libfftw3-mpi-dev \
     nlohmann-json3-dev \
     libspdlog-dev \
-# Required for preCICE Micro Manager Python bindings
+# Required for building pyfans
     python3-dev \
-    pybind11-dev \
 # Clean up
     && apt-get clean \
     && apt-get autoremove --purge -y \
