@@ -196,7 +196,6 @@ cd ../test
 | `CMAKE_INTERPROCEDURAL_OPTIMIZATION` | Enable link-time optimization (LTO) | `ON` (if supported) |
 | `FANS_BUILD_STATIC` | Build static library | `OFF` |
 | `CMAKE_INSTALL_PREFIX` | Installation directory | System default |
-| `FANS_LIBRARY_FOR_MICRO_MANAGER` | Build Python bindings using Pybind11 (needed) | `OFF` |
 | `FANS_ENABLE_SANITIZERS` | Enable runtime sanitizers (AddressSanitizer and LeakSanitizer) for memory debugging | `OFF` |
 
 ---

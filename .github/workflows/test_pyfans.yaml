@@ -24,9 +24,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v7
 
-    - name: Generate build directory
-      run: mkdir -p ${{ env.FANS_BUILD_DIR }}
-
     - name: Install dependencies
       run: |
         apt update
@@ -43,11 +40,17 @@ jobs:
         . .venv/bin/activate
         pip install micro-manager-precice
 
-    - name: Configure
-      working-directory: ${{ env.FANS_BUILD_DIR }}
+    - name: Build and install FANS
       run: |
-        cmake .. -DFANS_LIBRARY_FOR_MICRO_MANAGER=ON
-        make
+        cmake -S . -B ${{ env.FANS_BUILD_DIR }}
+        cmake --build ${{ env.FANS_BUILD_DIR }} -j
+        cmake --install ${{ env.FANS_BUILD_DIR }}
+        ldconfig
+
+    - name: Install pyfans against it
+      run: |
+        . .venv/bin/activate
+        pip install ./pyfans
 
     - name: Run a dummy macro-micro coupling test
       run: |
