@@ -1,33 +1,29 @@
-pybind11_add_module(PyFANS micro.hpp micro.cpp)
-target_include_directories(PyFANS PRIVATE ${HDF5_INCLUDE_DIRS} ${FFTW3_INCLUDE_DIRS})
+# pyFANS builds against an installed FANS, so the FANS core needs no Python.
+
+cmake_minimum_required(VERSION 3.21)
+
+# C too: FANS's FindFFTW3 probes with a try_run on a .c file.
+project(pyfans LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(FANS REQUIRED)
+
+# Development.SABIModule provides Python::SABIModule; without it nanobind
+# silently ignores STABLE_ABI and emits a version-specific module.
+find_package(Python 3.12 REQUIRED
+             COMPONENTS Interpreter Development.Module Development.SABIModule)
+find_package(nanobind CONFIG REQUIRED)
+
+nanobind_add_module(PyFANS STABLE_ABI NB_STATIC micro.hpp micro.cpp)
 target_link_libraries(PyFANS PRIVATE FANS::FANS)
 
-message(STATUS "PyFANS builds against Python ${Python_VERSION} at ${Python_EXECUTABLE}")
+# From site-packages, libFANS.so is two levels up in <prefix>/lib.
+if (APPLE)
+    set_target_properties(PyFANS PROPERTIES INSTALL_RPATH "@loader_path/../..")
+else ()
+    set_target_properties(PyFANS PROPERTIES INSTALL_RPATH "$ORIGIN/../..")
+endif ()
 
-# Not CACHE: a cached value would survive a reconfigure against a different
-# Python and install into the old version's site-packages.
-if (NOT DEFINED FANS_PYTHON_SITE_DIR)
-    set(FANS_PYTHON_SITE_DIR
-        "${CMAKE_INSTALL_LIBDIR}/python${Python_VERSION_MAJOR}.${Python_VERSION_MINOR}/site-packages")
-endif()
-
-# $ORIGIN/../.. is <prefix>/lib, where libFANS.so lands.
-set_target_properties(PyFANS PROPERTIES
-    INSTALL_RPATH "$ORIGIN/../.."
-    BUILD_WITH_INSTALL_RPATH FALSE)
-
-install(
-        TARGETS PyFANS
-        LIBRARY
-        DESTINATION ${FANS_PYTHON_SITE_DIR}
-        COMPONENT FANS_Runtime
-)
-
-add_custom_command(
-        TARGET PyFANS
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E create_symlink
-        $<TARGET_FILE:PyFANS>
-        ${CMAKE_CURRENT_SOURCE_DIR}/../test/test_pyfans/$<TARGET_FILE_NAME:PyFANS>
-        COMMENT "Create a symlink for FANS python bindings to ${CMAKE_CURRENT_SOURCE_DIR}/../test/"
-)
+install(TARGETS PyFANS LIBRARY DESTINATION .)

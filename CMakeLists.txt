@@ -90,21 +90,12 @@ endif ()
 
 set(HDF5_PREFER_PARALLEL TRUE)
 find_package(HDF5 REQUIRED COMPONENTS C CXX)
-
 find_package(Eigen3 REQUIRED)
-
 find_package(MPI REQUIRED)
-
 find_package(FFTW3 REQUIRED COMPONENTS DOUBLE MPI)
-
-option(FANS_LIBRARY_FOR_MICRO_MANAGER "Building FANS as a library to be used by the Micro Manager." OFF)
-
-if (FANS_LIBRARY_FOR_MICRO_MANAGER)
-    set(PYBIND11_FINDPYTHON ON)
-    find_package(pybind11 CONFIG REQUIRED)
-endif()
 find_package(nlohmann_json REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
+
 # ##############################################################################
 # TARGETS
 # ##############################################################################
@@ -133,42 +124,16 @@ add_custom_command(
         COMMENT "Create a symlink for FANS executable to ${CMAKE_CURRENT_SOURCE_DIR}/test/"
 )
 
-if (FANS_LIBRARY_FOR_MICRO_MANAGER)
-    add_subdirectory(pyfans)
-endif ()
-
 # ##############################################################################
 # HEADERS
 # ##############################################################################
 
 target_include_directories(FANS_FANS PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
-# TODO: when creating a shared library in the future, maybe create one single
-# FANS.h header that consuming projects can use
-set_property(TARGET FANS_FANS PROPERTY PUBLIC_HEADER
-        include/general.h
-        include/logging.h
-        include/matmodel.h
-        include/LargeStrainMechModel.h
-        include/MaterialManager.h
-        include/reader.h
-        include/solverCG.h
-        include/solverFP.h
-        include/solver.h
-        include/setup.h
-        include/mixedBCs.h
-
-        include/material_models/thermal/LinearThermal.h
-        include/material_models/thermal/GBDiffusion.h
-
-        include/material_models/small_strain/LinearElastic.h
-        include/material_models/small_strain/PseudoPlastic.h
-        include/material_models/small_strain/J2Plasticity.h
-        include/material_models/small_strain/J2PlasticityNew.h
-
-        include/material_models/large_strain/SaintVenantKirchhoff.h
-        include/material_models/large_strain/CompressibleNeoHookean.h
-        include/material_models/large_strain/FiniteStrainJ2Plasticity.h
+install(
+        DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
+        FILES_MATCHING PATTERN "*.h"
 )
 
 # version.h is generated and added to the build include directory
@@ -182,13 +147,8 @@ target_include_directories(FANS_main PRIVATE "${PROJECT_BINARY_DIR}/include")
 # SOURCES
 # ##############################################################################
 
-target_sources(FANS_FANS PRIVATE
-        src/reader.cpp
-)
-
-target_sources(FANS_main PRIVATE
-        src/main.cpp
-)
+target_sources(FANS_FANS PRIVATE src/reader.cpp)
+target_sources(FANS_main PRIVATE src/main.cpp)
 
 # ##############################################################################
 # LINKING
@@ -196,28 +156,16 @@ target_sources(FANS_main PRIVATE
 
 target_link_libraries(FANS_FANS PRIVATE m)
 
-# TODO: when switching to a newer CMake version this can all be done by one
-# call to target_link_libraries(FANS_FANS PUBLIC HDF5::HDF5). But CMake 3.16
-# does not yet support this.
-target_include_directories(FANS_FANS PRIVATE ${HDF5_INCLUDE_DIRS})
-target_link_libraries(FANS_FANS PUBLIC ${HDF5_C_LIBRARIES})
-target_link_libraries(FANS_FANS PUBLIC ${HDF5_CXX_LIBRARIES})
-target_compile_definitions(FANS_FANS PUBLIC ${HDF5_DEFINITIONS})
+target_link_libraries(FANS_FANS PUBLIC HDF5::HDF5)
 if (HDF5_IS_PARALLEL)
     target_compile_definitions(FANS_FANS PUBLIC H5_HAVE_PARALLEL)
 endif ()
-
 target_link_libraries(FANS_FANS PUBLIC MPI::MPI_CXX)
-
-target_include_directories(FANS_FANS PRIVATE ${FFTW3_INCLUDE_DIRS})
-target_link_libraries(FANS_FANS PUBLIC ${FFTW3_LIBRARIES})
-target_compile_definitions(FANS_FANS PUBLIC ${FFTW3_DEFINITIONS})
-
+target_link_libraries(FANS_FANS PUBLIC fftw3::double::serial fftw3::double::mpi)
 target_link_libraries(FANS_FANS PUBLIC Eigen3::Eigen)
 target_link_libraries(FANS_FANS PUBLIC nlohmann_json::nlohmann_json)
 target_link_libraries(FANS_FANS PUBLIC spdlog::spdlog)
 
-target_include_directories(FANS_main PRIVATE ${HDF5_INCLUDE_DIRS} ${FFTW3_INCLUDE_DIRS})
 target_link_libraries(FANS_main PRIVATE FANS::FANS)
 
 # ##############################################################################
@@ -237,26 +185,16 @@ install(
         EXPORT FANS
         LIBRARY
         DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        COMPONENT FANS_Runtime
-        NAMELINK_COMPONENT FANS_Development
         ARCHIVE
         DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        COMPONENT FANS_Development
         INCLUDES
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
-        PUBLIC_HEADER
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
-        COMPONENT FANS_Development
-        PRIVATE_HEADER
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
-        COMPONENT FANS_Development
 )
 
 install(
         TARGETS FANS_main
         RUNTIME
         DESTINATION ${CMAKE_INSTALL_BINDIR}
-        COMPONENT FANS_Runtime
 )
 
 install(
@@ -264,13 +202,11 @@ install(
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS
         NAMESPACE FANS::
         FILE FANSTargets.cmake
-        COMPONENT FANS_Development
 )
 
 install(
         FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/FindFFTW3.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS/modules
-        COMPONENT FANS_Development
 )
 
 write_basic_package_version_file(
@@ -288,7 +224,6 @@ install(
         FILES ${CMAKE_CURRENT_BINARY_DIR}/FANSConfig.cmake
         ${CMAKE_CURRENT_BINARY_DIR}/FANSConfigVersion.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS
-        COMPONENT FANS_Development
 )
 
 # ##############################################################################
@@ -302,16 +237,4 @@ option(FANS_ENABLE_TESTING "Enable testing" ${FANS_ENABLE_TESTING_DEFAULT})
 if (FANS_ENABLE_TESTING)
     enable_testing()
     add_subdirectory(test)
-endif ()
-
-# ##############################################################################
-# PACKAGING
-# ##############################################################################
-
-if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-    set(FANS_ENABLE_PACKAGING_DEFAULT ON)
-endif ()
-option(FANS_ENABLE_PACKAGING "Enable creation of Debian packages" ${FANS_ENABLE_PACKAGING_DEFAULT})
-if (FANS_ENABLE_PACKAGING)
-    add_subdirectory(cmake/packaging)
 endif ()

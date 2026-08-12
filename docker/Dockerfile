@@ -30,10 +30,9 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
 # Build basics
     software-properties-common \
     build-essential \
-# CMake + git for the CI checkout + file for CPack
+# CMake + git for the CI checkout
     cmake \
     git \
-    file \
 # FANS dependencies \
     libhdf5-dev \
     libhdf5-openmpi-dev \
@@ -43,9 +42,8 @@ RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     libfftw3-mpi-dev \
     nlohmann-json3-dev \
     libspdlog-dev \
-# Required for preCICE Micro Manager Python bindings
+# Required for building pyfans
     python3-dev \
-    pybind11-dev \
 # Clean up
     && apt-get clean \
     && apt-get autoremove --purge -y \

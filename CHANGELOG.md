@@ -1,5 +1,9 @@
 # FANS Changelog
 
+## latest
+
+- Build pyFANS as a standalone nanobind project against an installed FANS, so FANS itself no longer depends on Python [#155](https://github.com/DataAnalyticsEngineering/FANS/pull/155)
+
 ## v0.8.0
 
 - Make PyFANS installable (also with pixi build) [#152](https://github.com/DataAnalyticsEngineering/FANS/pull/152)
