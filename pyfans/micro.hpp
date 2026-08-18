@@ -38,6 +38,7 @@ class MicroSimulation {
     matmanager_t matmanager;
     solver_t     solver;
     double       pert_param = 1e-6; // scalar strain perturbation parameter
+    MatrixXd     cached_tangent;    // handed back when the macro solver asks for no fresh one
 };
 
 struct PyFANSConfig {

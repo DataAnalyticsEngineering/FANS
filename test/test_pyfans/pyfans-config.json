@@ -1,0 +1,4 @@
+{
+    "no_mpi": true,
+    "log-level": "info"
+}
