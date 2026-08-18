@@ -25,9 +25,7 @@
         "tolerance": 1e-10
     },
     "n_it": 100,
-    "macroscale_loading":   [
-                                [[0,0,0,0,0,0]]
-                            ],
+    "macroscale_loading":   [],
 
     "results": []
 }

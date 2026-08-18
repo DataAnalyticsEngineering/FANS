@@ -52,6 +52,11 @@ jobs:
         . .venv/bin/activate
         pip install ./pyfans
 
+    - name: Solve one RVE through the bindings
+      run: |
+        . .venv/bin/activate
+        python3 test/test_pyfans/standalone.py
+
     - name: Run a dummy macro-micro coupling test
       run: |
         . .venv/bin/activate
