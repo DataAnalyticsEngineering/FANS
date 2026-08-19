@@ -26,7 +26,7 @@ class J2PlasticityNew : public SmallStrainMechModel {
         eps_elastic.setZero();
     }
 
-    virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) override
+    void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) override
     {
         plasticStrain.resize(num_elements, Matrix<double, 6, Dynamic>::Zero(6, num_gauss_points));
         plasticStrain_t.resize(num_elements, Matrix<double, 6, Dynamic>::Zero(6, num_gauss_points));
@@ -34,7 +34,7 @@ class J2PlasticityNew : public SmallStrainMechModel {
         q_t.resize(num_elements, VectorXd::Zero(num_gauss_points));
     }
 
-    virtual void updateInternalVariables() override
+    void updateInternalVariables() override
     {
         plasticStrain.swap(plasticStrain_t);
         q.swap(q_t);

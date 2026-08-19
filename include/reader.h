@@ -115,7 +115,7 @@ void Reader::WriteData(T *data, const char *dset_name, hsize_t *dims, int rank)
     }
 
     // Create the data space for the dataset
-    hid_t dataspace_id = H5Screate_simple(rank, dims, NULL);
+    hid_t dataspace_id = H5Screate_simple(rank, dims, nullptr);
     if (dataspace_id < 0) {
         H5Fclose(file_id);
         throw std::runtime_error("Error creating dataspace");
@@ -130,7 +130,7 @@ void Reader::WriteData(T *data, const char *dset_name, hsize_t *dims, int rank)
     }
 
     // Perform the write: only rank 0 has meaningful data; other ranks use an empty memory selection
-    hid_t memspace = H5Screate_simple(rank, dims, NULL);
+    hid_t memspace = H5Screate_simple(rank, dims, nullptr);
     if (world_rank == 0) {
         /* root keeps full memspace */
     } else {

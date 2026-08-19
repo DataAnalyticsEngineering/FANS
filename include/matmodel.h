@@ -261,7 +261,7 @@ class ThermalModel : public Matmodel<1, 3> {
     };
 
   protected:
-    Matrix<double, 3, 8> Compute_B(const double x, const double y, const double z);
+    Matrix<double, 3, 8> Compute_B(const double x, const double y, const double z) override;
 };
 
 inline Matrix<double, 3, 8> ThermalModel::Compute_B(const double x, const double y, const double z)
@@ -278,7 +278,7 @@ class SmallStrainMechModel : public Matmodel<3, 6> {
     };
 
   protected:
-    Matrix<double, 6, 24> Compute_B(const double x, const double y, const double z);
+    Matrix<double, 6, 24> Compute_B(const double x, const double y, const double z) override;
 };
 
 inline Matrix<double, 6, 24> SmallStrainMechModel::Compute_B(const double x, const double y, const double z)

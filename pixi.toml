@@ -27,6 +27,8 @@ cmd  = "cd \"$INIT_CWD\" && python -m MSUtils.general.h52xdmf {{ extra }} {{ fil
 
 [feature.dev.dependencies]
 cmake = ">=4.4.2,<5"
+clang-tools = ">=22.1.8,<23"
+clangxx = ">=22.1.8,<23"
 openmpi-mpicxx = ">=5.0.10,<6"
 hdf5 = { version = ">=2.2.0,<3", build = "mpi_openmpi_*" }
 fftw = { version = ">=3.3.11,<4", build = "mpi_openmpi_*" }
@@ -43,10 +45,13 @@ scikit-build-core = ">=1.0.3,<2"
 numpy = ">=2.5.2,<3"
 mpi4py = ">=4.1.2,<5"
 
+[feature.dev.tasks]
+clang-tidy = { cmd = "./tools/run_clang_tidy.sh {{ args }}", args = [ { arg = "args", default = "" }] }
+
 [tasks]
 test = { cmd = "pytest -v -s --from-pixi", cwd = "test/pytest", depends-on = ["test-fans"] }
 test-fans = { cmd = "./run_tests.sh -n {{n}}", args = [
-  { arg = "n", default = "2" }, # Number of threads
+  { arg = "n", default = "8" }, # Number of threads
 ], cwd = "test" }
 
 [environments]

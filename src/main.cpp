@@ -41,7 +41,7 @@ void runSolver(Reader &reader, char input_fn[])
 
 int main(int argc, char *argv[])
 {
-    MPI_Init(NULL, NULL);
+    MPI_Init(nullptr, nullptr);
     Log::init(Log::parse_options(argc, argv));
 
     if (argc > 1 && string(argv[1]) == "--version") {

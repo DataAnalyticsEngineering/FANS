@@ -16,7 +16,7 @@ class SolverFP : public Solver<howmany, n_str> {
 
     SolverFP(Reader &reader, MaterialManager<howmany, n_str> *matmanager);
 
-    void internalSolve();
+    void internalSolve() override;
 
   protected:
     using Solver<howmany, n_str>::iter;

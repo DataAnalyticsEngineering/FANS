@@ -5,7 +5,7 @@
 #include "fftw3-mpi.h"
 #include "hdf5.h"
 #include "mpi.h"
-#include "stdlib.h"
+#include <cstdlib>
 
 #include "H5FDmpi.h"
 #include "H5FDmpio.h"
@@ -190,7 +190,7 @@ void Reader::safe_create_group(hid_t file, const char *const name)
     strcpy(buffer, name);
     char *str = buffer;
     str       = strchr(str + 1, DELIMITER);
-    while (str != NULL) {
+    while (str != nullptr) {
         // while another / character is found
         long int l = str - buffer; // length of substring
         buffer[l]  = '\0';         // temporary 'end of string'
@@ -203,7 +203,7 @@ void Reader::safe_create_group(hid_t file, const char *const name)
         void *old_client_data;
         H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
         /* Turn off error handling */
-        H5Eset_auto(H5E_DEFAULT, NULL, NULL);
+        H5Eset_auto(H5E_DEFAULT, nullptr, nullptr);
 
         group = H5Gopen(file, buffer, H5P_DEFAULT);
         /* Restore previous error handler */
@@ -256,7 +256,7 @@ void Reader ::ReadMS(int hm)
     }
 
     hid_t dspace = H5Dget_space(dset_id);
-    int   rank   = H5Sget_simple_extent_dims(dspace, _dims, NULL);
+    int   rank   = H5Sget_simple_extent_dims(dspace, _dims, nullptr);
     data_type    = H5T_NATIVE_USHORT; // H5Dget_type(dset_id);
 
     // Check if microstructure dataset has ZYX ordering through the permute_order attribute
