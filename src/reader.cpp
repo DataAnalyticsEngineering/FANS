@@ -240,12 +240,20 @@ void Reader ::ReadMS(int hm)
     file_id = H5Fopen(ms_filename, H5F_ACC_RDONLY, plist_id);
     H5Pclose(plist_id);
 
+    if (file_id < 0) {
+        throw std::runtime_error("Failed to open microstructure file " + string(ms_filename));
+    }
+
     // Create property list for collective dataset write.
     // plist_id = H5Pcreate(H5P_DATASET_XFER);
     // H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);   // "set Data Transfer Property List" (x means transfer)
     plist_id = H5P_DEFAULT;
 
     dset_id = H5Dopen2(file_id, ms_datasetname, plist_id);
+
+    if (dset_id < 0) {
+        throw std::runtime_error("Failed to open microstructure dataset " + string(ms_datasetname));
+    }
 
     hid_t dspace = H5Dget_space(dset_id);
     int   rank   = H5Sget_simple_extent_dims(dspace, _dims, NULL);
