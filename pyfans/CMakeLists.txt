@@ -12,10 +12,8 @@ find_package(FANS REQUIRED)
 
 # Development.SABIModule provides Python::SABIModule; without it nanobind
 # silently ignores STABLE_ABI and emits a version-specific module.
-find_package(
-  Python 3.12 REQUIRED COMPONENTS Interpreter Development.Module
-                                  Development.SABIModule
-)
+find_package(Python 3.12 REQUIRED COMPONENTS Interpreter Development.Module
+                                             Development.SABIModule)
 find_package(nanobind CONFIG REQUIRED)
 
 nanobind_add_module(PyFANS STABLE_ABI NB_STATIC micro.hpp micro.cpp)

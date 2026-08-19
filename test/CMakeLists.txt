@@ -2,11 +2,11 @@ set(FANS_TEST_INPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(FANS_TEST_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(FANS_EXECUTABLE $<TARGET_FILE:FANS_main>)
 
-# determine MPI process count. The discretization of the test geometry allows for max. 8 processes.
+# determine MPI process count. The discretization of the test geometry allows
+# for max. 8 processes.
 set(FANS_N_MPI_PROCESSES_MAX 8)
-cmake_host_system_information(
-  RESULT FANS_CORES_AVAILABLE QUERY NUMBER_OF_PHYSICAL_CORES
-)
+cmake_host_system_information(RESULT FANS_CORES_AVAILABLE
+                              QUERY NUMBER_OF_PHYSICAL_CORES)
 if(FANS_N_MPI_PROCESSES_MAX LESS FANS_CORES_AVAILABLE)
   set(FANS_N_MPI_PROCESSES ${FANS_N_MPI_PROCESSES_MAX})
 else()
@@ -23,8 +23,7 @@ set(FANS_TEST_CASES
     MixedBCs
     CompressibleNeoHookean
     FiniteStrainJ2Plasticity
-    MixedBCs_LargeStrain
-)
+    MixedBCs_LargeStrain)
 
 list(LENGTH FANS_TEST_CASES N_TESTS)
 math(EXPR N_TESTS "${N_TESTS} - 1")
@@ -38,6 +37,5 @@ foreach(N RANGE ${N_TESTS})
       mpiexec -n ${FANS_N_MPI_PROCESSES} ${FANS_EXECUTABLE}
       input_files/test_${FANS_TEST_CASE}.json
       ${FANS_TEST_OUTPUT_DIR}/test_${FANS_TEST_CASE}.h5
-    WORKING_DIRECTORY ${FANS_TEST_INPUT_DIR}
-  )
+    WORKING_DIRECTORY ${FANS_TEST_INPUT_DIR})
 endforeach()

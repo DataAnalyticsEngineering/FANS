@@ -7,8 +7,7 @@ cmake_minimum_required(VERSION 3.21)
 project(
   FANS
   VERSION 0.8.1
-  LANGUAGES C CXX
-)
+  LANGUAGES C CXX)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
@@ -16,29 +15,24 @@ include(CMakePackageConfigHelpers)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# with -fno-implicit-templates I get linker errors when using std:: stuff
-# TODO: should be developer specific, by using e.g. CMake Presets
+# with -fno-implicit-templates I get linker errors when using std:: stuff TODO:
+# should be developer specific, by using e.g. CMake Presets
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 set(CMAKE_PREFIX_PATH $ENV{CMAKE_PREFIX_PATH})
 
 # Memory leak detection with AddressSanitizer and LeakSanitizer
 option(FANS_ENABLE_SANITIZERS
        "Enable AddressSanitizer and LeakSanitizer for memory leak detection"
-       OFF
-)
+       OFF)
 if(FANS_ENABLE_SANITIZERS)
   set(CMAKE_CXX_FLAGS
-      "${CMAKE_CXX_FLAGS} -fsanitize=address,leak -fno-omit-frame-pointer -g"
-  )
+      "${CMAKE_CXX_FLAGS} -fsanitize=address,leak -fno-omit-frame-pointer -g")
   set(CMAKE_EXE_LINKER_FLAGS
-      "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,leak"
-  )
+      "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,leak")
   set(CMAKE_SHARED_LINKER_FLAGS
-      "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address,leak"
-  )
+      "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=address,leak")
   message(
-    STATUS "Memory sanitizers enabled: AddressSanitizer and LeakSanitizer"
-  )
+    STATUS "Memory sanitizers enabled: AddressSanitizer and LeakSanitizer")
 endif()
 
 # IPO
@@ -49,8 +43,7 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.9")
   check_ipo_supported(RESULT result LANGUAGES ${languages})
   if(result AND NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
     option(CMAKE_INTERPROCEDURAL_OPTIMIZATION
-           "Enable interprocedural optimization for all targets." ON
-    )
+           "Enable interprocedural optimization for all targets." ON)
     message(STATUS "IPO activated.")
   elseif(NOT result)
     message(STATUS "IPO not supported.")
@@ -61,33 +54,34 @@ endif()
 # RPATH settings
 # ##############################################################################
 
-# Taken from https://gitlab.kitware.com/cmake/community/-/wikis/doc/cmake/RPATH-handling
+# Taken from
+# https://gitlab.kitware.com/cmake/community/-/wikis/doc/cmake/RPATH-handling
 
 # use, i.e. don't skip the full RPATH for the build tree
 set(CMAKE_SKIP_BUILD_RPATH FALSE)
 
-# when building, don't use the install RPATH already
-# (but later on when installing)
+# when building, don't use the install RPATH already (but later on when
+# installing)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
-# add the automatically determined parts of the RPATH
-# which point to directories outside the build tree to the install RPATH
+# add the automatically determined parts of the RPATH which point to directories
+# outside the build tree to the install RPATH
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-# From https://stackoverflow.com/questions/73248130/how-to-avoid-the-removal-of-the-rpath-during-cmake-install-step
-# Set RPATH to be relative and honor user overrides, whether at the command line or FetchContent
+# From
+# https://stackoverflow.com/questions/73248130/how-to-avoid-the-removal-of-the-rpath-during-cmake-install-step
+# Set RPATH to be relative and honor user overrides, whether at the command line
+# or FetchContent
 if(APPLE)
   set(RPATH_BASE "@loader_path")
 else()
   set(RPATH_BASE "$ORIGIN")
 endif()
 file(RELATIVE_PATH REL_PATH_LIB "/${CMAKE_INSTALL_BINDIR}/"
-     "/${CMAKE_INSTALL_LIBDIR}/"
-)
+     "/${CMAKE_INSTALL_LIBDIR}/")
 set(CMAKE_INSTALL_RPATH
     "${RPATH_BASE};${RPATH_BASE}/${REL_PATH_LIB}"
-    CACHE STRING "Install RPATH"
-)
+    CACHE STRING "Install RPATH")
 
 # ##############################################################################
 # REQUIRED PACKAGES
@@ -107,8 +101,7 @@ find_package(HDF5 REQUIRED COMPONENTS C CXX)
 if(DEFINED HDF5_IS_PARALLEL AND NOT HDF5_IS_PARALLEL)
   message(
     FATAL_ERROR
-      "FANS requires an MPI-parallel HDF5, but ${HDF5_INCLUDE_DIRS} is serial."
-  )
+      "FANS requires an MPI-parallel HDF5, but ${HDF5_INCLUDE_DIRS} is serial.")
 endif()
 find_package(Eigen3 REQUIRED)
 find_package(MPI REQUIRED)
@@ -141,29 +134,24 @@ add_custom_command(
   COMMAND ${CMAKE_COMMAND} -E create_symlink $<TARGET_FILE:FANS_main>
           ${CMAKE_CURRENT_SOURCE_DIR}/test/$<TARGET_FILE_NAME:FANS_main>
   COMMENT
-    "Create a symlink for FANS executable to ${CMAKE_CURRENT_SOURCE_DIR}/test/"
-)
+    "Create a symlink for FANS executable to ${CMAKE_CURRENT_SOURCE_DIR}/test/")
 
 # ##############################################################################
 # HEADERS
 # ##############################################################################
 
 target_include_directories(
-  FANS_FANS PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-)
+  FANS_FANS PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 install(
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
   FILES_MATCHING
-  PATTERN "*.h"
-)
+  PATTERN "*.h")
 
 # version.h is generated and added to the build include directory
-configure_file(
-  "${PROJECT_SOURCE_DIR}/include/version.h.in"
-  "${PROJECT_BINARY_DIR}/include/version.h" @ONLY
-)
+configure_file("${PROJECT_SOURCE_DIR}/include/version.h.in"
+               "${PROJECT_BINARY_DIR}/include/version.h" @ONLY)
 target_include_directories(FANS_main PRIVATE "${PROJECT_BINARY_DIR}/include")
 
 # ##############################################################################
@@ -209,8 +197,7 @@ install(
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   INCLUDES
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS
-)
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/FANS)
 
 install(TARGETS FANS_main RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
@@ -218,27 +205,22 @@ install(
   EXPORT FANS
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS
   NAMESPACE FANS::
-  FILE FANSTargets.cmake
-)
+  FILE FANSTargets.cmake)
 
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/FindFFTW3.cmake
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS/modules
-)
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS/modules)
 
 write_basic_package_version_file(
   ${CMAKE_CURRENT_BINARY_DIR}/FANSConfigVersion.cmake
-  COMPATIBILITY SameMajorVersion
-)
+  COMPATIBILITY SameMajorVersion)
 configure_package_config_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FANSConfig.cmake.in"
   "${CMAKE_CURRENT_BINARY_DIR}/FANSConfig.cmake"
   INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/FANS"
-  NO_SET_AND_CHECK_MACRO NO_CHECK_REQUIRED_COMPONENTS_MACRO
-)
+  NO_SET_AND_CHECK_MACRO NO_CHECK_REQUIRED_COMPONENTS_MACRO)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/FANSConfig.cmake
               ${CMAKE_CURRENT_BINARY_DIR}/FANSConfigVersion.cmake
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS
-)
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/FANS)
 
 # ##############################################################################
 # TESTING

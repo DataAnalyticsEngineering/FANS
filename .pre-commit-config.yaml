@@ -27,3 +27,4 @@ repos:
     rev: v0.6.13
     hooks:
       - id: cmake-format
+        args: [--in-place, --enable-markup=false]
