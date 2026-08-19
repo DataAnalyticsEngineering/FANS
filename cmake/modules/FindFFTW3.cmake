@@ -32,7 +32,7 @@ if(FFTW3_INCLUDE_DIR AND FFTW3_LIBRARIES)
   set(FFTW3_FOUND TRUE)
   foreach(component ${FFTW3_FIND_COMPONENTS})
     if("${FFTW3_${component}_LIBRARY}" STREQUAL "")
-        set(FFTW3_${component}_LIBRARY "${FFTW3_LIBRARIES}")
+      set(FFTW3_${component}_LIBRARY "${FFTW3_LIBRARIES}")
     endif()
   endforeach()
   return()
@@ -44,14 +44,17 @@ macro(find_specific_libraries KIND PARALLEL)
     message(FATAL_ERROR "Please, find ${PARALLEL} libraries before FFTW")
   endif()
 
-  find_library(FFTW3_${KIND}_${PARALLEL}_LIBRARY NAMES
-    fftw3${SUFFIX_${KIND}}${SUFFIX_${PARALLEL}}${SUFFIX_FINAL} HINTS ${HINT_DIRS})
+  find_library(
+    FFTW3_${KIND}_${PARALLEL}_LIBRARY
+    NAMES fftw3${SUFFIX_${KIND}}${SUFFIX_${PARALLEL}}${SUFFIX_FINAL}
+    HINTS ${HINT_DIRS}
+  )
   if(FFTW3_${KIND}_${PARALLEL}_LIBRARY MATCHES fftw3)
     list(APPEND FFTW3_LIBRARIES ${FFTW3_${KIND}_${PARALLEL}_LIBRARY})
     set(FFTW3_${KIND}_${PARALLEL}_FOUND TRUE)
 
-    STRING(TOLOWER "${KIND}" kind)
-    STRING(TOLOWER "${PARALLEL}" parallel)
+    string(TOLOWER "${KIND}" kind)
+    string(TOLOWER "${PARALLEL}" parallel)
     if(FFTW3_${kind}_${parallel}_LIBRARY MATCHES "\\.a$")
       add_library(fftw3::${kind}::${parallel} STATIC IMPORTED GLOBAL)
     else()
@@ -60,52 +63,60 @@ macro(find_specific_libraries KIND PARALLEL)
 
     # MPI Has a different included library than the others
     # FFTW3_INCLUDE_DIR_PARALLEL will change depending of which on is used.
-    set(FFTW3_INCLUDE_DIR_PARALLEL ${FFTW3_INCLUDE_DIR} )
+    set(FFTW3_INCLUDE_DIR_PARALLEL ${FFTW3_INCLUDE_DIR})
     if(PARALLEL STREQUAL "MPI")
       set(FFTW3_INCLUDE_DIR_PARALLEL ${FFTW3_${PARALLEL}_INCLUDE_DIR})
     endif()
 
-    set_target_properties(fftw3::${kind}::${parallel} PROPERTIES
-      IMPORTED_LOCATION "${FFTW3_${KIND}_${PARALLEL}_LIBRARY}"
-      INTERFACE_INCLUDE_DIRECTORIES "${FFTW3_INCLUDE_DIR_PARALLEL}")
+    set_target_properties(
+      fftw3::${kind}::${parallel}
+      PROPERTIES IMPORTED_LOCATION "${FFTW3_${KIND}_${PARALLEL}_LIBRARY}"
+                 INTERFACE_INCLUDE_DIRECTORIES "${FFTW3_INCLUDE_DIR_PARALLEL}"
+    )
 
     # adding target properties to the different cases
     ##   MPI
     if(PARALLEL STREQUAL "MPI")
-      set_target_properties(fftw3::${kind}::mpi PROPERTIES
-        IMPORTED_LOCATION "${FFTW3_${KIND}_${PARALLEL}_LIBRARY}"
-        INTERFACE_INCLUDE_DIRECTORIES "${FFTW3_INCLUDE_DIR_PARALLEL}"
+      set_target_properties(
+        fftw3::${kind}::mpi
+        PROPERTIES IMPORTED_LOCATION "${FFTW3_${KIND}_${PARALLEL}_LIBRARY}"
+                   INTERFACE_INCLUDE_DIRECTORIES
+                   "${FFTW3_INCLUDE_DIR_PARALLEL}"
       )
 
       if(MPI_C_LIBRARIES AND NOT MPI_C_LIBRARIES STREQUAL "")
-        set_property(TARGET fftw3::${kind}::mpi PROPERTY
-          INTERFACE_LINK_LIBRARIES "${MPI_C_LIBRARIES}"
+        set_property(
+          TARGET fftw3::${kind}::mpi PROPERTY INTERFACE_LINK_LIBRARIES
+                                              "${MPI_C_LIBRARIES}"
         )
       endif()
     endif()
     ##   OpenMP
     if(PARALLEL STREQUAL "OPENMP")
       if(OPENMP_C_FLAGS)
-        set_target_properties(fftw3::${kind}::${parallel} PROPERTIES
-           IMPORTED_LOCATION "${FFTW3_${KIND}_${PARALLEL}_LIBRARY}"
-           INTERFACE_INCLUDE_DIRECTORIES "${FFTW3_INCLUDE_DIR_PARALLEL}"
-           INTERFACE_COMPILE_OPTIONS "${OPENMP_C_FLAGS}")
-        endif()
+        set_target_properties(
+          fftw3::${kind}::${parallel}
+          PROPERTIES IMPORTED_LOCATION "${FFTW3_${KIND}_${PARALLEL}_LIBRARY}"
+                     INTERFACE_INCLUDE_DIRECTORIES
+                     "${FFTW3_INCLUDE_DIR_PARALLEL}"
+                     INTERFACE_COMPILE_OPTIONS "${OPENMP_C_FLAGS}"
+        )
+      endif()
     endif()
     ##  THREADS
     if(PARALLEL STREQUAL "THREADS")
       if(CMAKE_THREAD_LIBS_INIT) # TODO: this is not running
-        set_target_properties(fftw3::${kind}::${parallel} PROPERTIES
-          IMPORTED_LOCATION "${FFTW3_${KIND}_${PARALLEL}_LIBRARY}"
-          INTERFACE_INCLUDE_DIRECTORIES "${FFTW3_INCLUDE_DIR_PARALLEL}"
-          INTERFACE_COMPILE_OPTIONS "${CMAKE_THREAD_LIBS_INIT}")
+        set_target_properties(
+          fftw3::${kind}::${parallel}
+          PROPERTIES IMPORTED_LOCATION "${FFTW3_${KIND}_${PARALLEL}_LIBRARY}"
+                     INTERFACE_INCLUDE_DIRECTORIES
+                     "${FFTW3_INCLUDE_DIR_PARALLEL}"
+                     INTERFACE_COMPILE_OPTIONS "${CMAKE_THREAD_LIBS_INIT}"
+        )
       endif()
     endif()
   endif()
 endmacro()
-
-
-
 
 if(NOT FFTW3_FIND_COMPONENTS)
   set(FFTW3_FIND_COMPONENTS SINGLE DOUBLE LONGDOUBLE SERIAL)
@@ -126,8 +137,10 @@ list(FIND FFTW3_FIND_COMPONENTS SERIAL LOOK_FOR_SERIAL)
 set(LOOK_FOR_SERIAL 1)
 
 # set serial as default if none parallel component has been set
-if((LOOK_FOR_THREADS LESS 0) AND (LOOK_FOR_MPI LESS 0) AND
-    (LOOK_FOR_OPENMP LESS 0))
+if((LOOK_FOR_THREADS LESS 0)
+   AND (LOOK_FOR_MPI LESS 0)
+   AND (LOOK_FOR_OPENMP LESS 0)
+)
   set(LOOK_FOR_SERIAL 1)
 endif()
 
@@ -135,9 +148,6 @@ if(MPI_C_FOUND)
   set(MPI_FOUND ${MPI_C_FOUND})
 endif()
 unset(FFTW3_FIND_COMPONENTS)
-
-
-
 
 if(WIN32)
   set(HINT_DIRS ${FFTW3_DIRECTORY} $ENV{FFTW3_DIRECTORY})
@@ -148,41 +158,53 @@ else()
     set(FFTW3_DEFINITIONS ${PC_FFTW3_CFLAGS_OTHER})
   endif()
   set(HINT_DIRS ${PC_FFTW3_INCLUDEDIR} ${PC_FFTW3_INCLUDE_DIRS}
-    ${FFTW3_INCLUDE_DIR} $ENV{FFTW3_INCLUDE_DIR} )
+                ${FFTW3_INCLUDE_DIR} $ENV{FFTW3_INCLUDE_DIR}
+  )
 endif()
 
-find_path(FFTW3_INCLUDE_DIR NAMES fftw3.h HINTS ${HINT_DIRS})
-if (LOOK_FOR_MPI)  # Probably is going to be the same as fftw3.h
-  find_path(FFTW3_MPI_INCLUDE_DIR NAMES fftw3-mpi.h HINTS ${HINT_DIRS})
+find_path(
+  FFTW3_INCLUDE_DIR
+  NAMES fftw3.h
+  HINTS ${HINT_DIRS}
+)
+if(LOOK_FOR_MPI) # Probably is going to be the same as fftw3.h
+  find_path(
+    FFTW3_MPI_INCLUDE_DIR
+    NAMES fftw3-mpi.h
+    HINTS ${HINT_DIRS}
+  )
 endif()
 
 function(find_version OUTVAR LIBRARY SUFFIX)
-    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/fftw${SUFFIX}/main.c
-      # TODO: do we need to add include for mpi headers?
-      "#include <fftw3.h>
+  file(
+    WRITE ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/fftw${SUFFIX}/main.c
+    # TODO: do we need to add include for mpi headers?
+    "#include <fftw3.h>
        #include <stdio.h>
        int main(int nargs, char const *argv[]) {
            printf(\"%s\", fftw${SUFFIX}_version);
            return 0;
        }"
   )
-if(NOT CMAKE_CROSSCOMPILING)
-    try_run(RUN_RESULT COMPILE_RESULT
-        "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/fftw${SUFFIX}/"
-        "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/fftw${SUFFIX}/main.c"
-        CMAKE_FLAGS
-          -DLINK_LIBRARIES=${LIBRARY}
-          -DINCLUDE_DIRECTORIES=${FFTW3_INCLUDE_DIR}
-        RUN_OUTPUT_VARIABLE OUTPUT
-        COMPILE_OUTPUT_VARIABLE COUTPUT
+  if(NOT CMAKE_CROSSCOMPILING)
+    try_run(
+      RUN_RESULT COMPILE_RESULT
+      "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/fftw${SUFFIX}/"
+      "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/fftw${SUFFIX}/main.c"
+      CMAKE_FLAGS -DLINK_LIBRARIES=${LIBRARY}
+                  -DINCLUDE_DIRECTORIES=${FFTW3_INCLUDE_DIR}
+      RUN_OUTPUT_VARIABLE OUTPUT
+      COMPILE_OUTPUT_VARIABLE COUTPUT
     )
   endif()
   if(RUN_RESULT EQUAL 0)
-    string(REGEX REPLACE
-        ".*([0-9]+\\.[0-9]+\\.[0-9]+).*"
-        "\\1" VERSION_STRING "${OUTPUT}"
+    string(REGEX REPLACE ".*([0-9]+\\.[0-9]+\\.[0-9]+).*" "\\1" VERSION_STRING
+                         "${OUTPUT}"
     )
-    set(${OUTVAR} ${VERSION_STRING} PARENT_SCOPE)
+    set(${OUTVAR}
+        ${VERSION_STRING}
+        PARENT_SCOPE
+    )
   endif()
 endfunction()
 
@@ -199,11 +221,12 @@ if(WIN32)
   set(SUFFIX_FINAL "-3")
 else()
   set(HINT_DIRS ${PC_FFTW3_LIBDIR} ${PC_FFTW3_LIBRARY_DIRS}
-    $ENV{FFTW3_LIBRARY_DIR} ${FFTW3_LIBRARY_DIR} )
+                $ENV{FFTW3_LIBRARY_DIR} ${FFTW3_LIBRARY_DIR}
+  )
 endif(WIN32)
 
 unset(FFTW3_LIBRARIES)
-set(FFTW3_INCLUDE_DIRS ${FFTW3_INCLUDE_DIR} ) # TODO what's for?
+set(FFTW3_INCLUDE_DIRS ${FFTW3_INCLUDE_DIR}) # TODO what's for?
 set(FFTW3_FLAGS_C "")
 foreach(KIND SINGLE DOUBLE LONGDOUBLE)
   if(LOOK_FOR_${KIND} LESS 0)
@@ -225,16 +248,19 @@ if(FFTW3_INCLUDE_DIR)
   unset(smallerrun)
   unset(RUNLIST)
   # suffix is quoted so it pass empty in the case of double as it's empty
-  find_version(FFTW3_VERSION_STRING ${FFTW3_${KIND}_${PARALLEL}_LIBRARY}
-    "${SUFFIX_${KIND}}")
+  find_version(
+    FFTW3_VERSION_STRING ${FFTW3_${KIND}_${PARALLEL}_LIBRARY}
+    "${SUFFIX_${KIND}}"
+  )
 endif()
 
 # FIXME: fails if use REQUIRED.
 include(FindPackageHandleStandardArgs)
 # handle the QUIETLY and REQUIRED arguments and set FFTW3_FOUND to TRUE
 # if all listed variables are TRUE
-find_package_handle_standard_args(FFTW3
-    REQUIRED_VARS FFTW3_LIBRARIES FFTW3_INCLUDE_DIR
-    VERSION_VAR FFTW3_VERSION_STRING
-    HANDLE_COMPONENTS
+find_package_handle_standard_args(
+  FFTW3
+  REQUIRED_VARS FFTW3_LIBRARIES FFTW3_INCLUDE_DIR
+  VERSION_VAR FFTW3_VERSION_STRING
+  HANDLE_COMPONENTS
 )

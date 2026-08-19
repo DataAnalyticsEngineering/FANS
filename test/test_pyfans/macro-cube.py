@@ -1,6 +1,7 @@
 """
 Run FANS as a Python callable library.
 """
+
 import numpy as np
 import precice
 

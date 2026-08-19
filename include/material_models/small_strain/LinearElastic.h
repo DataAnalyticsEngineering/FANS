@@ -58,9 +58,9 @@ class LinearElasticIsotropic : public SmallStrainMechModel, public LinearModel<3
         double lambda_ref = (*std::max_element(lambda.begin(), lambda.end()) +
                              *std::min_element(lambda.begin(), lambda.end())) /
                             2;
-        double mu_ref = (*std::max_element(mu.begin(), mu.end()) +
-                         *std::min_element(mu.begin(), mu.end())) /
-                        2;
+        double mu_ref     = (*std::max_element(mu.begin(), mu.end()) +
+                             *std::min_element(mu.begin(), mu.end())) /
+                            2;
 
         Matrix<double, 6, 6> kappa_ref = Matrix<double, 6, 6>::Zero();
         kappa_ref.topLeftCorner(3, 3).setConstant(lambda_ref);

@@ -105,9 +105,9 @@ class PseudoPlasticLinearHardening : public PseudoPlastic {
             buf2                             = 2.0 * shear_modulus[mat_index];
             plastic_flag[element_idx](i / 6) = mat_index;
         } else {
-            buf2 = (b * yield_stress[mat_index] + a * E_s[mat_index] * hardening_parameter[mat_index] *
-                                                      (norm_dev_eps - eps_crit[mat_index])) /
-                   norm_dev_eps;
+            buf2                             = (b * yield_stress[mat_index] + a * E_s[mat_index] * hardening_parameter[mat_index] *
+                                                                                  (norm_dev_eps - eps_crit[mat_index])) /
+                                               norm_dev_eps;
             plastic_flag[element_idx](i / 6) = this->n_mat + mat_index;
         }
         sigma.block<3, 1>(i, 0).setConstant(buf1);
