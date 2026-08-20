@@ -15,9 +15,11 @@ include(CMakePackageConfigHelpers)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# with -fno-implicit-templates I get linker errors when using std:: stuff TODO:
-# should be developer specific, by using e.g. CMake Presets
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE
+      Release
+      CACHE STRING "Build type" FORCE)
+endif()
 set(CMAKE_PREFIX_PATH $ENV{CMAKE_PREFIX_PATH})
 
 # Memory leak detection with AddressSanitizer and LeakSanitizer
@@ -35,19 +37,10 @@ if(FANS_ENABLE_SANITIZERS)
     STATUS "Memory sanitizers enabled: AddressSanitizer and LeakSanitizer")
 endif()
 
-# IPO
-if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.9")
-  cmake_policy(SET CMP0069 NEW)
-  include(CheckIPOSupported)
-  get_property(languages GLOBAL PROPERTY ENABLED_LANGUAGES)
-  check_ipo_supported(RESULT result LANGUAGES ${languages})
-  if(result AND NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
-    option(CMAKE_INTERPROCEDURAL_OPTIMIZATION
-           "Enable interprocedural optimization for all targets." ON)
-    message(STATUS "IPO activated.")
-  elseif(NOT result)
-    message(STATUS "IPO not supported.")
-  endif()
+include(CheckIPOSupported)
+check_ipo_supported(RESULT ipo_supported)
+if(ipo_supported AND NOT DEFINED CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 endif()
 
 # ##############################################################################
@@ -121,10 +114,13 @@ else()
 endif()
 add_library(FANS::FANS ALIAS FANS_FANS)
 
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64")
-
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
   target_compile_options(FANS_FANS PUBLIC -mavx2 -mfma)
+endif()
+
+option(FANS_ENABLE_NATIVE "Optimise for the building machine's CPU" OFF)
+if(FANS_ENABLE_NATIVE)
+  target_compile_options(FANS_FANS PUBLIC -march=native)
 endif()
 
 add_executable(FANS_main)
