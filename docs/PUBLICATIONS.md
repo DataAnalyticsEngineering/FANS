@@ -4,8 +4,8 @@ The following studies used FANS extensively as a primary data-generation tool.
 
 ## 2026
 
+- Yongliang Ou, Lena Scholz, Sanath Keshav, Yuji Ikeda, Marvin Kraft, Sergiy V. Divinski, Rafael Gómez-Bombarelli, Wolfgang Zeier, Felix Fritzen, and Blazej Grabowski. **Microstructural insights into fast ion transport in solid electrolytes via multiscale modeling.** *Nature Communications*, 17 (1), 2026. ([10.1038/s41467-026-76216-w](https://doi.org/10.1038/s41467-026-76216-w))
 - Sanath Keshav and Felix Fritzen. **Robust Inverse Material Design With Physical Guarantees Using the Voigt–Reuss Net.** *International Journal for Numerical Methods in Engineering*, 127(7), 2026. ([10.1002/nme.70296](https://doi.org/10.1002/nme.70296))
-- Yongliang Ou, Lena Scholz, Sanath Keshav, Yuji Ikeda, Marvin Kraft, Sergiy V. Divinski, Rafael Gómez-Bombarelli, Wolfgang Zeier, Felix Fritzen, and Blazej Grabowski. **Non-Arrhenius Li-ion transport and grain-size effects in argyrodite solid electrolytes.** Preprint, 2026. ([10.21203/rs.3.rs-7913719/v1](https://doi.org/10.21203/rs.3.rs-7913719/v1))
 
 ## 2025
 
