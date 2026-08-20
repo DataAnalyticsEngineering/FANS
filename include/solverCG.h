@@ -16,7 +16,7 @@ class SolverCG : public Solver<howmany, n_str> {
     using Solver<howmany, n_str>::v_r_real;
 
     SolverCG(Reader &reader, MaterialManager<howmany, n_str> *matmanager);
-    virtual ~SolverCG();
+    ~SolverCG() override;
 
     double   *s;
     double   *d;
@@ -27,7 +27,7 @@ class SolverCG : public Solver<howmany, n_str> {
     double    alpha_warm{0.1};
     bool      ls_converged{true};
 
-    void        internalSolve();
+    void        internalSolve() override;
     std::string LineSearchSecant();
     double      dotProduct(RealArray &a, RealArray &b);
 

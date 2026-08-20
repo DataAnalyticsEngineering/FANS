@@ -119,7 +119,7 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
         }
         kappa_average = kappa_average / n_mat;
     }
-    ~GBDiffusion()
+    ~GBDiffusion() override
     {
         FANS_free(GBnormals);
         delete[] phase_stiffness;

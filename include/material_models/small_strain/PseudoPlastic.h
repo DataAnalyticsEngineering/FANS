@@ -38,7 +38,7 @@ class PseudoPlastic : public SmallStrainMechModel {
         plastic_flag.resize(num_elements, VectorXi::Zero(num_gauss_points));
     }
 
-    virtual void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override = 0; // Pure virtual method
+    void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override = 0; // Pure virtual method
 
     Matrix<double, 6, 6> get_reference_stiffness() override
     {
