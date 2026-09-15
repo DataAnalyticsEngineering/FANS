@@ -221,6 +221,69 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
 
     void postprocess(Solver<1, 3> &solver, Reader &reader, int load_idx, int time_idx) override
     {
+        // Write grain orientation axis A to HDF5 file if requested
+        if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "grain_orientations_a") != reader.resultsToWrite.end()) {
+            double *orientation_field = FANS_malloc<double>(solver.local_n0 * solver.n_y * solver.n_z * 3);
+            Quaterniond q;
+            Matrix3d grain_ori;
+
+            for (ptrdiff_t element_idx = 0; element_idx < solver.local_n0 * solver.n_y * solver.n_z; ++element_idx) {
+                int mat_index = solver.ms[element_idx];
+                if (mat_index < num_crystals) {
+                    // Note: Quaterniond.coeffs() has xyzw ordering opposed to constructor
+                    q.coeffs() << grain_quat[4 * mat_index + 1], grain_quat[4 * mat_index + 2], grain_quat[4 * mat_index + 3], grain_quat[4 * mat_index + 0];
+                    grain_ori = q.toRotationMatrix();
+                    orientation_field[element_idx * 3]     = grain_ori(0, 0);
+                    orientation_field[element_idx * 3 + 1] = grain_ori(1, 0);
+                    orientation_field[element_idx * 3 + 2] = grain_ori(2, 0);
+                }
+            }
+            reader.writeSlab("grain_orientations_a", load_idx, time_idx, orientation_field, {3});
+            FANS_free(orientation_field);
+        }
+
+        // Write grain orientation axis B to HDF5 file if requested
+        if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "grain_orientations_b") != reader.resultsToWrite.end()) {
+            double *orientation_field = FANS_malloc<double>(solver.local_n0 * solver.n_y * solver.n_z * 3);
+            Quaterniond q;
+            Matrix3d grain_ori;
+
+            for (ptrdiff_t element_idx = 0; element_idx < solver.local_n0 * solver.n_y * solver.n_z; ++element_idx) {
+                int mat_index = solver.ms[element_idx];
+                if (mat_index < num_crystals) {
+                    // Note: Quaterniond.coeffs() has xyzw ordering opposed to constructor
+                    q.coeffs() << grain_quat[4 * mat_index + 1], grain_quat[4 * mat_index + 2], grain_quat[4 * mat_index + 3], grain_quat[4 * mat_index + 0];
+                    grain_ori = q.toRotationMatrix();
+                    orientation_field[element_idx * 3]     = grain_ori(0, 1);
+                    orientation_field[element_idx * 3 + 1] = grain_ori(1, 1);
+                    orientation_field[element_idx * 3 + 2] = grain_ori(2, 1);
+                }
+            }
+            reader.writeSlab("grain_orientations_b", load_idx, time_idx, orientation_field, {3});
+            FANS_free(orientation_field);
+        }
+
+        // Write grain orientation axis C to HDF5 file if requested
+        if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "grain_orientations_a") != reader.resultsToWrite.end()) {
+            double *orientation_field = FANS_malloc<double>(solver.local_n0 * solver.n_y * solver.n_z * 3);
+            Quaterniond q;
+            Matrix3d grain_ori;
+
+            for (ptrdiff_t element_idx = 0; element_idx < solver.local_n0 * solver.n_y * solver.n_z; ++element_idx) {
+                int mat_index = solver.ms[element_idx];
+                if (mat_index < num_crystals) {
+                    // Note: Quaterniond.coeffs() has xyzw ordering opposed to constructor
+                    q.coeffs() << grain_quat[4 * mat_index + 1], grain_quat[4 * mat_index + 2], grain_quat[4 * mat_index + 3], grain_quat[4 * mat_index + 0];
+                    grain_ori = q.toRotationMatrix();
+                    orientation_field[element_idx * 3]     = grain_ori(0, 2);
+                    orientation_field[element_idx * 3 + 1] = grain_ori(1, 2);
+                    orientation_field[element_idx * 3 + 2] = grain_ori(2, 2);
+                }
+            }
+            reader.writeSlab("grain_orientations_c", load_idx, time_idx, orientation_field, {3});
+            FANS_free(orientation_field);
+        }
+
         // Write GBnormals to HDF5 file if requested
         if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "GBnormals") != reader.resultsToWrite.end()) {
             double *GBnormals_field = FANS_malloc<double>(solver.local_n0 * solver.n_y * solver.n_z * 3);
