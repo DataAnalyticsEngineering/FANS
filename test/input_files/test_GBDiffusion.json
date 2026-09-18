@@ -1,20 +1,26 @@
 {
     "microstructure": {
         "filepath": "microstructures/diamond_GB.h5",
-        "datasetname": "/dset_0/eroded_image",
+        "datasetname": "/diamond/eroded_image",
         "L": [1.0, 1.0, 1.0]
     },
     "problem_type": "thermal",
     "strain_type": "small",
     "materials": [
         {
-            "phases": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+            "phases": [0, 1, 2, 3, 4, 5],
             "matmodel": "GBDiffusion",
             "material_properties": {
                 "material_uniformity": true,
-                "D_bulk_a": 10.0,
-                "D_bulk_b": 5.0,
-                "D_bulk_c": 1.0,
+                "D_bulk_00": 10.0,
+                "D_bulk_01": 0.0,
+                "D_bulk_02": 0.0,
+                "D_bulk_10": 0.0,
+                "D_bulk_11": 5.0,
+                "D_bulk_12": 0.0,
+                "D_bulk_20": 0.0,
+                "D_bulk_21": 0.0,
+                "D_bulk_22": 1.0,
                 "D_perp": 0.1,
                 "D_par": 10.0
             }
@@ -31,5 +37,6 @@
         [[0.01, 0.02, -0.01]]
     ],
     "results": ["homogenized_tangent", "stress_average", "strain_average", "absolute_error",
-                "microstructure", "displacement", "displacement_fluctuation", "stress", "strain"]
+                "microstructure", "displacement", "displacement_fluctuation", "stress", "strain",
+                "GBnormals", "grain_orientations_0", "grain_orientations_1", "grain_orientations_2"]
 }
