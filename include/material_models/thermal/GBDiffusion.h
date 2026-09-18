@@ -21,9 +21,9 @@
  * @details The model:
  *   - Reads microstructure data containing grain boundaries from HDF5 files
  *   - Supports uniform or material-specific diffusivity values
- *   - Handles bulk regions with orthotropic diffusion (D_bulk_a, D_bulk_b, D_bulk_c)
+ *   - Handles bulk regions with arbitrary rotations of reference diffusion tensor (D_bulk_00, D_bulk_01, ..., D_bulk_22)
  *   - Handles grain boundaries with transversely isotropic diffusion (D_par, D_perp)
- *   - Provides visualization of grain boundary normals in post-processing
+ *   - Provides visualization of grain orientations and grain boundary normals in post-processing
  *
  * Required material parameters in JSON format:
  *   - material_uniformity: Boolean flag for uniform grain and GB properties
@@ -31,9 +31,15 @@
  *   When material_uniformity is true (uniform properties):
  *   {
  *     "material_unformity": true,
- *     "D_bulk_a": 10.0,     // Diffusion coefficient along first axis for all crystals
- *     "D_bulk_b": 5.0,      // Diffusion coefficient along second axis for all crystals
- *     "D_bulk_c": 1.0,      // Diffusion coefficient along third axis for all crystals
+ *     "D_bulk_00": 10.0,    // Diffusion coefficient (0,0) for all crystals in crystal system
+ *     "D_bulk_01": 0.0,     // Diffusion coefficient (0,1) for all crystals in crystal system
+ *     "D_bulk_02": 0.0,     // Diffusion coefficient (0,2) for all crystals in crystal system
+ *     "D_bulk_10": 5.0,     // Diffusion coefficient (1,0) for all crystals in crystal system
+ *     "D_bulk_11": 0.0,     // Diffusion coefficient (1,1) for all crystals in crystal system
+ *     "D_bulk_12": 0.0,     // Diffusion coefficient (1,2) for all crystals in crystal system
+ *     "D_bulk_20": 0.0,     // Diffusion coefficient (2,0) for all crystals in crystal system
+ *     "D_bulk_21": 0.0,     // Diffusion coefficient (2,1) for all crystals in crystal system
+ *     "D_bulk_22": 1.0,     // Diffusion coefficient (2,2) for all crystals in crystal system
  *     "D_par": 2.0,         // Diffusion coefficient parallel to the grain boundary for all GBs
  *     "D_perp": 0.5         // Diffusion coefficient perpendicular to the grain boundary for all GBs
  *   }
@@ -44,8 +50,17 @@
  *     "D_bulk_a": [...],  // Array of length (num_crystals + num_GB elements), but D_bulk_a is only used for crystals (0 to num_crystals)
  *     "D_bulk_b": [...],  // Array of length (num_crystals + num_GB elements), but D_bulk_b is only used for crystals (0 to num_crystals)
  *     "D_bulk_c": [...],  // Array of length (num_crystals + num_GB elements), but D_bulk_c is only used for crystals (0 to num_crystals)
- *     "D_par":    [...],  // Array of length (num_crystals + num_GB elements), but D_par  is only used for GBs (num_crystals to num_crystals + num_GB)
- *     "D_perp":   [...]   // Array of length (num_crystals + num_GB elements), but D_perp is only used for GBs (num_crystals to num_crystals + num_GB)
+ *     "D_bulk_00": [...],    // Array of length (num_crystals + num_GB elements, but D_bulk_00 is only used for crystals (0 to num_crystals)
+ *     "D_bulk_01": [...],    // Array of length (num_crystals + num_GB elements, but D_bulk_01 is only used for crystals (0 to num_crystals)
+ *     "D_bulk_02": [...],    // Array of length (num_crystals + num_GB elements, but D_bulk_02 is only used for crystals (0 to num_crystals)
+ *     "D_bulk_10": [...],    // Array of length (num_crystals + num_GB elements, but D_bulk_10 is only used for crystals (0 to num_crystals)
+ *     "D_bulk_11": [...],    // Array of length (num_crystals + num_GB elements, but D_bulk_11 is only used for crystals (0 to num_crystals)
+ *     "D_bulk_12": [...],    // Array of length (num_crystals + num_GB elements, but D_bulk_12 is only used for crystals (0 to num_crystals)
+ *     "D_bulk_20": [...],    // Array of length (num_crystals + num_GB elements, but D_bulk_02 is only used for crystals (0 to num_crystals)
+ *     "D_bulk_21": [...],    // Array of length (num_crystals + num_GB elements, but D_bulk_12 is only used for crystals (0 to num_crystals)
+ *     "D_bulk_22": [...],    // Array of length (num_crystals + num_GB elements, but D_bulk_22 is only used for crystals (0 to num_crystals)
+ *     "D_par":     [...],    // Array of length (num_crystals + num_GB elements), but D_par  is only used for GBs (num_crystals to num_crystals + num_GB)
+ *     "D_perp":    [...]     // Array of length (num_crystals + num_GB elements), but D_perp is only used for GBs (num_crystals to num_crystals + num_GB)
  *   }
  */
 class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
@@ -70,17 +85,15 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
 
             n_mat       = num_crystals + num_GB;
 
-            grain_quat = FANS_malloc<double>(n_mat * 4);
+            grain_rot_matrices = FANS_malloc<double>(n_mat * 9);
             auto grainInfo = json::parse(json_text_grain);
             for (auto &kv : grainInfo.items()) {
-                int   tag = kv.value().at("grain_tag").get<int>();
-                auto &ori = kv.value()["orientation_wxyz"];
+                int   tag        = kv.value().at("grain_tag").get<int>();
+                auto &rot_matrix = kv.value()["rotation_matrix_cmajor"];
 
-                // Rotation is defined via unit quaternion (w, x, y, z)
-                grain_quat[(tag) * 4]     = ori[0].get<double>();
-                grain_quat[(tag) * 4 + 1] = ori[1].get<double>();
-                grain_quat[(tag) * 4 + 2] = ori[2].get<double>();
-                grain_quat[(tag) * 4 + 3] = ori[3].get<double>();
+                for (int i=0; i<9; i++){
+                    grain_rot_matrices[(tag) * 9 + i] = rot_matrix[i].get<double>();
+                }
             }
 
             GBnormals   = FANS_malloc<double>(n_mat * 3);
@@ -89,35 +102,60 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
                 int   tag    = kv.value().at("GB_tag").get<int>();
                 auto &normal = kv.value()["GB_normal"];
 
-                GBnormals[(tag) * 3]     = normal[0].get<double>();
-                GBnormals[(tag) * 3 + 1] = normal[1].get<double>();
-                GBnormals[(tag) * 3 + 2] = normal[2].get<double>();
+                for (int i=0; i<3; i++){
+                    GBnormals[(tag) * 3 + i] = normal[i].get<double>();
+                }
+                
             }
             material_uniformity = reader.materialProperties["material_uniformity"].get<bool>();
 
-            D_bulk_a.resize(n_mat, 0.0);
-            D_bulk_b.resize(n_mat, 0.0);
-            D_bulk_c.resize(n_mat, 0.0);
+            D_bulk_00.resize(n_mat, 0.0);
+            D_bulk_01.resize(n_mat, 0.0);
+            D_bulk_02.resize(n_mat, 0.0);
+            D_bulk_10.resize(n_mat, 0.0);
+            D_bulk_11.resize(n_mat, 0.0);
+            D_bulk_12.resize(n_mat, 0.0);
+            D_bulk_20.resize(n_mat, 0.0);
+            D_bulk_21.resize(n_mat, 0.0);
+            D_bulk_22.resize(n_mat, 0.0);
             D_par.resize(n_mat, 0.0);
             D_perp.resize(n_mat, 0.0);
 
             if (material_uniformity) {
-                double bulk_val_a = reader.materialProperties["D_bulk_a"].get<double>();
-                double bulk_val_b = reader.materialProperties["D_bulk_b"].get<double>();
-                double bulk_val_c = reader.materialProperties["D_bulk_c"].get<double>();
+                double bulk_val_00 = reader.materialProperties["D_bulk_00"].get<double>();
+                double bulk_val_01 = reader.materialProperties["D_bulk_01"].get<double>();
+                double bulk_val_02 = reader.materialProperties["D_bulk_02"].get<double>();
+                double bulk_val_10 = reader.materialProperties["D_bulk_10"].get<double>();
+                double bulk_val_11 = reader.materialProperties["D_bulk_11"].get<double>();
+                double bulk_val_12 = reader.materialProperties["D_bulk_12"].get<double>();
+                double bulk_val_20 = reader.materialProperties["D_bulk_20"].get<double>();
+                double bulk_val_21 = reader.materialProperties["D_bulk_21"].get<double>();
+                double bulk_val_22 = reader.materialProperties["D_bulk_22"].get<double>();
                 double par_val  = reader.materialProperties["D_par"].get<double>();
                 double perp_val = reader.materialProperties["D_perp"].get<double>();
 
-                fill_n(D_bulk_a.begin(), num_crystals, bulk_val_a);
-                fill_n(D_bulk_b.begin(), num_crystals, bulk_val_b);
-                fill_n(D_bulk_c.begin(), num_crystals, bulk_val_c);
+                fill_n(D_bulk_00.begin(), num_crystals, bulk_val_00);
+                fill_n(D_bulk_01.begin(), num_crystals, bulk_val_01);
+                fill_n(D_bulk_02.begin(), num_crystals, bulk_val_02);
+                fill_n(D_bulk_10.begin(), num_crystals, bulk_val_10);
+                fill_n(D_bulk_11.begin(), num_crystals, bulk_val_11);
+                fill_n(D_bulk_12.begin(), num_crystals, bulk_val_12);
+                fill_n(D_bulk_20.begin(), num_crystals, bulk_val_20);
+                fill_n(D_bulk_21.begin(), num_crystals, bulk_val_21);
+                fill_n(D_bulk_22.begin(), num_crystals, bulk_val_22);
                 fill_n(D_par.begin() + num_crystals, num_GB, par_val);
                 fill_n(D_perp.begin() + num_crystals, num_GB, perp_val);
             } else {
                 for (int i = 0; i < n_mat; ++i) {
-                    D_bulk_a[i] = reader.materialProperties["D_bulk_a"][i].get<double>();
-                    D_bulk_b[i] = reader.materialProperties["D_bulk_b"][i].get<double>();
-                    D_bulk_c[i] = reader.materialProperties["D_bulk_c"][i].get<double>();
+                    D_bulk_00[i] = reader.materialProperties["D_bulk_00"][i].get<double>();
+                    D_bulk_01[i] = reader.materialProperties["D_bulk_01"][i].get<double>();
+                    D_bulk_02[i] = reader.materialProperties["D_bulk_02"][i].get<double>();
+                    D_bulk_10[i] = reader.materialProperties["D_bulk_00"][i].get<double>();
+                    D_bulk_11[i] = reader.materialProperties["D_bulk_01"][i].get<double>();
+                    D_bulk_12[i] = reader.materialProperties["D_bulk_02"][i].get<double>();
+                    D_bulk_20[i] = reader.materialProperties["D_bulk_00"][i].get<double>();
+                    D_bulk_21[i] = reader.materialProperties["D_bulk_01"][i].get<double>();
+                    D_bulk_22[i] = reader.materialProperties["D_bulk_02"][i].get<double>();
                     D_par[i]  = reader.materialProperties["D_par"][i].get<double>();
                     D_perp[i] = reader.materialProperties["D_perp"][i].get<double>();
                 }
@@ -134,17 +172,17 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
         for (size_t i = 0; i < n_mat; ++i) {
             phase_stiffness[i] = Matrix<double, 8, 8>::Zero();
             if (i < num_crystals) {
-                // Bulk is orthotropic
-                // Note: Quaterniond.coeffs() has xyzw ordering opposed to constructor
-                q.coeffs() << grain_quat[4 * i + 1], grain_quat[4 * i + 2], grain_quat[4 * i + 3], grain_quat[4 * i + 0];
-                grain_ori = q.toRotationMatrix();
+                // Reference grain diffusivity (crystal system)
+                D_grain_ref << D_bulk_00[i], D_bulk_01[i], D_bulk_02[i], 
+                            D_bulk_10[i], D_bulk_11[i], D_bulk_12[i],
+                            D_bulk_20[i], D_bulk_21[i], D_bulk_22[i];
 
-                Vector3d grain_ori_c0 = grain_ori.col(0);
-                Vector3d grain_ori_c1 = grain_ori.col(1);
-                Vector3d grain_ori_c2 = grain_ori.col(2);
-                phase_kappa = D_bulk_a[i] * grain_ori_c0 * grain_ori_c0.transpose()
-                                + D_bulk_b[i] * grain_ori_c1 * grain_ori_c1.transpose()
-                                + D_bulk_c[i] * grain_ori_c2 * grain_ori_c2.transpose();
+                // Rotation matrix is stored in column-major format
+                rot_mat << grain_rot_matrices[9 * i + 0], grain_rot_matrices[9 * i + 3], grain_rot_matrices[9 * i + 6],
+                        grain_rot_matrices[9 * i + 1], grain_rot_matrices[9 * i + 4], grain_rot_matrices[9 * i + 7],
+                        grain_rot_matrices[9 * i + 2], grain_rot_matrices[9 * i + 5], grain_rot_matrices[9 * i + 8];
+
+                phase_kappa = rot_mat * D_grain_ref * rot_mat.transpose();
             } else if (i < n_mat) {
                 // Grain boundary is transversely isotropic
                 N           = Vector3d(GBnormals[3 * i + 0], GBnormals[3 * i + 1], GBnormals[3 * i + 2]);
@@ -162,7 +200,7 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
     }
     ~GBDiffusion() override
     {
-        FANS_free(grain_quat);
+        FANS_free(grain_rot_matrices);
         FANS_free(GBnormals);
         delete[] phase_stiffness;
         phase_stiffness = nullptr;
@@ -176,17 +214,17 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
     void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override
     {
         if (mat_index < num_crystals) {
-            // Note: constructor of Quaterniond uses wxyz ordering
-            Quaterniond q(grain_quat[4 * mat_index + 0], grain_quat[4 * mat_index + 1], grain_quat[4 * mat_index + 2], grain_quat[4 * mat_index + 3]);
-            Matrix3d grain_ori = q.toRotationMatrix();
+            // Reference grain diffusivity (crystal system)
+            D_grain_ref << D_bulk_00[mat_index], D_bulk_01[mat_index], D_bulk_02[mat_index], 
+                           D_bulk_10[mat_index], D_bulk_11[mat_index], D_bulk_12[mat_index],
+                           D_bulk_20[mat_index], D_bulk_21[mat_index], D_bulk_22[mat_index];
 
-            Vector3d grain_ori_c0 = grain_ori.col(0);
-            Vector3d grain_ori_c1 = grain_ori.col(1);
-            Vector3d grain_ori_c2 = grain_ori.col(2);
+            // Rotation matrix is stored in column-major format
+            rot_mat << grain_rot_matrices[9 * mat_index + 0], grain_rot_matrices[9 * mat_index + 3], grain_rot_matrices[9 * mat_index + 6],
+                       grain_rot_matrices[9 * mat_index + 1], grain_rot_matrices[9 * mat_index + 4], grain_rot_matrices[9 * mat_index + 7],
+                       grain_rot_matrices[9 * mat_index + 2], grain_rot_matrices[9 * mat_index + 5], grain_rot_matrices[9 * mat_index + 8];
 
-            sigma.block<3, 1>(i, 0) = (D_bulk_a[mat_index] * grain_ori_c0 * grain_ori_c0.transpose()
-                            + D_bulk_b[mat_index] * grain_ori_c1 * grain_ori_c1.transpose()
-                            + D_bulk_c[mat_index] * grain_ori_c2 * grain_ori_c2.transpose()) * eps.block<3, 1>(i, 0);
+            sigma.block<3, 1>(i, 0) = (rot_mat * D_grain_ref * rot_mat.transpose()) * eps.block<3, 1>(i, 0);
 
         } else if (mat_index < n_mat) {
             const ptrdiff_t base_idx = 3 * mat_index;
@@ -221,66 +259,51 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
 
     void postprocess(Solver<1, 3> &solver, Reader &reader, int load_idx, int time_idx) override
     {
-        // Write grain orientation axis A to HDF5 file if requested
-        if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "grain_orientations_a") != reader.resultsToWrite.end()) {
+        // Write first grain orientation axis to HDF5 file if requested
+        if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "grain_orientations_0") != reader.resultsToWrite.end()) {
             double *orientation_field = FANS_malloc<double>(solver.local_n0 * solver.n_y * solver.n_z * 3);
-            Quaterniond q;
-            Matrix3d grain_ori;
 
             for (ptrdiff_t element_idx = 0; element_idx < solver.local_n0 * solver.n_y * solver.n_z; ++element_idx) {
                 int mat_index = solver.ms[element_idx];
                 if (mat_index < num_crystals) {
-                    // Note: Quaterniond.coeffs() has xyzw ordering opposed to constructor
-                    q.coeffs() << grain_quat[4 * mat_index + 1], grain_quat[4 * mat_index + 2], grain_quat[4 * mat_index + 3], grain_quat[4 * mat_index + 0];
-                    grain_ori = q.toRotationMatrix();
-                    orientation_field[element_idx * 3]     = grain_ori(0, 0);
-                    orientation_field[element_idx * 3 + 1] = grain_ori(1, 0);
-                    orientation_field[element_idx * 3 + 2] = grain_ori(2, 0);
+                    orientation_field[element_idx * 3]         = grain_rot_matrices[9 * mat_index];
+                    orientation_field[element_idx * 3 + 1]     = grain_rot_matrices[9 * mat_index + 1];
+                    orientation_field[element_idx * 3 + 2]     = grain_rot_matrices[9 * mat_index + 2];
                 }
             }
-            reader.writeSlab("grain_orientations_a", load_idx, time_idx, orientation_field, {3});
+            reader.writeSlab("grain_orientations_0", load_idx, time_idx, orientation_field, {3});
             FANS_free(orientation_field);
         }
 
-        // Write grain orientation axis B to HDF5 file if requested
-        if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "grain_orientations_b") != reader.resultsToWrite.end()) {
+        // Write second grain orientation axis to HDF5 file if requested
+        if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "grain_orientations_1") != reader.resultsToWrite.end()) {
             double *orientation_field = FANS_malloc<double>(solver.local_n0 * solver.n_y * solver.n_z * 3);
-            Quaterniond q;
-            Matrix3d grain_ori;
 
             for (ptrdiff_t element_idx = 0; element_idx < solver.local_n0 * solver.n_y * solver.n_z; ++element_idx) {
                 int mat_index = solver.ms[element_idx];
                 if (mat_index < num_crystals) {
-                    // Note: Quaterniond.coeffs() has xyzw ordering opposed to constructor
-                    q.coeffs() << grain_quat[4 * mat_index + 1], grain_quat[4 * mat_index + 2], grain_quat[4 * mat_index + 3], grain_quat[4 * mat_index + 0];
-                    grain_ori = q.toRotationMatrix();
-                    orientation_field[element_idx * 3]     = grain_ori(0, 1);
-                    orientation_field[element_idx * 3 + 1] = grain_ori(1, 1);
-                    orientation_field[element_idx * 3 + 2] = grain_ori(2, 1);
+                    orientation_field[element_idx * 3]         = grain_rot_matrices[9 * mat_index + 3];
+                    orientation_field[element_idx * 3 + 1]     = grain_rot_matrices[9 * mat_index + 4];
+                    orientation_field[element_idx * 3 + 2]     = grain_rot_matrices[9 * mat_index + 5];
                 }
             }
-            reader.writeSlab("grain_orientations_b", load_idx, time_idx, orientation_field, {3});
+            reader.writeSlab("grain_orientations_1", load_idx, time_idx, orientation_field, {3});
             FANS_free(orientation_field);
         }
 
-        // Write grain orientation axis C to HDF5 file if requested
-        if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "grain_orientations_a") != reader.resultsToWrite.end()) {
+        // Write third grain orientation axis to HDF5 file if requested
+        if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "grain_orientations_2") != reader.resultsToWrite.end()) {
             double *orientation_field = FANS_malloc<double>(solver.local_n0 * solver.n_y * solver.n_z * 3);
-            Quaterniond q;
-            Matrix3d grain_ori;
 
             for (ptrdiff_t element_idx = 0; element_idx < solver.local_n0 * solver.n_y * solver.n_z; ++element_idx) {
                 int mat_index = solver.ms[element_idx];
                 if (mat_index < num_crystals) {
-                    // Note: Quaterniond.coeffs() has xyzw ordering opposed to constructor
-                    q.coeffs() << grain_quat[4 * mat_index + 1], grain_quat[4 * mat_index + 2], grain_quat[4 * mat_index + 3], grain_quat[4 * mat_index + 0];
-                    grain_ori = q.toRotationMatrix();
-                    orientation_field[element_idx * 3]     = grain_ori(0, 2);
-                    orientation_field[element_idx * 3 + 1] = grain_ori(1, 2);
-                    orientation_field[element_idx * 3 + 2] = grain_ori(2, 2);
+                    orientation_field[element_idx * 3]         = grain_rot_matrices[9 * mat_index + 6];
+                    orientation_field[element_idx * 3 + 1]     = grain_rot_matrices[9 * mat_index + 7];
+                    orientation_field[element_idx * 3 + 2]     = grain_rot_matrices[9 * mat_index + 8];
                 }
             }
-            reader.writeSlab("grain_orientations_c", load_idx, time_idx, orientation_field, {3});
+            reader.writeSlab("grain_orientations_2", load_idx, time_idx, orientation_field, {3});
             FANS_free(orientation_field);
         }
 
@@ -305,15 +328,21 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
     int  num_GB       = 0;
     bool material_uniformity;
 
-    vector<double> D_bulk_a;
-    vector<double> D_bulk_b;
-    vector<double> D_bulk_c;
+    vector<double> D_bulk_00;
+    vector<double> D_bulk_01;
+    vector<double> D_bulk_02;
+    vector<double> D_bulk_10;
+    vector<double> D_bulk_11;
+    vector<double> D_bulk_12;
+    vector<double> D_bulk_20;
+    vector<double> D_bulk_21;
+    vector<double> D_bulk_22;
     vector<double> D_par;
     vector<double> D_perp;
 
-    double  *grain_quat = nullptr;
-    Quaterniond q;
-    Matrix3d grain_ori;
+    double  *grain_rot_matrices = nullptr;
+    Matrix3d rot_mat;
+    Matrix3d D_grain_ref;
     double  *GBnormals = nullptr;
     Vector3d N;
     Matrix3d kappa_average;
