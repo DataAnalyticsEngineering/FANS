@@ -2,6 +2,8 @@
 #define GBDIFFUSION_H
 
 #include "matmodel.h"
+#include <array>
+#include <cstdint>
 #include <Eigen/StdVector> // For Eigen's aligned_allocator
 
 /**
@@ -9,7 +11,9 @@
  * @brief Material model for grain boundary diffusion in polycrystals
  *
  * This model implements diffusion in a polycrystalline material, differentiating between
- * bulk crystal diffusion (isotropic) and grain boundary diffusion (transversely isotropic).
+ * bulk crystal diffusion and grain boundary diffusion (transversely isotropic).
+ * The grains are characterized by an active crystal-to-sample rotation matrix and can
+ * have different diffusion properties along the three crystal axes.
  * The grain boundaries are characterized by their normal vectors and can have different
  * diffusion properties parallel and perpendicular to the boundary plane.
  *
@@ -19,27 +23,36 @@
  * @details The model:
  *   - Reads microstructure data containing grain boundaries from HDF5 files
  *   - Supports uniform or material-specific diffusivity values
- *   - Handles bulk regions with isotropic diffusion (D_bulk)
+ *   - Handles bulk regions with arbitrary rotations of reference diffusion tensor (D_bulk_11, D_bulk_12, ..., D_bulk_33)
  *   - Handles grain boundaries with transversely isotropic diffusion (D_par, D_perp)
- *   - Provides visualization of grain boundary normals in post-processing
  *
  * Required material parameters in JSON format:
- *   - GB_uniformity: Boolean flag for uniform GB properties
+ *   - material_uniformity: Boolean flag for uniform grain and GB properties
  *
- *   When GB_uniformity is true (uniform properties):
+ *   When material_uniformity is true (uniform properties):
  *   {
- *     "GB_unformity": true,
- *     "D_bulk": 1.0,        // Isotropic diffusion coefficient for all crystals
+ *     "material_uniformity": true,
+ *     "D_bulk_11": 10.0,    // Diffusion coefficient (1,1) for all crystals in crystal system
+ *     "D_bulk_12": 0.0,     // Diffusion coefficient (1,2) for all crystals in crystal system
+ *     "D_bulk_13": 0.0,     // Diffusion coefficient (1,3) for all crystals in crystal system
+ *     "D_bulk_22": 5.0,     // Diffusion coefficient (2,2) for all crystals in crystal system
+ *     "D_bulk_23": 0.0,     // Diffusion coefficient (2,3) for all crystals in crystal system
+ *     "D_bulk_33": 1.0,     // Diffusion coefficient (3,3) for all crystals in crystal system
  *     "D_par": 2.0,         // Diffusion coefficient parallel to the grain boundary for all GBs
  *     "D_perp": 0.5         // Diffusion coefficient perpendicular to the grain boundary for all GBs
  *   }
  *
- *   When GB_unformity is false (tag-specific properties):
+ *   When material_uniformity is false (tag-specific properties):
  *   {
- *     "GB_unformity": false,
- *     "D_bulk": [...],  // Array of length (num_crystals + num_GB elements), but D_bulk is only used for crystals (0 to num_crystals)
- *     "D_par":  [...],  // Array of length (num_crystals + num_GB elements), but D_par  is only used for GBs (num_crystals to num_crystals + num_GB)
- *     "D_perp": [...]   // Array of length (num_crystals + num_GB elements), but D_perp is only used for GBs (num_crystals to num_crystals + num_GB)
+ *     "material_uniformity": false,
+ *     "D_bulk_11": [...],    // One value per phase; only crystal entries are used
+ *     "D_bulk_12": [...],
+ *     "D_bulk_13": [...],
+ *     "D_bulk_22": [...],
+ *     "D_bulk_23": [...],
+ *     "D_bulk_33": [...],
+ *     "D_par":     [...],    // One value per phase; only GB entries are used
+ *     "D_perp":    [...]
  *   }
  */
 class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
@@ -47,83 +60,82 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
     GBDiffusion(const Reader &reader)
         : ThermalModel(reader)
     {
+        static constexpr std::array<const char *, 6> D_keys = {
+            "D_bulk_11", "D_bulk_12", "D_bulk_13",
+            "D_bulk_22", "D_bulk_23",
+            "D_bulk_33"};
+
         try {
-            // Read num_crystals, num_GB and GBVoxelInfo from the microstructure dataset attributes
-            H5::H5File  file(reader.ms_filename, H5F_ACC_RDONLY);
-            H5::DataSet ds = file.openDataSet(reader.ms_datasetname);
-            ds.openAttribute("num_crystals").read(H5::PredType::NATIVE_INT64, &num_crystals);
-            ds.openAttribute("num_GB").read(H5::PredType::NATIVE_INT64, &num_GB);
-            std::string   json_text;
-            H5::Attribute attr    = ds.openAttribute("GBVoxelInfo");
-            H5::StrType   strType = attr.getStrType();
-            attr.read(strType, json_text);
+            H5::H5File   file(reader.ms_filename, H5F_ACC_RDONLY);
+            H5::DataSet  ds = file.openDataSet(reader.ms_datasetname);
+            std::int64_t crystal_count, boundary_count;
+            ds.openAttribute("num_crystals").read(H5::PredType::NATIVE_INT64, &crystal_count);
+            ds.openAttribute("num_GB").read(H5::PredType::NATIVE_INT64, &boundary_count);
+            const int num_crystals = static_cast<int>(crystal_count);
+            const int num_GB       = static_cast<int>(boundary_count);
+            n_mat                  = num_crystals + num_GB;
 
-            n_mat       = num_crystals + num_GB;
-            GBnormals   = FANS_malloc<double>(n_mat * 3);
-            auto gbInfo = json::parse(json_text);
-            for (auto &kv : gbInfo.items()) {
-                int   tag    = kv.value().at("GB_tag").get<int>();
-                auto &normal = kv.value()["GB_normal"];
+            auto sibling = [&](const char *name) {
+                std::string path(reader.ms_datasetname);
+                path.replace(path.find_last_of('/') + 1, std::string::npos, name);
+                return path;
+            };
+            vector<double> grain_rot_matrices(9 * num_crystals), GB_normals(3 * n_mat);
+            file.openDataSet(sibling("rotation_matrices")).read(grain_rot_matrices.data(), H5::PredType::NATIVE_DOUBLE);
+            file.openDataSet(sibling("GB_normals")).read(GB_normals.data(), H5::PredType::NATIVE_DOUBLE);
 
-                GBnormals[(tag) * 3]     = normal[0].get<double>();
-                GBnormals[(tag) * 3 + 1] = normal[1].get<double>();
-                GBnormals[(tag) * 3 + 2] = normal[2].get<double>();
-            }
-            GB_uniformity = reader.materialProperties["GB_uniformity"].get<bool>();
-
-            D_bulk.resize(n_mat, 0.0);
-            D_par.resize(n_mat, 0.0);
-            D_perp.resize(n_mat, 0.0);
-
-            if (GB_uniformity) {
-                double bulk_val = reader.materialProperties["D_bulk"].get<double>();
-                double par_val  = reader.materialProperties["D_par"].get<double>();
-                double perp_val = reader.materialProperties["D_perp"].get<double>();
-
-                fill_n(D_bulk.begin(), num_crystals, bulk_val);
-                fill_n(D_par.begin() + num_crystals, num_GB, par_val);
-                fill_n(D_perp.begin() + num_crystals, num_GB, perp_val);
+            Matrix<double, 6, Dynamic> D_bulk_constants = Matrix<double, 6, Dynamic>::Zero(6, n_mat);
+            VectorXd                   D_par = VectorXd::Zero(n_mat), D_perp = VectorXd::Zero(n_mat);
+            if (reader.materialProperties["material_uniformity"].get<bool>()) {
+                for (size_t k = 0; k < D_keys.size(); ++k)
+                    D_bulk_constants.row(k).head(num_crystals).setConstant(reader.materialProperties.at(D_keys[k]).get<double>());
+                D_par.tail(num_GB).setConstant(reader.materialProperties["D_par"].get<double>());
+                D_perp.tail(num_GB).setConstant(reader.materialProperties["D_perp"].get<double>());
             } else {
-                for (int i = 0; i < n_mat; ++i) {
-                    D_bulk[i] = reader.materialProperties["D_bulk"][i].get<double>();
-                    D_par[i]  = reader.materialProperties["D_par"][i].get<double>();
-                    D_perp[i] = reader.materialProperties["D_perp"][i].get<double>();
+                auto values = [&](const char *name) {
+                    auto result = reader.materialProperties.at(name).get<vector<double>>();
+                    if (result.size() != static_cast<size_t>(n_mat))
+                        throw std::runtime_error("Inconsistent size for material property: " + string(name));
+                    return result;
+                };
+                for (size_t k = 0; k < D_keys.size(); ++k) {
+                    const auto data         = values(D_keys[k]);
+                    D_bulk_constants.row(k) = Map<const RowVectorXd>(data.data(), n_mat);
                 }
+                const auto par = values("D_par"), perp = values("D_perp");
+                D_par  = Map<const VectorXd>(par.data(), n_mat);
+                D_perp = Map<const VectorXd>(perp.data(), n_mat);
             }
 
+            phase_diffusivities.resize(n_mat);
+            phase_stiffness_storage.resize(n_mat);
+            phase_stiffness = phase_stiffness_storage.data();
+            kappa_average.setZero();
+
+            for (int phase = 0; phase < n_mat; ++phase) {
+                auto &phase_kappa = phase_diffusivities[phase];
+                if (phase < num_crystals) {
+                    Matrix3d D_grain_ref;
+                    D_grain_ref << D_bulk_constants(0, phase), D_bulk_constants(1, phase), D_bulk_constants(2, phase),
+                        D_bulk_constants(1, phase), D_bulk_constants(3, phase), D_bulk_constants(4, phase),
+                        D_bulk_constants(2, phase), D_bulk_constants(4, phase), D_bulk_constants(5, phase);
+                    using RowMatrix3d = Matrix<double, 3, 3, RowMajor>;
+                    const Map<const RowMatrix3d> rot_mat(grain_rot_matrices.data() + 9 * phase);
+                    phase_kappa.noalias() = rot_mat * D_grain_ref * rot_mat.transpose();
+                } else {
+                    const Vector3d normal = Map<const Vector3d>(GB_normals.data() + 3 * phase).normalized();
+                    phase_kappa           = D_par[phase] * (Matrix3d::Identity() - normal * normal.transpose()) + D_perp[phase] * normal * normal.transpose();
+                }
+
+                kappa_average += phase_kappa;
+                phase_stiffness[phase].setZero();
+                for (const auto &B : B_int)
+                    phase_stiffness[phase].noalias() += B.transpose() * phase_kappa * B * v_e / n_gp;
+            }
+            kappa_average /= n_mat;
         } catch (const std::exception &e) {
             throw std::runtime_error("Error in GBDiffusion initialization: " + std::string(e.what()));
         }
-
-        kappa_average = Matrix3d::Zero();
-        Matrix3d phase_kappa;
-        phase_stiffness = new Matrix<double, 8, 8>[n_mat];
-
-        for (size_t i = 0; i < n_mat; ++i) {
-            phase_stiffness[i] = Matrix<double, 8, 8>::Zero();
-            if (i < num_crystals) {
-                // Bulk is isotropic
-                phase_kappa = D_bulk[i] * Matrix3d::Identity();
-            } else if (i < n_mat) {
-                // Grain boundary is transversely isotropic
-                N           = Vector3d(GBnormals[3 * i + 0], GBnormals[3 * i + 1], GBnormals[3 * i + 2]);
-                N           = N.normalized();
-                phase_kappa = D_par[i] * (Matrix3d::Identity() - N * N.transpose()) + D_perp[i] * N * N.transpose();
-            } else {
-                throw std::runtime_error("GBDiffusion: Unknown material index");
-            }
-            kappa_average += phase_kappa;
-            for (int p = 0; p < n_gp; ++p) {
-                phase_stiffness[i] += B_int[p].transpose() * phase_kappa * B_int[p] * v_e / n_gp;
-            }
-        }
-        kappa_average = kappa_average / n_mat;
-    }
-    ~GBDiffusion() override
-    {
-        FANS_free(GBnormals);
-        delete[] phase_stiffness;
-        phase_stiffness = nullptr;
     }
 
     Matrix3d get_reference_stiffness() override
@@ -131,71 +143,15 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
         return kappa_average;
     }
 
-    void get_sigma(int i, int mat_index, ptrdiff_t element_idx) override
+    void get_sigma(int i, int mat_index, ptrdiff_t) override
     {
-        if (mat_index < num_crystals) {
-            sigma.block<3, 1>(i, 0) = D_bulk[mat_index] * eps.block<3, 1>(i, 0);
-        } else if (mat_index < n_mat) {
-            const ptrdiff_t base_idx = 3 * mat_index;
-            double          nx       = GBnormals[base_idx];
-            double          ny       = GBnormals[base_idx + 1];
-            double          nz       = GBnormals[base_idx + 2];
-
-            // Pre-compute products for the projector matrix (N⊗N)
-            double nxnx = nx * nx;
-            double nxny = nx * ny;
-            double nxnz = nx * nz;
-            double nyny = ny * ny;
-            double nynz = ny * nz;
-            double nznz = nz * nz;
-
-            // Pre-compute coefficients
-            double d_diff = D_par[mat_index] - D_perp[mat_index];
-
-            // Cache epsilon values to avoid repeated memory access
-            double ex = eps(i, 0);
-            double ey = eps(i + 1, 0);
-            double ez = eps(i + 2, 0);
-
-            // Calculate directly without constructing full matrices
-            sigma(i, 0)     = D_par[mat_index] * ex - d_diff * (nxnx * ex + nxny * ey + nxnz * ez);
-            sigma(i + 1, 0) = D_par[mat_index] * ey - d_diff * (nxny * ex + nyny * ey + nynz * ez);
-            sigma(i + 2, 0) = D_par[mat_index] * ez - d_diff * (nxnz * ex + nynz * ey + nznz * ez);
-        } else {
-            throw std::runtime_error("GBDiffusion: Unknown material index");
-        }
-    }
-
-    void postprocess(Solver<1, 3> &solver, Reader &reader, int load_idx, int time_idx) override
-    {
-        // Write GBnormals to HDF5 file if requested
-        if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "GBnormals") != reader.resultsToWrite.end()) {
-            double *GBnormals_field = FANS_malloc<double>(solver.local_n0 * solver.n_y * solver.n_z * 3);
-            for (ptrdiff_t element_idx = 0; element_idx < solver.local_n0 * solver.n_y * solver.n_z; ++element_idx) {
-                int mat_index = solver.ms[element_idx];
-                if (mat_index >= num_crystals) {
-                    GBnormals_field[element_idx * 3]     = GBnormals[3 * mat_index];
-                    GBnormals_field[element_idx * 3 + 1] = GBnormals[3 * mat_index + 1];
-                    GBnormals_field[element_idx * 3 + 2] = GBnormals[3 * mat_index + 2];
-                }
-            }
-            reader.writeSlab("GBnormals", load_idx, time_idx, GBnormals_field, {3});
-            FANS_free(GBnormals_field);
-        }
+        sigma.segment<3>(i).noalias() = phase_diffusivities[mat_index] * eps.segment<3>(i);
     }
 
   private:
-    int  num_crystals = 0;
-    int  num_GB       = 0;
-    bool GB_uniformity;
-
-    vector<double> D_bulk;
-    vector<double> D_par;
-    vector<double> D_perp;
-
-    double  *GBnormals = nullptr;
-    Vector3d N;
-    Matrix3d kappa_average;
+    std::vector<Matrix3d, Eigen::aligned_allocator<Matrix3d>>                         phase_diffusivities;
+    std::vector<Matrix<double, 8, 8>, Eigen::aligned_allocator<Matrix<double, 8, 8>>> phase_stiffness_storage;
+    Matrix3d                                                                          kappa_average;
 };
 
 #endif // GBDIFFUSION_H

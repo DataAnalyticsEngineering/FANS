@@ -1,7 +1,7 @@
 {
     "microstructure": {
         "filepath": "microstructures/diamond_GB.h5",
-        "datasetname": "/dset_0/eroded_image",
+        "datasetname": "/diamond/eroded_image",
         "L": [1.0, 1.0, 1.0]
     },
     "problem_type": "thermal",
@@ -11,8 +11,13 @@
             "phases": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
             "matmodel": "GBDiffusion",
             "material_properties": {
-                "GB_uniformity": true,
-                "D_bulk": 1.0,
+                "material_uniformity": true,
+                "D_bulk_11": 1.0,
+                "D_bulk_12": 0.0,
+                "D_bulk_13": 0.0,
+                "D_bulk_22": 1.0,
+                "D_bulk_23": 0.0,
+                "D_bulk_33": 1.0,
                 "D_perp": 0.1,
                 "D_par": 10.0
             }
