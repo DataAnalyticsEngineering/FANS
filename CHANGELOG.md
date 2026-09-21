@@ -1,5 +1,9 @@
 # FANS Changelog
 
+## latest
+
+- Account for grain orientations in GBDiffusion material model [#161](https://github.com/DataAnalyticsEngineering/FANS/pull/161)
+
 ## v0.8.1
 
 - Build pyFANS as a standalone nanobind project against an installed FANS, so FANS itself no longer depends on Python [#155](https://github.com/DataAnalyticsEngineering/FANS/pull/155)
