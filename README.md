@@ -197,6 +197,8 @@ cd ../test
 | `FANS_BUILD_STATIC` | Build static library | `OFF` |
 | `CMAKE_INSTALL_PREFIX` | Installation directory | System default |
 | `FANS_ENABLE_SANITIZERS` | Enable runtime sanitizers (AddressSanitizer and LeakSanitizer) for memory debugging | `OFF` |
+| `FANS_ENABLE_NATIVE` | Optimise for the building machine's CPU (`-march=native`) | `OFF` |
+| `FANS_NEML2` | Build a FANS that runs [NEML2](https://github.com/applied-material-modeling/neml2) materials | `OFF` |
 
 ---
 
@@ -280,6 +282,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
     - `LinearElasticTriclinic` for linear triclinic elastic material model.
     - `PseudoPlasticLinearHardening` / `PseudoPlasticNonLinearHardening` for plasticity mimicking model with linear/nonlinear hardening.
     - `J2ViscoPlastic_LinearIsotropicHardening` / `J2ViscoPlastic_NonLinearIsotropicHardening` for rate-independent / dependent J2 plasticity model with kinematic and linear/nonlinear isotropic hardening.
+    - `NEML2` for a small-strain material compiled from a [NEML2](https://github.com/applied-material-modeling/neml2) model with `neml2-compile`.
     - `SaintVenantKirchhoff` for the hyperelastic Saint Venant-Kirchhoff material model.
     - `CompressibleNeoHookean` for the compressible Neo-Hookean material model.
     - `FiniteStrainJ2Plasticity` for rate-independent finite-strain J2 plasticity with linear isotropic hardening.

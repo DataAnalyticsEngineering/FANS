@@ -20,11 +20,14 @@ class J2Plasticity : public SmallStrainMechModel {
             yield_stress  = reader.materialProperties["yield_stress"].get<vector<double>>();                  // Initial yield stress
             K             = reader.materialProperties["isotropic_hardening_parameter"].get<vector<double>>(); // Isotropic hardening parameter
             H             = reader.materialProperties["kinematic_hardening_parameter"].get<vector<double>>(); // Kinematic hardening parameter
-            eta           = reader.materialProperties["viscosity"].get<vector<double>>();                     // Viscosity parameter
-            dt            = reader.materialProperties["time_step"].get<double>();                             // Time step
+            // Without viscosity the model is rate independent and needs no time step
+            eta = reader.materialProperties.value("viscosity", vector<double>(bulk_modulus.size(), 0.0));
+            dt  = reader.materialProperties.value("time_step", 1.0);
         } catch (const std::exception &e) {
             throw std::runtime_error("Missing or invalid material properties for J2Plasticity.");
         }
+        if (reader.materialProperties.contains("viscosity") && !reader.materialProperties.contains("time_step"))
+            throw std::runtime_error("J2Plasticity with viscosity requires time_step.");
         n_mat = bulk_modulus.size();
         if (n_mat == 0 || shear_modulus.size() != n_mat || yield_stress.size() != n_mat ||
             K.size() != n_mat || H.size() != n_mat || eta.size() != n_mat)

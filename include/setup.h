@@ -19,6 +19,9 @@
 template <int howmany, int n_str>
 Matmodel<howmany, n_str> *createMatmodel(const Reader &reader);
 
+// Constitutive response from a plugin loaded at run time; src/plugin_material.cpp
+Matmodel<3, 6> *create_plugin_material(const Reader &reader);
+
 template <>
 Matmodel<1, 3> *createMatmodel<1, 3>(const Reader &reader)
 {
@@ -42,19 +45,23 @@ Matmodel<3, 6> *createMatmodel<3, 6>(const Reader &reader)
     } else if (reader.matmodel == "LinearElasticTriclinic") {
         return new LinearElasticTriclinic(reader);
 
-        // Pseudo Plastic models
+    // Pseudo Plastic models
     } else if (reader.matmodel == "PseudoPlasticLinearHardening") {
         return new PseudoPlasticLinearHardening(reader);
     } else if (reader.matmodel == "PseudoPlasticNonLinearHardening") {
         return new PseudoPlasticNonLinearHardening(reader);
 
-        // J2 Plastic models
+    // J2 Plastic models
     } else if (reader.matmodel == "J2ViscoPlastic_LinearIsotropicHardening") {
         return new J2ViscoPlastic_LinearIsotropicHardening(reader);
     } else if (reader.matmodel == "J2ViscoPlastic_NonLinearIsotropicHardening") {
         return new J2ViscoPlastic_NonLinearIsotropicHardening(reader);
     } else if (reader.matmodel == "J2PlasticityNew_LinearIsotropicHardening") {
         return new J2PlasticityNew_LinearIsotropicHardening(reader);
+    
+    // NEML2 material
+    } else if (reader.matmodel == "NEML2") {
+        return create_plugin_material(reader);
 
     } else {
         throw std::invalid_argument(reader.matmodel + " is not a valid small strain material model");
