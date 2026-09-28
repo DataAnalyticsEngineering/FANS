@@ -47,7 +47,7 @@ numpy = ">=2.5.3,<3"
 mpi4py = ">=4.1.2,<5"
 
 [feature.dev.tasks]
-build-fans = "cmake -S . -B build -DFANS_ENABLE_NATIVE=ON && cmake --build build -j"
+build-fans = { cmd = "cmake -S . -B build -DFANS_ENABLE_NATIVE=ON && cmake --build build -j", default-environment = "dev" }
 
 # On Linux, torch is the CUDA build (it also runs on CPUs)
 [feature.neml2]

@@ -2,6 +2,7 @@
 
 ## latest
 
+- Add NEML2 material support [#162](https://github.com/DataAnalyticsEngineering/FANS/pull/162)
 - Account for grain orientations in GBDiffusion material model [#161](https://github.com/DataAnalyticsEngineering/FANS/pull/161)
 
 ## v0.8.1

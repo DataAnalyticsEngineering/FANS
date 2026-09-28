@@ -244,7 +244,7 @@ if(FANS_NEML2)
     OUTPUT_VARIABLE neml2_dir
     OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
   get_filename_component(torch_prefix "${Python_EXECUTABLE}/../.." ABSOLUTE)
-  set(ENV{TORCH_ROOT} ${torch_prefix})
+  set(ENV{torch_ROOT} ${torch_prefix})
   find_package(neml2 CONFIG REQUIRED PATHS ${neml2_dir})
 
   add_library(fans_neml2 SHARED src/neml2_plugin.cpp)
