@@ -45,7 +45,6 @@ class Solver : private MixedBCController<howmany> {
     ArrayXd                          err_all; //!< Absolute error history
     Matrix<double, howmany, Dynamic> fundamentalSolution;
 
-    // Used only when a material evaluates in batches (src/plugin_material.cpp)
     vector<vector<ptrdiff_t>> batch_elems;     //!< elements of each batching model
     vector<double>            batch_ue;        //!< nodal displacements of every element
     vector<double>            batch_gp_stress; //!< Gauss-point stresses of every element

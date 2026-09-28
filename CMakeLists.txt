@@ -242,21 +242,16 @@ if(FANS_NEML2)
   execute_process(
     COMMAND ${Python_EXECUTABLE} -c "import neml2; print(neml2.__path__[0])"
     OUTPUT_VARIABLE neml2_dir
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    RESULT_VARIABLE rc)
-  if(NOT rc EQUAL 0)
-    message(FATAL_ERROR "FANS_NEML2 needs the neml2 Python package, "
-                        "e.g. from 'pixi shell -e dev-neml2'.")
-  endif()
-
-  set(torch_SEARCH_SITE_PACKAGES ON)
+    OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
+  get_filename_component(torch_prefix "${Python_EXECUTABLE}/../.." ABSOLUTE)
+  set(ENV{TORCH_ROOT} ${torch_prefix})
   find_package(neml2 CONFIG REQUIRED PATHS ${neml2_dir})
 
   add_library(fans_neml2 SHARED src/neml2_plugin.cpp)
   target_include_directories(fans_neml2 PRIVATE include)
   target_link_libraries(fans_neml2 PRIVATE neml2::aoti)
   set_target_properties(
-    fans_neml2 PROPERTIES CXX_STANDARD 20
-                          INSTALL_RPATH "${neml2_dir}/lib;${torch_ROOT}/lib")
+    fans_neml2 PROPERTIES CXX_STANDARD 20 INSTALL_RPATH
+                                          "${neml2_dir}/lib;${torch_prefix}/lib")
   install(TARGETS fans_neml2 LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()

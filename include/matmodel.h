@@ -48,17 +48,12 @@ class Matmodel {
     virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) {}
     virtual void updateInternalVariables() {}
 
-    /// True for models evaluated many elements at a time (plugin materials):
-    /// before each element sweep the solver calls evaluate_batch, and
-    /// get_sigma then serves the stresses it computed.
+    // Batched models (plugin materials) get all their elements' stresses from
+    // evaluate_batch before each element sweep; get_sigma then serves them.
     virtual bool wants_batch() const
     {
         return false;
     }
-    /// Evaluate `elems` (phase ids in `phase`) from nodal displacements `ue`
-    /// (stride howmany * 8) into Gauss-point stresses `sig_gp` (stride
-    /// n_gp * n_str). `finished_step`: the solve has committed the history,
-    /// and the stresses it converged to are wanted.
     virtual void evaluate_batch(const vector<ptrdiff_t> &elems, const unsigned short *phase,
                                 const double *ue, double *sig_gp, bool finished_step) {}
 

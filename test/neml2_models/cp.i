@@ -100,8 +100,8 @@
 [Solvers]
   [newton]
     type = Newton
-    abs_tol = 1e-10
-    rel_tol = 1e-8
+    abs_tol = 1e-12
+    rel_tol = 0
     max_its = 100
   []
 []

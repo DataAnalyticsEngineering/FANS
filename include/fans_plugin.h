@@ -3,6 +3,7 @@
  * (libfans_<name>.so for "matmodel": "<name>"), so the plugin's dependencies
  * -- libtorch, for NEML2 -- never reach the FANS build.
  *
+ * All arrays are in host memory, whatever device the plugin computes on.
  * Strain and stress are [n_points][6] in FANS Mandel order,
  * [11, 22, 33, sqrt(2)*12, sqrt(2)*13, sqrt(2)*23].
  * A model may also take a crystal orientation, [n_points][3][3] row-major
@@ -22,13 +23,17 @@
 extern "C" {
 #endif
 
-#define FANS_PLUGIN_ERRLEN 1024
+#define FANS_PLUGIN_MSGLEN 1024
 
 typedef struct FANSPluginModel FANSPluginModel;
 
-/* `spec` is the "artifact" material property. NULL on failure. */
-FANSPluginModel *fans_plugin_load(const char *spec, int *n_state, int *wants_orientation,
-                                  char *err, size_t errlen);
+/* `spec` and `device` ("cpu", "cuda", ...) are the "artifact" and "device"
+   material properties. On success `msg` gets the history variables in
+   storage order as a JSON array of [name, size], e.g.
+   [["state/internal/Ep", 6], ["state/internal/ep", 1]]; symmetric tensors in
+   FANS Mandel order. On failure (NULL) it gets the error. */
+FANSPluginModel *fans_plugin_load(const char *spec, const char *device, int *n_state,
+                                  int *wants_orientation, char *msg, size_t msglen);
 
 /* orientation is NULL unless wanted; state_old/state_new are NULL when n_state == 0. */
 int fans_plugin_evaluate(FANSPluginModel *model, size_t n_points, const double *strain,
