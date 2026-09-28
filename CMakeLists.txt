@@ -251,7 +251,7 @@ if(FANS_NEML2)
   target_include_directories(fans_neml2 PRIVATE include)
   target_link_libraries(fans_neml2 PRIVATE neml2::aoti)
   set_target_properties(
-    fans_neml2 PROPERTIES CXX_STANDARD 20 INSTALL_RPATH
-                                          "${neml2_dir}/lib;${torch_prefix}/lib")
+    fans_neml2 PROPERTIES CXX_STANDARD 20
+                          INSTALL_RPATH "${neml2_dir}/lib;${torch_prefix}/lib")
   install(TARGETS fans_neml2 LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
