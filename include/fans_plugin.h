@@ -10,7 +10,8 @@
  * crystal-to-sample rotation matrices, which FANS reads per grain from the
  * "rotation_matrices" dataset next to the microstructure.
  * History is opaque: n_state doubles per point that FANS stores, starts at
- * zero, and hands back as state_old once a step has converged.
+ * zero, and hands back as state_old once a step has converged; state_new
+ * arrives holding the latest trial history, e.g. as an initial guess.
  * Functions returning int give 0 on success, else a message in `err`.
  */
 

@@ -151,6 +151,7 @@ class PluginSmallStrainMechModel : public SmallStrainMechModel {
                         std::copy_n(&grain_rot[9 * g], 9, &or_[(k * n_gp + p) * 9]);
                 }
                 std::copy_n(history_old.data() + e * st_e, st_e, so_.data() + k * st_e);
+                std::copy_n(state.data() + e * st_e, st_e, sn_.data() + k * st_e); // initial guess: the latest trial
             }
 
             evaluate(ne * n_gp, in_.data(), or_.data(), so_.data(), out_.data(), sn_.data());

@@ -1,8 +1,8 @@
 // libfans_neml2.so: the NEML2 material plugin (fans_plugin.h).
 //
 // Mandel order: FANS is [11,22,33,12,13,23], NEML2 [11,22,33,23,13,12].
-// History: every input "X~1" with a matching output "X"; SR2 ones are stored
-// in FANS order too.
+// History: every input "X~1" with a matching output "X", plus its Newton
+// initial guess "X" if the model has no predictor; SR2 ones in FANS order.
 
 #include "fans_plugin.h"
 
@@ -86,6 +86,8 @@ FANSPluginModel *fans_plugin_load(const char *spec, const char *device, int *n_s
                 h->orientation = true;
                 continue;
             }
+            if (find(in, name + "~1") >= 0)
+                continue; // initial guess, fed the latest trial history
             const int bi = name.ends_with("~1") ? find(out, name.substr(0, name.size() - 2)) : -1;
             if (bi < 0 || out_shape[bi] != in_shape[i])
                 throw std::runtime_error("artifact input '" + name + "' is neither the strain, an R2 'orientation', nor " +
@@ -128,7 +130,9 @@ int fans_plugin_evaluate(FANSPluginModel *m, size_t n_points, const double *stra
         const at::Tensor new_state = at::from_blob(state_new, {n, m->n_state}, kF64);
         for (const HistoryVar &h : m->history) {
             at::Tensor v          = old_state.narrow(1, h.offset, h.size);
+            at::Tensor g          = new_state.narrow(1, h.offset, h.size);
             inputs[h.name + "~1"] = (h.sr2 ? v.index_select(1, m->perm) : v).reshape(h.shape).to(m->device);
+            inputs[h.name]        = (h.sr2 ? g.index_select(1, m->perm) : g).reshape(h.shape).to(m->device);
         }
 
         const auto outputs = m->model->forward(inputs);

@@ -71,15 +71,10 @@
     type = ComposedModel
     models = 'Ee elasticity rss strength slip dEp residual'
   []
-  [guess]
-    type = ConstantExtrapolationPredictor
-    unknowns_SR2 = 'state/internal/Ep'
-  []
   [solve]
     type = ImplicitUpdate
     equation_system = 'system'
     solver = 'newton'
-    predictor = 'guess'
   []
   [cp]
     type = ComposedModel
