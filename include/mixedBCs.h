@@ -141,6 +141,7 @@ struct LoadCase {
     vector<vector<double>> g0_path;     // legacy pure‑strain
     MixedBC                mbc;         // mixed BC data
     size_t                 n_steps = 0; // number of time steps
+    vector<double>         dt;          // size of each time step
 };
 
 // ---------------------------------------------------------------------------

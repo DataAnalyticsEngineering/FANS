@@ -164,6 +164,16 @@ void Reader ::ReadInputFile(const std::string &input_fn)
             load_cases.push_back(std::move(lc));
         }
 
+        // "time_step": one size for all steps, or a list per load case like macroscale_loading
+        const json time_step = j.value("time_step", json(1.0));
+        for (size_t c = 0; c < load_cases.size(); ++c) {
+            auto &lc = load_cases[c];
+            lc.dt    = time_step.is_number() ? vector<double>(lc.n_steps, time_step.get<double>()) : time_step.at(c).get<vector<double>>();
+            if (lc.dt.size() != lc.n_steps || *std::min_element(lc.dt.begin(), lc.dt.end()) <= 0.0)
+                throw std::invalid_argument("time_step of load case " + std::to_string(c + 1) + " must hold " +
+                                            std::to_string(lc.n_steps) + " positive values");
+        }
+
         Log::logger().info("# microstructure file name: \t '{}'", ms_filename);
         Log::logger().info("# microstructure dataset name: \t '{}'", ms_datasetname);
         Log::logger().info("# strain type: \t {}", strain_type);

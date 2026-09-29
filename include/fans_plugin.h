@@ -36,8 +36,9 @@ typedef struct FANSPluginModel FANSPluginModel;
 FANSPluginModel *fans_plugin_load(const char *spec, const char *device, int *n_state,
                                   int *wants_orientation, char *msg, size_t msglen);
 
-/* orientation is NULL unless wanted; state_old/state_new are NULL when n_state == 0. */
-int fans_plugin_evaluate(FANSPluginModel *model, size_t n_points, const double *strain,
+/* The step runs from time t_old to t. orientation is NULL unless wanted;
+   state_old/state_new are NULL when n_state == 0. */
+int fans_plugin_evaluate(FANSPluginModel *model, size_t n_points, double t_old, double t, const double *strain,
                          const double *orientation, const double *state_old, double *stress,
                          double *state_new, char *err, size_t errlen);
 

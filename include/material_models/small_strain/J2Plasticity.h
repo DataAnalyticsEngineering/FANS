@@ -20,21 +20,14 @@ class J2Plasticity : public SmallStrainMechModel {
             yield_stress  = reader.materialProperties["yield_stress"].get<vector<double>>();                  // Initial yield stress
             K             = reader.materialProperties["isotropic_hardening_parameter"].get<vector<double>>(); // Isotropic hardening parameter
             H             = reader.materialProperties["kinematic_hardening_parameter"].get<vector<double>>(); // Kinematic hardening parameter
-            // Without viscosity the model is rate independent and needs no time step
-            eta = reader.materialProperties.value("viscosity", vector<double>(bulk_modulus.size(), 0.0));
-            dt  = reader.materialProperties.value("time_step", 1.0);
+            eta           = reader.materialProperties.value("viscosity", vector<double>(bulk_modulus.size(), 0.0));
         } catch (const std::exception &e) {
             throw std::runtime_error("Missing or invalid material properties for J2Plasticity.");
         }
-        if (reader.materialProperties.contains("viscosity") && !reader.materialProperties.contains("time_step"))
-            throw std::runtime_error("J2Plasticity with viscosity requires time_step.");
         n_mat = bulk_modulus.size();
         if (n_mat == 0 || shear_modulus.size() != n_mat || yield_stress.size() != n_mat ||
             K.size() != n_mat || H.size() != n_mat || eta.size() != n_mat)
             throw std::runtime_error("Inconsistent J2Plasticity material-property sizes.");
-
-        if (dt <= 0.0)
-            throw std::runtime_error("J2Plasticity requires time_step > 0.");
 
         lambda.resize(n_mat);
         for (int m = 0; m < n_mat; ++m)
@@ -124,7 +117,7 @@ class J2Plasticity : public SmallStrainMechModel {
 
     double compute_gamma(double phi, double q_in, const YieldStressResponse &yield_response_in, int mat_index) const
     {
-        const double D                   = 2.0 * shear_modulus[mat_index] + two_thirds * H[mat_index] + eta[mat_index] / dt;
+        const double D                   = 2.0 * shear_modulus[mat_index] + two_thirds * H[mat_index] + eta[mat_index] / (time - time_old);
         const double initial_denominator = D + two_thirds * yield_response_in.derivative;
         const double residual_tolerance  = 1e-12 * std::max(1.0, std::max(std::abs(phi), std::abs(yield_response_in.value)));
         const int    max_iterations      = 50;
@@ -171,7 +164,6 @@ class J2Plasticity : public SmallStrainMechModel {
     vector<double> H;      // Kinematic hardening parameter
     vector<double> eta;    // Viscosity parameter
     vector<double> lambda; // First Lame parameter
-    double         dt;     // Time step
 
     // Internal variables
     Matrix<double, 6, Dynamic> plasticStrain;

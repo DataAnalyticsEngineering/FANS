@@ -15,7 +15,7 @@ namespace {
 
 struct Plugin {
     FANSPluginModel *(*load)(const char *, const char *, int *, int *, char *, size_t);
-    int (*evaluate)(FANSPluginModel *, size_t, const double *, const double *, const double *,
+    int (*evaluate)(FANSPluginModel *, size_t, double, double, const double *, const double *, const double *,
                     double *, double *, char *, size_t);
     void (*free_model)(FANSPluginModel *);
 };
@@ -194,7 +194,6 @@ class PluginSmallStrainMechModel : public SmallStrainMechModel {
         }
     }
 
-    // Initial stiffness
     Matrix<double, 6, 6> get_reference_stiffness() override
     {
         constexpr double     h   = 1e-6;
@@ -210,7 +209,7 @@ class PluginSmallStrainMechModel : public SmallStrainMechModel {
     void evaluate(size_t n, const double *eps, const double *rot, const double *s_old, double *sig, double *s_new)
     {
         char err[FANS_PLUGIN_MSGLEN] = {0};
-        if (plugin.evaluate(model, n, eps, wants_orientation ? rot : nullptr, n_state ? s_old : nullptr, sig,
+        if (plugin.evaluate(model, n, time_old, time, eps, wants_orientation ? rot : nullptr, n_state ? s_old : nullptr, sig,
                             n_state ? s_new : nullptr, err, sizeof(err)) != 0)
             throw std::runtime_error(string("Plugin material evaluation failed: ") + err);
     }

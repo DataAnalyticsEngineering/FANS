@@ -94,7 +94,6 @@ static nb::ndarray<nb::numpy, double, nb::shape<3>> make_np_array(double d0, dou
 nb::dict MicroSimulation::solve(const nb::dict &macro_data, double dt)
 {
     const bool is_small_strain = std::holds_alternative<MaterialManager<3, 6> *>(matmanager);
-    // Time step value dt is not used currently, but is available for future use
 
     std::vector<double> strain1 = conv_to_vector(macro_data["Strains1to3"], 3);
     std::vector<double> strain2 = conv_to_vector(macro_data["Strains4to6"], 3);
@@ -107,7 +106,8 @@ nb::dict MicroSimulation::solve(const nb::dict &macro_data, double dt)
 
     VectorXd homogenized_stress;
 
-    std::visit([&](auto &mm) { mm->set_gradient(strain); }, matmanager);
+    std::visit([&](auto &mm) { mm->set_gradient(strain); mm->set_time(time, time + dt); }, matmanager);
+    time += dt;
 
     std::visit([](auto &s) { s->solve(); }, solver);
 

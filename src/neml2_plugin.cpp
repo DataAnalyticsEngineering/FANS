@@ -3,6 +3,7 @@
 // Mandel order: FANS is [11,22,33,12,13,23], NEML2 [11,22,33,23,13,12].
 // History: every input "X~1" with a matching output "X", plus its Newton
 // initial guess "X" if the model has no predictor; SR2 ones in FANS order.
+// Time: the inputs "t" and "t~1" of time-integrated models.
 
 #include "fans_plugin.h"
 
@@ -86,6 +87,8 @@ FANSPluginModel *fans_plugin_load(const char *spec, const char *device, int *n_s
                 h->orientation = true;
                 continue;
             }
+            if (name == "t" || name == "t~1")
+                continue; // time
             if (find(in, name + "~1") >= 0)
                 continue; // initial guess, fed the latest trial history
             const int bi = name.ends_with("~1") ? find(out, name.substr(0, name.size() - 2)) : -1;
@@ -115,7 +118,7 @@ FANSPluginModel *fans_plugin_load(const char *spec, const char *device, int *n_s
     }
 }
 
-int fans_plugin_evaluate(FANSPluginModel *m, size_t n_points, const double *strain,
+int fans_plugin_evaluate(FANSPluginModel *m, size_t n_points, double t_old, double t, const double *strain,
                          const double *orientation, const double *state_old, double *stress,
                          double *state_new, char *err, size_t errlen)
 {
@@ -125,6 +128,8 @@ int fans_plugin_evaluate(FANSPluginModel *m, size_t n_points, const double *stra
         inputs[m->strain_name] = at::from_blob(const_cast<double *>(strain), {n, 6}, kF64).index_select(1, m->perm).to(m->device);
         if (m->orientation)
             inputs["orientation"] = at::from_blob(const_cast<double *>(orientation), {n, 3, 3}, kF64).to(m->device);
+        inputs["t"]   = at::full({n}, t, kF64.device(m->device));
+        inputs["t~1"] = at::full({n}, t_old, kF64.device(m->device));
 
         const at::Tensor old_state = at::from_blob(const_cast<double *>(state_old), {n, m->n_state}, kF64);
         const at::Tensor new_state = at::from_blob(state_new, {n, m->n_state}, kF64);

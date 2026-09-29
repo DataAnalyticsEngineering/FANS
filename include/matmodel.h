@@ -58,6 +58,7 @@ class Matmodel {
                                 const double *ue, double *sig_gp, bool finished_step) {}
 
     vector<double>                       macroscale_loading;
+    double                               time_old{0.0}, time{0.0};
     virtual Matrix<double, n_str, n_str> get_reference_stiffness() = 0;
 
     virtual ~Matmodel() = default;

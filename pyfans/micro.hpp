@@ -38,6 +38,7 @@ class MicroSimulation {
     matmanager_t matmanager;
     solver_t     solver;
     double       pert_param = 1e-6; // scalar strain perturbation parameter
+    double       time       = 0.0;  // end of the last solved time window
     MatrixXd     cached_tangent;    // handed back when the macro solver asks for no fresh one
 };
 

@@ -187,6 +187,14 @@ class MaterialManager {
         }
     }
 
+    void set_time(double t_old, double t)
+    {
+        for (auto *model : models) {
+            model->time_old = t_old;
+            model->time     = t;
+        }
+    }
+
     // Set macroscale loading gradient for all models
     void set_gradient(vector<double> g0)
     {
