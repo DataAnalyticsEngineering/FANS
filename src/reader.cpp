@@ -48,22 +48,18 @@ void Reader::ComputeVolumeFractions()
     Log::logger().info("# Number of materials: {} (from {} to {})", n_mat, global_min, global_max);
     Log::logger().info("# Volume fractions");
 
-    // Using dynamic allocation for arrays since we don't know size at compile time
-    std::vector<long>   vol_frac(n_mat, 0);
-    std::vector<double> v_frac(n_mat, 0.0);
-
+    // Voxels of each phase, summed over all ranks at once
+    std::vector<long> vol_frac(n_mat, 0);
     for (size_t i = 0; i < local_size; i++) {
         unsigned short val   = static_cast<unsigned short>(ms[i]);
         int            index = val - global_min; // Adjust index to start from 0
         vol_frac[index]++;
     }
+    MPI_Allreduce(MPI_IN_PLACE, vol_frac.data(), n_mat, MPI_LONG, MPI_SUM, communicator);
 
-    for (int i = 0; i < n_mat; i++) {
-        long vf;
-        MPI_Allreduce(&(vol_frac[i]), &vf, 1, MPI_LONG, MPI_SUM, communicator);
-        v_frac[i] = double(vf) / double(dims[0] * dims[1] * dims[2]);
-        Log::logger().info("# material {:4}    vol. frac. {:10.4f}%  ", static_cast<unsigned int>(i) + global_min, 100. * v_frac[i]);
-    }
+    for (int i = 0; i < n_mat; i++)
+        Log::logger().info("# material {:4}    vol. frac. {:10.4f}%  ", static_cast<unsigned int>(i) + global_min,
+                           100. * vol_frac[i] / (double(dims[0]) * dims[1] * dims[2]));
 }
 
 void Reader ::ReadInputFile(const std::string &input_fn)

@@ -37,24 +37,11 @@ class SaintVenantKirchhoff : public LargeStrainMechModel {
         return lambda[mat_index] * trE * Matrix3d::Identity() + 2.0 * mu[mat_index] * E;
     }
 
-    Matrix<double, 6, 6> compute_material_tangent(const Matrix3d &F, int mat_index, ptrdiff_t element_idx, int i) override
-    {
-        Matrix<double, 6, 6> C = Matrix<double, 6, 6>::Zero();
-        C.topLeftCorner(3, 3).setConstant(lambda[mat_index]);
-        C += 2.0 * mu[mat_index] * Matrix<double, 6, 6>::Identity();
-        return C;
-    }
-
     Matrix<double, 9, 9> get_reference_stiffness() override
     {
-        // Compute reference tangent at F=I
-        Matrix<double, 9, 9> kapparef   = Matrix<double, 9, 9>::Zero();
-        const Matrix3d       F_identity = Matrix3d::Identity();
-        for (int mat_idx = 0; mat_idx < n_mat; ++mat_idx) {
-            const Matrix3d             S = compute_S(F_identity, mat_idx, 0, 0);
-            const Matrix<double, 6, 6> C = compute_material_tangent(F_identity, mat_idx, 0, 0);
-            kapparef += compute_spatial_tangent(F_identity, S, C);
-        }
+        Matrix<double, 9, 9> kapparef = Matrix<double, 9, 9>::Zero();
+        for (int mat_idx = 0; mat_idx < n_mat; ++mat_idx)
+            kapparef += isotropic_reference_stiffness(lambda[mat_idx], mu[mat_idx]);
         return kapparef / static_cast<double>(n_mat);
     }
 

@@ -10,9 +10,7 @@ class Solver;
 template <int howmany, int n_str>
 class Matmodel {
   public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW // see http://eigen.tuxfamily.org/dox-devel/group__TopicStructHavingEigenMembers.html
-
-        static constexpr int num_str = n_str; // length of strain and stress
+    static constexpr int num_str = n_str; // length of strain and stress
 
     int    verbosity; //!< output verbosity
     int    n_mat;     //!< Number of Materials

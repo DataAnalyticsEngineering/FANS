@@ -2,7 +2,6 @@
 #define LINEARTHERMAL_H
 
 #include "matmodel.h"
-#include <Eigen/StdVector> // For Eigen's aligned_allocator
 
 class LinearThermalIsotropic : public ThermalModel, public LinearModel<1, 3> {
   public:
@@ -51,8 +50,6 @@ class LinearThermalIsotropic : public ThermalModel, public LinearModel<1, 3> {
 
 class LinearThermalTriclinic : public ThermalModel, public LinearModel<1, 3> {
   public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW // Ensure proper alignment for Eigen structures
-
     LinearThermalTriclinic(const Reader &reader)
         : ThermalModel(reader)
     {
@@ -112,9 +109,9 @@ class LinearThermalTriclinic : public ThermalModel, public LinearModel<1, 3> {
     }
 
   private:
-    std::vector<Matrix3d, Eigen::aligned_allocator<Matrix3d>> K_mats;
-    MatrixXd                                                  K_constants;
-    Matrix3d                                                  kappa_average;
+    std::vector<Matrix3d> K_mats;
+    MatrixXd              K_constants;
+    Matrix3d              kappa_average;
 };
 
 #endif // LINEARTHERMAL_H

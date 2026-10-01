@@ -4,7 +4,6 @@
 #include "matmodel.h"
 #include <array>
 #include <cstdint>
-#include <Eigen/StdVector> // For Eigen's aligned_allocator
 
 /**
  * @class GBDiffusion
@@ -145,9 +144,9 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
     }
 
   private:
-    std::vector<Matrix3d, Eigen::aligned_allocator<Matrix3d>>                         phase_diffusivities;
-    std::vector<Matrix<double, 8, 8>, Eigen::aligned_allocator<Matrix<double, 8, 8>>> phase_stiffness_storage;
-    Matrix3d                                                                          kappa_average;
+    std::vector<Matrix3d>             phase_diffusivities;
+    std::vector<Matrix<double, 8, 8>> phase_stiffness_storage;
+    Matrix3d                          kappa_average;
 };
 
 #endif // GBDIFFUSION_H

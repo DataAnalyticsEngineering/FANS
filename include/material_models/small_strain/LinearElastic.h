@@ -2,7 +2,6 @@
 #define LINEARELASTIC_H
 
 #include "matmodel.h"
-#include <Eigen/StdVector> // For Eigen's aligned_allocator
 
 class LinearElasticIsotropic : public SmallStrainMechModel, public LinearModel<3, 6> {
   public:
@@ -76,8 +75,6 @@ class LinearElasticIsotropic : public SmallStrainMechModel, public LinearModel<3
 
 class LinearElasticTriclinic : public SmallStrainMechModel, public LinearModel<3, 6> {
   public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW // Ensure proper alignment for Eigen structures
-
     LinearElasticTriclinic(const Reader &reader)
         : SmallStrainMechModel(reader)
     {
@@ -154,8 +151,8 @@ class LinearElasticTriclinic : public SmallStrainMechModel, public LinearModel<3
     }
 
   private:
-    std::vector<Matrix<double, 6, 6>, Eigen::aligned_allocator<Matrix<double, 6, 6>>> C_mats;
-    MatrixXd                                                                          C_constants;
+    std::vector<Matrix<double, 6, 6>> C_mats;
+    MatrixXd                          C_constants;
 };
 
 #endif // LINEARELASTIC_H
