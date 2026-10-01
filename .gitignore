@@ -221,5 +221,6 @@ output/
 # NEML2 artifacts
 build-neml2/
 FANS_neml2
-test/neml2_models/*/
-test/neml2_models/*_aoti.i
+test/NEML2/models/*/
+test/NEML2/models/*_aoti.i
+test/NEML2/

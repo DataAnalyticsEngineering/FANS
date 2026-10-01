@@ -249,7 +249,8 @@ if(FANS_NEML2)
 
   add_library(fans_neml2 SHARED src/neml2_plugin.cpp)
   target_include_directories(fans_neml2 PRIVATE include)
-  target_link_libraries(fans_neml2 PRIVATE neml2::aoti)
+  target_link_libraries(fans_neml2 PRIVATE neml2::aoti
+                                           nlohmann_json::nlohmann_json)
   set_target_properties(
     fans_neml2 PROPERTIES CXX_STANDARD 20
                           INSTALL_RPATH "${neml2_dir}/lib;${torch_prefix}/lib")

@@ -1,9 +1,17 @@
 // libfans_neml2.so: the NEML2 material plugin (fans_plugin.h).
 //
-// Mandel order: FANS is [11,22,33,12,13,23], NEML2 [11,22,33,23,13,12].
-// History: every input "X~1" with a matching output "X", plus its Newton
-// initial guess "X" if the model has no predictor; SR2 ones in FANS order.
-// Time: the inputs "t" and "t~1" of time-integrated models.
+// Material properties: "artifact" (from neml2-compile), "gradient" and "flux",
+// the names of the model's gradient input and flux output (e.g. 'forces/E' and
+// 'state/S' in small strain, 'forces/F' and 'state/P' in large strain),
+// "device" ("cpu" by default, "cuda", ...) and "batch_size" (points per
+// evaluation, by default 1024 on the CPU and 65536 on a GPU).
+// The model's other inputs are
+//   time     't' and 't~1' of time-integrated models
+//   history  every 'X~1' with a matching output 'X', plus its Newton initial
+//            guess 'X' if the model has no predictor
+//   fields   every other input, e.g. an R2 'orientation'
+// Symmetric tensors (SR2) are in Mandel order [11,22,33,23,13,12] in NEML2 and
+// [11,22,33,12,13,23] in FANS; everything else has the same layout in both.
 
 #include "fans_plugin.h"
 
@@ -11,6 +19,7 @@
 #include <ATen/ATen.h>
 #include <ATen/Parallel.h>
 #include <c10/util/accumulate.h>
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <cstdio>
@@ -22,32 +31,50 @@
 
 namespace {
 
-struct HistoryVar {
-    std::string          name;  // output name; the input is name + "~1"
-    std::vector<int64_t> shape; // {-1, per-point shape...}
-    int64_t              size, offset;
-    bool                 sr2;
+// A model variable FANS passes as `size` doubles per point
+struct Var {
+    std::string          name;      // history: the output, the input being name + "~1"
+    std::vector<int64_t> shape;     // {-1, per-point shape...}
+    int64_t              size;      // doubles per point
+    bool                 sr2;       // symmetric tensor, so in another Mandel order in NEML2
+    int64_t              offset{0}; // history: position among the history doubles
 };
 
-const at::TensorOptions    kF64 = at::TensorOptions().dtype(at::kDouble);
-const std::vector<int64_t> sr2{6}; // per-point shape of a symmetric tensor
+Var make_var(const std::string &name, const std::vector<int64_t> &base_shape)
+{
+    std::vector<int64_t> shape{-1};
+    shape.insert(shape.end(), base_shape.begin(), base_shape.end());
+    return {name, shape, c10::multiply_integers(base_shape), base_shape == std::vector<int64_t>{6}};
+}
+
+const at::TensorOptions kF64 = at::TensorOptions().dtype(at::kDouble);
 
 } // namespace
 
 struct FANSPluginModel {
     std::unique_ptr<neml2::aoti::Model> model;
-    std::vector<HistoryVar>             history;
-    std::string                         strain_name, stress_name;
-    int64_t                             n_state{0};
-    bool                                orientation{false};
     at::Device                          device{at::kCPU};
-    at::Tensor                          perm = at::tensor({0, 1, 2, 5, 4, 3}, at::kLong);
+    Var                                 gradient, flux;
+    std::vector<Var>                    history, fields;
+    int64_t                             n_history{0};                                     // history doubles per point
+    at::Tensor                          perm = at::tensor({0, 1, 2, 5, 4, 3}, at::kLong); // FANS <-> NEML2 Mandel order
+
+    // FANS -> NEML2: [n][size] doubles to the variable's shape and order, on the device
+    at::Tensor to_neml2(const at::Tensor &v, const Var &var) const
+    {
+        return (var.sr2 ? v.index_select(1, perm) : v).reshape(var.shape).to(device);
+    }
+    // NEML2 -> FANS: the variable into `out`, [n][size] doubles on the host
+    void to_fans(const at::Tensor &v, const Var &var, at::Tensor out) const
+    {
+        const at::Tensor flat = v.reshape({out.size(0), var.size}).cpu();
+        out.copy_(var.sr2 ? flat.index_select(1, perm) : flat);
+    }
 };
 
 extern "C" {
 
-FANSPluginModel *fans_plugin_load(const char *spec, const char *device, int *n_state,
-                                  int *wants_orientation, char *msg, size_t msglen)
+FANSPluginModel *fans_plugin_load(const char *config, char *msg, size_t msglen)
 {
     try {
         // FANS parallelises with MPI; one torch thread per rank
@@ -58,9 +85,10 @@ FANSPluginModel *fans_plugin_load(const char *spec, const char *device, int *n_s
         }();
         (void) threads_set;
 
-        auto h    = std::make_unique<FANSPluginModel>();
-        h->device = at::Device(device);
-        h->model  = std::make_unique<neml2::aoti::Model>(spec, h->device, at::kDouble);
+        const auto props = nlohmann::json::parse(config);
+        auto       h     = std::make_unique<FANSPluginModel>();
+        h->device        = at::Device(props.value("device", "cpu"));
+        h->model         = std::make_unique<neml2::aoti::Model>(props.at("artifact").get<std::string>(), h->device, at::kDouble);
 
         const auto &in = h->model->input_names(), &out = h->model->output_names();
         const auto &in_shape = h->model->input_base_shapes(), &out_shape = h->model->output_base_shapes();
@@ -69,48 +97,50 @@ FANSPluginModel *fans_plugin_load(const char *spec, const char *device, int *n_s
             return it == v.end() ? -1 : int(it - v.begin());
         };
 
-        // 'strain'/'stress' for a single model, 'forces/E'/'state/S' for a composed one
-        const int si = std::max(find(in, "strain"), find(in, "forces/E"));
-        const int oi = std::max(find(out, "stress"), find(out, "state/S"));
-        if (si < 0 || in_shape[si] != sr2)
-            throw std::runtime_error("artifact needs an SR2 strain input named 'strain' or 'forces/E'");
-        if (oi < 0 || out_shape[oi] != sr2)
-            throw std::runtime_error("artifact needs an SR2 stress output named 'stress' or 'state/S'");
-        h->strain_name = in[si];
-        h->stress_name = out[oi];
+        if (!props.contains("gradient") || !props.contains("flux"))
+            throw std::runtime_error("the material properties \"gradient\" and \"flux\" must name the model's gradient input and "
+                                     "flux output, e.g. 'forces/E' and 'state/S' in small strain");
+        const std::string gradient = props["gradient"], flux = props["flux"];
+        const int         gi = find(in, gradient), fi = find(out, flux);
+        if (gi < 0)
+            throw std::runtime_error("the artifact has no input '" + gradient + "' (the \"gradient\")");
+        if (fi < 0)
+            throw std::runtime_error("the artifact has no output '" + flux + "' (the \"flux\")");
+        h->gradient = make_var(gradient, in_shape[gi]);
+        h->flux     = make_var(flux, out_shape[fi]);
+        if (h->flux.size != h->gradient.size)
+            throw std::runtime_error("the gradient '" + gradient + "' and the flux '" + flux + "' differ in size");
 
         for (size_t i = 0; i < in.size(); ++i) {
-            if (int(i) == si)
-                continue;
             const std::string &name = in[i];
-            if (name == "orientation" && in_shape[i] == std::vector<int64_t>{3, 3}) {
-                h->orientation = true;
+            if (name == gradient || name == "t" || name == "t~1")
                 continue;
-            }
-            if (name == "t" || name == "t~1")
-                continue; // time
             if (find(in, name + "~1") >= 0)
                 continue; // initial guess, fed the latest trial history
-            const int bi = name.ends_with("~1") ? find(out, name.substr(0, name.size() - 2)) : -1;
-            if (bi < 0 || out_shape[bi] != in_shape[i])
-                throw std::runtime_error("artifact input '" + name + "' is neither the strain, an R2 'orientation', nor " +
-                                         "a history variable 'X~1' with a matching output 'X'; FANS has no source for it");
-            std::vector<int64_t> shape{-1};
-            shape.insert(shape.end(), in_shape[i].begin(), in_shape[i].end());
-            const int64_t size = c10::multiply_integers(in_shape[i]);
-            h->history.push_back({out[bi], shape, size, h->n_state, in_shape[i] == sr2});
-            h->n_state += size;
+            Var       var = make_var(name, in_shape[i]);
+            const int bi  = name.ends_with("~1") ? find(out, name.substr(0, name.size() - 2)) : -1;
+            if (bi >= 0 && out_shape[bi] == in_shape[i]) { // history
+                var.name   = out[bi];
+                var.offset = h->n_history;
+                h->n_history += var.size;
+                h->history.push_back(var);
+            } else {
+                h->fields.push_back(var);
+            }
         }
-        *n_state           = int(h->n_state);
-        *wants_orientation = h->orientation;
 
-        std::string vars;
-        for (const HistoryVar &v : h->history)
-            vars += (vars.empty() ? "[\"" : ", [\"") + v.name + "\", " + std::to_string(v.size) + "]";
-        vars = "[" + vars + "]";
-        if (vars.size() >= msglen)
-            throw std::runtime_error("too many history variables to describe");
-        std::snprintf(msg, msglen, "%s", vars.c_str());
+        nlohmann::json description = {{"gradient", h->gradient.size},
+                                      {"batch_size", props.value("batch_size", h->device.is_cpu() ? 1024 : 65536)},
+                                      {"history", nlohmann::json::array()},
+                                      {"fields", nlohmann::json::array()}};
+        for (const Var &v : h->history)
+            description["history"].push_back(nlohmann::json::array({v.name, v.size}));
+        for (const Var &v : h->fields)
+            description["fields"].push_back(nlohmann::json::array({v.name, v.size}));
+        const std::string text = description.dump();
+        if (text.size() >= msglen)
+            throw std::runtime_error("too many history variables and fields to describe");
+        std::snprintf(msg, msglen, "%s", text.c_str());
         return h.release();
     } catch (const std::exception &e) {
         std::snprintf(msg, msglen, "%s", e.what());
@@ -118,36 +148,33 @@ FANSPluginModel *fans_plugin_load(const char *spec, const char *device, int *n_s
     }
 }
 
-int fans_plugin_evaluate(FANSPluginModel *m, size_t n_points, double t_old, double t, const double *strain,
-                         const double *orientation, const double *state_old, double *stress,
-                         double *state_new, char *err, size_t errlen)
+int fans_plugin_evaluate(FANSPluginModel *m, size_t n_points, double t_old, double t, const double *gradient,
+                         const double *const *fields, const double *history_old, double *flux,
+                         double *history_new, char *err, size_t errlen)
 {
     try {
-        const int64_t                     n = int64_t(n_points);
-        std::map<std::string, at::Tensor> inputs;
-        inputs[m->strain_name] = at::from_blob(const_cast<double *>(strain), {n, 6}, kF64).index_select(1, m->perm).to(m->device);
-        if (m->orientation)
-            inputs["orientation"] = at::from_blob(const_cast<double *>(orientation), {n, 3, 3}, kF64).to(m->device);
-        inputs["t"]   = at::full({n}, t, kF64.device(m->device));
-        inputs["t~1"] = at::full({n}, t_old, kF64.device(m->device));
+        // A FANS array as an [n][size] tensor, without copying
+        const int64_t n    = int64_t(n_points);
+        auto          view = [n](const double *p, int64_t size) { return at::from_blob(const_cast<double *>(p), {n, size}, kF64); };
 
-        const at::Tensor old_state = at::from_blob(const_cast<double *>(state_old), {n, m->n_state}, kF64);
-        const at::Tensor new_state = at::from_blob(state_new, {n, m->n_state}, kF64);
-        for (const HistoryVar &h : m->history) {
-            at::Tensor v          = old_state.narrow(1, h.offset, h.size);
-            at::Tensor g          = new_state.narrow(1, h.offset, h.size);
-            inputs[h.name + "~1"] = (h.sr2 ? v.index_select(1, m->perm) : v).reshape(h.shape).to(m->device);
-            inputs[h.name]        = (h.sr2 ? g.index_select(1, m->perm) : g).reshape(h.shape).to(m->device);
+        std::map<std::string, at::Tensor> inputs;
+        inputs[m->gradient.name] = m->to_neml2(view(gradient, m->gradient.size), m->gradient);
+        inputs["t"]              = at::full({n}, t, kF64.device(m->device));
+        inputs["t~1"]            = at::full({n}, t_old, kF64.device(m->device));
+        for (size_t f = 0; f < m->fields.size(); ++f)
+            inputs[m->fields[f].name] = m->to_neml2(view(fields[f], m->fields[f].size), m->fields[f]);
+
+        const at::Tensor old_history = view(history_old, m->n_history), new_history = view(history_new, m->n_history);
+        for (const Var &h : m->history) {
+            inputs[h.name + "~1"] = m->to_neml2(old_history.narrow(1, h.offset, h.size), h);
+            inputs[h.name]        = m->to_neml2(new_history.narrow(1, h.offset, h.size), h); // initial guess
         }
 
         const auto outputs = m->model->forward(inputs);
 
-        at::Tensor stress_out = at::from_blob(stress, {n, 6}, kF64);
-        at::index_select_out(stress_out, outputs.at(m->stress_name).cpu(), 1, m->perm);
-        for (const HistoryVar &h : m->history) {
-            at::Tensor v = outputs.at(h.name).reshape({n, h.size}).cpu();
-            new_state.narrow(1, h.offset, h.size).copy_(h.sr2 ? v.index_select(1, m->perm) : v);
-        }
+        m->to_fans(outputs.at(m->flux.name), m->flux, view(flux, m->flux.size));
+        for (const Var &h : m->history)
+            m->to_fans(outputs.at(h.name), h, new_history.narrow(1, h.offset, h.size));
         return 0;
     } catch (const std::exception &e) {
         std::snprintf(err, errlen, "%s", e.what());

@@ -231,31 +231,13 @@ class MaterialManager {
         const json   &mat_group,
         const Reader &base_reader)
     {
-        // Create a minimal temporary reader
-        Reader temp_reader;
-
-        // Copy safe members
-        temp_reader.world_rank  = base_reader.world_rank;
-        temp_reader.world_size  = base_reader.world_size;
-        temp_reader.FE_type     = base_reader.FE_type;
-        temp_reader.strain_type = base_reader.strain_type;
-        temp_reader.problemType = base_reader.problemType;
-        temp_reader.method      = base_reader.method;
-        temp_reader.l_e         = base_reader.l_e;
-        temp_reader.dims        = base_reader.dims;
-        std::snprintf(temp_reader.ms_filename, sizeof(temp_reader.ms_filename), "%s", base_reader.ms_filename);
-        std::snprintf(temp_reader.ms_datasetname, sizeof(temp_reader.ms_datasetname), "%s", base_reader.ms_datasetname);
-
-        // Override material properties and n_mat for this specific material group
+        // This group's copy of the reader, with its material properties and number of
+        // phases; the microstructure stays with base_reader, which frees it
+        Reader temp_reader             = base_reader;
+        temp_reader.ms                 = nullptr;
         temp_reader.materialProperties = mat_group["material_properties"];
-
-        // n_mat for this model is the number of phases using it
-        auto phases       = mat_group["phases"].get<vector<int>>();
-        temp_reader.n_mat = phases.size();
-
-        // Override matmodel name for factory function
-        temp_reader.matmodel = mat_group["matmodel"].get<string>();
-
+        temp_reader.n_mat              = mat_group["phases"].size();
+        temp_reader.matmodel           = mat_group["matmodel"].get<string>();
         return createMatmodel<howmany, n_str>(temp_reader);
     }
 };
