@@ -10,8 +10,9 @@
 //   history  every 'X~1' with a matching output 'X', plus its Newton initial
 //            guess 'X' if the model has no predictor
 //   fields   every other input, e.g. an R2 'orientation'
-// Symmetric tensors (SR2) are in Mandel order [11,22,33,23,13,12] in NEML2 and
-// [11,22,33,12,13,23] in FANS; everything else has the same layout in both.
+// Every axis of length 6 is a Mandel index (an SR2's, both of an SSR4 such as a
+// stiffness), ordered [11,22,33,23,13,12] in NEML2 and [11,22,33,12,13,23] in
+// FANS; everything else has the same layout in both.
 
 #include "fans_plugin.h"
 
@@ -25,6 +26,7 @@
 #include <cstdio>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -36,7 +38,6 @@ struct Var {
     std::string          name;      // history: the output, the input being name + "~1"
     std::vector<int64_t> shape;     // {-1, per-point shape...}
     int64_t              size;      // doubles per point
-    bool                 sr2;       // symmetric tensor, so in another Mandel order in NEML2
     int64_t              offset{0}; // history: position among the history doubles
 };
 
@@ -44,7 +45,7 @@ Var make_var(const std::string &name, const std::vector<int64_t> &base_shape)
 {
     std::vector<int64_t> shape{-1};
     shape.insert(shape.end(), base_shape.begin(), base_shape.end());
-    return {name, shape, c10::multiply_integers(base_shape), base_shape == std::vector<int64_t>{6}};
+    return {name, shape, c10::multiply_integers(base_shape)};
 }
 
 const at::TensorOptions kF64 = at::TensorOptions().dtype(at::kDouble);
@@ -56,19 +57,30 @@ struct FANSPluginModel {
     at::Device                          device{at::kCPU};
     Var                                 gradient, flux;
     std::vector<Var>                    history, fields;
+    std::vector<at::Tensor>             tables;                                           // per field: its rows, on the device
+    std::vector<bool>                   per_phase;                                        // per field: rows per phase, else per voxel
     int64_t                             n_history{0};                                     // history doubles per point
     at::Tensor                          perm = at::tensor({0, 1, 2, 5, 4, 3}, at::kLong); // FANS <-> NEML2 Mandel order
 
-    // FANS -> NEML2: [n][size] doubles to the variable's shape and order, on the device
+    // v in the variable's shape, every Mandel axis swapped between FANS and NEML2
+    // order (both ways, the swap undoes itself)
+    at::Tensor reorder(const at::Tensor &v, const Var &var) const
+    {
+        at::Tensor t = v.reshape(var.shape);
+        for (size_t d = 1; d < var.shape.size(); ++d)
+            if (var.shape[d] == 6)
+                t = t.index_select(int64_t(d), perm);
+        return t;
+    }
+    // FANS -> NEML2: [n][size] doubles to the variable, on the device
     at::Tensor to_neml2(const at::Tensor &v, const Var &var) const
     {
-        return (var.sr2 ? v.index_select(1, perm) : v).reshape(var.shape).to(device);
+        return reorder(v, var).to(device);
     }
     // NEML2 -> FANS: the variable into `out`, [n][size] doubles on the host
     void to_fans(const at::Tensor &v, const Var &var, at::Tensor out) const
     {
-        const at::Tensor flat = v.reshape({out.size(0), var.size}).cpu();
-        out.copy_(var.sr2 ? flat.index_select(1, perm) : flat);
+        out.copy_(reorder(v.cpu(), var).reshape(out.sizes()));
     }
 };
 
@@ -77,13 +89,12 @@ extern "C" {
 FANSPluginModel *fans_plugin_load(const char *config, char *msg, size_t msglen)
 {
     try {
-        // FANS parallelises with MPI; one torch thread per rank
-        static const bool threads_set = [] {
+        // FANS parallelises with MPI; one torch thread per rank, set once per process
+        static std::once_flag threads_set;
+        std::call_once(threads_set, [] {
             at::set_num_threads(1);
             at::set_num_interop_threads(1);
-            return true;
-        }();
-        (void) threads_set;
+        });
 
         const auto props = nlohmann::json::parse(config);
         auto       h     = std::make_unique<FANSPluginModel>();
@@ -128,6 +139,8 @@ FANSPluginModel *fans_plugin_load(const char *config, char *msg, size_t msglen)
                 h->fields.push_back(var);
             }
         }
+        h->tables.resize(h->fields.size());
+        h->per_phase.resize(h->fields.size());
 
         nlohmann::json description = {{"gradient", h->gradient.size},
                                       {"batch_size", props.value("batch_size", h->device.is_cpu() ? 1024 : 65536)},
@@ -148,8 +161,23 @@ FANSPluginModel *fans_plugin_load(const char *config, char *msg, size_t msglen)
     }
 }
 
+int fans_plugin_set_table(FANSPluginModel *m, size_t field, int per_phase, size_t n_rows, const double *table, char *err,
+                          size_t errlen)
+{
+    try {
+        const Var       &var  = m->fields.at(field);
+        const at::Tensor rows = at::from_blob(const_cast<double *>(table), {int64_t(n_rows), var.size}, kF64);
+        m->tables[field]      = m->to_neml2(rows, var).clone(); // our own copy: FANS may free `table`
+        m->per_phase[field]   = per_phase;
+        return 0;
+    } catch (const std::exception &e) {
+        std::snprintf(err, errlen, "%s", e.what());
+        return 1;
+    }
+}
+
 int fans_plugin_evaluate(FANSPluginModel *m, size_t n_points, double t_old, double t, const double *gradient,
-                         const double *const *fields, const double *history_old, double *flux,
+                         const int *voxel, const int *phase, const double *history_old, double *flux,
                          double *history_new, char *err, size_t errlen)
 {
     try {
@@ -161,8 +189,11 @@ int fans_plugin_evaluate(FANSPluginModel *m, size_t n_points, double t_old, doub
         inputs[m->gradient.name] = m->to_neml2(view(gradient, m->gradient.size), m->gradient);
         inputs["t"]              = at::full({n}, t, kF64.device(m->device));
         inputs["t~1"]            = at::full({n}, t_old, kF64.device(m->device));
-        for (size_t f = 0; f < m->fields.size(); ++f)
-            inputs[m->fields[f].name] = m->to_neml2(view(fields[f], m->fields[f].size), m->fields[f]);
+        for (size_t f = 0; f < m->fields.size(); ++f) {
+            const int *r              = m->per_phase[f] ? phase : voxel; // each point's row in the table
+            const auto rows           = at::from_blob(const_cast<int *>(r), {n}, at::kInt).to(m->device, at::kLong);
+            inputs[m->fields[f].name] = m->tables[f].index_select(0, rows);
+        }
 
         const at::Tensor old_history = view(history_old, m->n_history), new_history = view(history_new, m->n_history);
         for (const Var &h : m->history) {

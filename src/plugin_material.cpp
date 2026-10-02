@@ -26,8 +26,9 @@ namespace {
 
 struct Plugin {
     FANSPluginModel *(*load)(const char *, char *, size_t);
-    int (*evaluate)(FANSPluginModel *, size_t, double, double, const double *, const double *const *, const double *,
-                    double *, double *, char *, size_t);
+    int (*set_table)(FANSPluginModel *, size_t, int, size_t, const double *, char *, size_t);
+    int (*evaluate)(FANSPluginModel *, size_t, double, double, const double *, const int *, const int *, const double *, double *,
+                    double *, char *, size_t);
     void (*free_model)(FANSPluginModel *);
 };
 
@@ -50,18 +51,16 @@ Plugin load_plugin(const string &name)
     };
     Plugin p;
     sym(p.load, "fans_plugin_load");
+    sym(p.set_table, "fans_plugin_set_table");
     sym(p.evaluate, "fans_plugin_evaluate");
     sym(p.free_model, "fans_plugin_free");
     return p;
 }
 
-// A model input FANS supplies from a dataset next to the microstructure
+// A model input FANS supplies from a dataset of the microstructure file
 struct Field {
-    string         name;
-    int            size;      // doubles per point
     bool           per_voxel; // data is [local voxel][size], else [phase][size]
     vector<double> data;
-    vector<double> batch; // the values at the points of one plugin call, [point][size]
 };
 
 // Dataset `dset` of the microstructure file, next to the microstructure unless an
@@ -79,7 +78,7 @@ Field read_field(const Reader &reader, const string &name, const string &dset, i
         throw std::runtime_error("Field '" + name + "' needs " + std::to_string(size) + " values per voxel [Z][Y][X][...] or " +
                                  "per phase [n_phase][...], but dataset " + path + " has another shape.");
 
-    Field f{name, size, per_voxel, {}, {}};
+    Field f{per_voxel, {}};
     if (per_voxel) {
         f.data.resize(size_t(reader.local_n0) * reader.dims[1] * reader.dims[2] * size);
         reader.ReadSlab(f.data.data(), vector<int>(shape.begin() + 3, shape.end()), reader.ms_filename, path);
@@ -114,17 +113,32 @@ class PluginModel : public Base {
                                      " values, but this problem's has " + std::to_string(n_str) + ".");
         batch_points = description.at("batch_size");
         history_vars = description.at("history").get<vector<std::pair<string, int>>>();
-        for (const auto &[name, size] : history_vars)
-            n_history += size;
-        const json datasets = reader.materialProperties.value("fields", json::object());
-        for (const auto &[name, size] : description.at("fields").get<vector<std::pair<string, int>>>())
-            fields.push_back(read_field(reader, name, datasets.value(name, name), size));
-
         string history_names, field_names;
-        for (const auto &[name, size] : history_vars)
+        for (const auto &[name, size] : history_vars) {
+            n_history += size;
             history_names += (history_names.empty() ? "" : ", ") + name + " (" + std::to_string(size) + ")";
-        for (const Field &f : fields)
-            field_names += (field_names.empty() ? "" : ", ") + f.name + (f.per_voxel ? " (per voxel)" : " (per phase)");
+        }
+
+        // Every field, read from the dataset "fields" names for it, goes to the plugin
+        // once as a table of a row per voxel or per phase
+        const auto model_fields = description.at("fields").get<vector<std::pair<string, int>>>();
+        json       datasets     = reader.materialProperties.value("fields", json::object());
+        for (size_t f = 0; f < model_fields.size(); ++f) {
+            const auto &[name, size] = model_fields[f];
+            if (!datasets.contains(name))
+                throw std::runtime_error("The " + reader.matmodel + " material takes the field '" + name + "': name its dataset in \"fields\", e.g. \"fields\": {\"" + name + "\": \"<dataset>\"}.");
+            const Field  field  = read_field(reader, name, datasets[name].get<string>(), size);
+            const size_t n_rows = field.data.size() / size;
+            datasets.erase(name);
+            if (plugin.set_table(model, f, !field.per_voxel, n_rows, field.data.data(), msg, sizeof(msg)) != 0)
+                throw std::runtime_error("Could not hand the " + reader.matmodel + " material its field '" + name + "': " + msg);
+            if (!field.per_voxel)
+                n_phase_rows = std::min(n_phase_rows, n_rows);
+            field_names += (field_names.empty() ? "" : ", ") + name + (field.per_voxel ? " (per voxel)" : " (per phase)");
+        }
+        if (!datasets.empty())
+            throw std::runtime_error("\"fields\" names '" + datasets.begin().key() + "', which is not a field of the " + reader.matmodel + " material.");
+
         Log::logger().info("# {} material: history {}, fields {}", reader.matmodel, history_names.empty() ? "none" : history_names,
                            field_names.empty() ? "none" : field_names);
     }
@@ -177,8 +191,8 @@ class PluginModel : public Base {
         flux_buf.resize(chunk * per_elem);
         history_old_buf.resize(chunk * hist_elem);
         history_new_buf.resize(chunk * hist_elem);
-        for (Field &f : fields)
-            f.batch.resize(chunk * n_gp * f.size);
+        voxel_buf.resize(chunk * n_gp);
+        phase_buf.resize(chunk * n_gp);
         flux_cache = flux_all;
 
         const vector<double> &history_old = finished_step ? trial : converged;
@@ -190,18 +204,18 @@ class PluginModel : public Base {
                 const ptrdiff_t e = elems[b + k];
                 Eigen::Map<VectorXd>(&gradient_buf[k * per_elem], per_elem).noalias() =
                     B * Eigen::Map<const VectorXd>(ue_all + e * n_dof, n_dof) + g0;
-                for (Field &f : fields) {
-                    const size_t i = f.per_voxel ? size_t(e) : phase[e];
-                    if ((i + 1) * f.size > f.data.size())
-                        throw std::runtime_error("Phase " + std::to_string(i) + " has no entry in field '" + f.name + "'.");
-                    for (int p = 0; p < n_gp; ++p)
-                        std::copy_n(&f.data[i * f.size], f.size, &f.batch[(k * n_gp + p) * f.size]);
-                }
+                std::fill_n(&voxel_buf[k * n_gp], n_gp, int(e));
+                std::fill_n(&phase_buf[k * n_gp], n_gp, phase[e]);
+                if (phase[e] >= n_phase_rows)
+                    throw std::runtime_error("Phase " + std::to_string(phase[e]) + " has no row in the per-phase fields of its plugin material.");
                 std::copy_n(history_old.data() + e * hist_elem, hist_elem, history_old_buf.data() + k * hist_elem);
                 std::copy_n(trial.data() + e * hist_elem, hist_elem, history_new_buf.data() + k * hist_elem); // initial guess
             }
 
-            evaluate(ne * n_gp, gradient_buf.data(), history_old_buf.data(), flux_buf.data(), history_new_buf.data());
+            char err[FANS_PLUGIN_MSGLEN] = {0};
+            if (plugin.evaluate(model, ne * n_gp, this->time_old, this->time, gradient_buf.data(), voxel_buf.data(), phase_buf.data(),
+                                history_old_buf.data(), flux_buf.data(), history_new_buf.data(), err, sizeof(err)) != 0)
+                throw std::runtime_error(string("Plugin material evaluation failed: ") + err);
 
             for (size_t k = 0; k < ne; ++k) {
                 const ptrdiff_t e = elems[b + k];
@@ -245,31 +259,20 @@ class PluginModel : public Base {
     Matrix<double, n_str, n_str> get_reference_stiffness() override
     {
         throw std::runtime_error("Plugin materials need the reference stiffness of the FFT solver in the input file: "
-                                 "\"reference_material\", a symmetric positive definite " +
+                                 "\"reference_material\", a symmetric positive semi-definite " +
                                  std::to_string(n_str) + "x" + std::to_string(n_str) + " matrix.");
     }
 
   private:
-    // The plugin at n points, the fields' values taken from their `batch`
-    void evaluate(size_t n, const double *gradient, const double *history_old, double *flux, double *history_new)
-    {
-        vector<const double *> field_values;
-        for (const Field &f : fields)
-            field_values.push_back(f.batch.data());
-        char err[FANS_PLUGIN_MSGLEN] = {0};
-        if (plugin.evaluate(model, n, this->time_old, this->time, gradient, field_values.data(), history_old, flux, history_new, err,
-                            sizeof(err)) != 0)
-            throw std::runtime_error(string("Plugin material evaluation failed: ") + err);
-    }
-
     Plugin                         plugin;
     FANSPluginModel               *model{nullptr};
-    size_t                         batch_points; // per plugin call
-    vector<std::pair<string, int>> history_vars; // name, doubles per point
-    int                            n_history{0}; // history doubles per point
-    vector<Field>                  fields;
+    size_t                         batch_points;                                             // per plugin call
+    vector<std::pair<string, int>> history_vars;                                             // name, doubles per point
+    int                            n_history{0};                                             // history doubles per point
+    size_t                         n_phase_rows{SIZE_MAX};                                   // phases below have a row in every per-phase field
     vector<double>                 trial, converged;                                         // history at every Gauss point
     vector<double>                 gradient_buf, flux_buf, history_old_buf, history_new_buf; // one plugin call
+    vector<int>                    voxel_buf, phase_buf;
     const double                  *flux_cache{nullptr};
 };
 

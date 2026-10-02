@@ -163,9 +163,11 @@ class MaterialManager {
             for (int i = 0; i < n_str; ++i) {
                 kapparef_mat.row(i) = Eigen::Map<const Eigen::RowVectorXd>(ref_mat[i].data(), n_str);
             }
-            Eigen::LLT<Matrix<double, n_str, n_str>> llt(kapparef_mat);
-            if (llt.info() != Eigen::Success) {
-                throw std::invalid_argument("reference_material must be symmetric positive definite");
+            // Semi-definite is enough: the exact large-strain reference has no stiffness against rigid rotations
+            const Eigen::SelfAdjointEigenSolver<Matrix<double, n_str, n_str>> eig(kapparef_mat);
+            const double                                                      max_eigenvalue = eig.eigenvalues().maxCoeff();
+            if (!kapparef_mat.isApprox(kapparef_mat.transpose()) || max_eigenvalue <= 0 || eig.eigenvalues().minCoeff() < -1e-12 * max_eigenvalue) {
+                throw std::invalid_argument("reference_material must be symmetric positive semi-definite");
             }
 
             Log::logger().info("# Using user-defined reference material for fundamental solution.");

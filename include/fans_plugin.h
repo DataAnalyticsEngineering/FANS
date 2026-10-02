@@ -10,16 +10,19 @@
  * All arrays are in host memory, whatever device the plugin computes on, and
  * hold one row per point:
  *   gradient, flux  [n_points][n_str]
- *   fields[f]       [n_points][size of field f]: further model inputs, e.g. an
- *                   orientation, which FANS reads from the dataset of their
- *                   name next to the microstructure, per voxel [Z][Y][X][...]
- *                   or per phase [n_phase][...]; the "fields" material property
- *                   may name another dataset, {"orientation": "rotation_matrices"}
+ *   voxel, phase    [n_points]: each point's voxel (in this rank's slab) and
+ *                   phase, its row in the field tables
  *   history_old/new [n_points][sum of the history sizes]: internal variables
  *                   that FANS stores, starts at zero, and hands back as
  *                   history_old once a step has converged; history_new arrives
  *                   holding the latest trial values, e.g. as an initial guess
- * Symmetric tensors among the fields and history are in FANS Mandel order too.
+ * Fields are further model inputs, e.g. an orientation. FANS reads each from
+ * the dataset the "fields" material property names for it, next to the
+ * microstructure unless an absolute path, e.g. {"orientation": "rotation_matrices"},
+ * per voxel [Z][Y][X][...] or per phase [n_phase][...], and hands it over once
+ * as a table.
+ * Symmetric tensors among the fields and history are in FANS Mandel order too,
+ * both indices of a 6x6 one such as a stiffness.
  * Functions returning int give 0 on success, else a message in `err`.
  */
 
@@ -44,9 +47,15 @@ typedef struct FANSPluginModel FANSPluginModel;
    On failure (NULL) it gets the error. */
 FANSPluginModel *fans_plugin_load(const char *config, char *msg, size_t msglen);
 
+/* Field `field` (its position in "fields") as a table [n_rows][size]: a row per
+   phase if per_phase, else per voxel of this rank's slab. Called once for
+   every field, after loading. */
+int fans_plugin_set_table(FANSPluginModel *model, size_t field, int per_phase, size_t n_rows, const double *table,
+                          char *err, size_t errlen);
+
 /* The step runs from time t_old to t. */
 int fans_plugin_evaluate(FANSPluginModel *model, size_t n_points, double t_old, double t, const double *gradient,
-                         const double *const *fields, const double *history_old, double *flux,
+                         const int *voxel, const int *phase, const double *history_old, double *flux,
                          double *history_new, char *err, size_t errlen);
 
 void fans_plugin_free(FANSPluginModel *model);
