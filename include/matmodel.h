@@ -23,7 +23,7 @@ class Matmodel {
     Matmodel(const Reader &reader);
 
     Matrix<double, howmany * 8, howmany * 8> Compute_Reference_ElementStiffness(const Matrix<double, n_str, n_str> &kapparef_mat);
-    Matrix<double, howmany * 8, 1>          &element_residual(Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
+    virtual Matrix<double, howmany * 8, 1>  &element_residual(Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
     void                                     getStrainStress(double *strain, double *stress, Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
     void                                     setGradient(vector<double> _g0);
 
@@ -47,13 +47,20 @@ class Matmodel {
     virtual void updateInternalVariables() {}
 
     // Batched models (plugin materials) get all their elements' stresses from
-    // evaluate_batch before each element sweep; get_sigma then serves them.
+    // evaluate_batch before each sweep over the elements, which then takes them.
     virtual bool wants_batch() const
     {
         return false;
     }
     virtual void evaluate_batch(const vector<ptrdiff_t> &elems, const unsigned short *phase,
-                                const double *ue, double *sig_gp, bool finished_step) {}
+                                const double *ue, double *sig_gp) {}
+
+    // A model without the element stiffnesses of a LinearModel can still say that its
+    // flux is linear in the gradient: then the linear CG applies.
+    virtual bool is_linear() const
+    {
+        return false;
+    }
 
     vector<double>                       macroscale_loading;
     double                               time_old{0.0}, time{0.0};

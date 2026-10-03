@@ -70,7 +70,7 @@ class Solver : private MixedBCController<howmany> {
     VectorXd homogenized_strain;
     VectorXd homogenized_stress;
     VectorXd get_homogenized_stress();
-    void     evaluate_batched_stress(double *u, bool finished_step); //!< in src/plugin_material.cpp
+    void     evaluate_batched_stress(double *u); //!< in src/plugin_material.cpp
 
     MatrixXd homogenized_tangent;
     MatrixXd get_homogenized_tangent(double pert_param);
@@ -278,7 +278,7 @@ template <int padding>
 void Solver<howmany, n_str>::compute_residual(RealArray &r_matrix, RealArray &u_matrix)
 {
     if (matmanager->any_batched)
-        evaluate_batched_stress(u_matrix.data(), false);
+        evaluate_batched_stress(u_matrix.data());
     compute_residual_basic<padding>(r_matrix, u_matrix, [&](Matrix<double, howmany * 8, 1> &ue, int phase_id, ptrdiff_t element_idx) -> Matrix<double, howmany * 8, 1> & {
         const MaterialInfo<howmany, n_str> &info = matmanager->get_info(phase_id);
         return info.model->element_residual(ue, info.local_mat_id, element_idx);
@@ -299,6 +299,8 @@ void Solver<howmany, n_str>::solve()
     Log::logger().info("# Total Time per iteration .....   {:.6f} sec", iter == 0 ? 0.0 : double(tot_time) / CLOCKS_PER_SEC / iter);
     Log::logger().info("# Total Time ...................   {:.6f} sec", double(tot_time) / CLOCKS_PER_SEC);
     Log::logger().info("# FFT contribution to total time   {:.6f} %", 100. * double(fft_time) / double(tot_time));
+    if (matmanager->any_batched)
+        evaluate_batched_stress(v_u); // the converged step: its stresses for the output, its state to keep
     matmanager->update_internal_variables();
 }
 
@@ -496,9 +498,6 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
 
     MPI_Sendrecv(v_u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
                  v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
-
-    if (need_compute && matmanager->any_batched)
-        evaluate_batched_stress(v_u, true);
 
     Matrix<double, howmany * 8, 1> ue;
     int                            phase_id;
@@ -716,7 +715,7 @@ VectorXd Solver<howmany, n_str>::get_homogenized_stress()
     MPI_Sendrecv(v_u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
                  v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
     if (matmanager->any_batched)
-        evaluate_batched_stress(v_u, false);
+        evaluate_batched_stress(v_u);
 
     Matrix<double, howmany * 8, 1> ue;
     int                            phase_id;

@@ -70,7 +70,7 @@ build-fans_neml2 = "cmake -S . -B build-neml2 -DFANS_NEML2=ON -DFANS_ENABLE_NATI
 
 [feature.neml2.tasks.neml2-compile]
 args = ["file", { arg = "device", default = "cpu" }, { arg = "load", default = "" }]
-cmd  = "cd \"$INIT_CWD\" && neml2-compile {{ file }} --model $(basename {{ file }} .i) --device {{ device }} --dtype float64 --output-dir $(dirname {{ file }})/compiled_models{% if load %} --load {{ load }}{% endif %}"
+cmd  = "cd \"$INIT_CWD\" && neml2-compile {{ file }} --model $(basename {{ file }} .i) --device {{ device }} --dtype float64 --output-dir $(dirname {{ file }})/compiled_models{% for f in load | split %} --load {{ f }}{% endfor %}"
 
 [tasks]
 test = { cmd = "pytest -v -s --from-pixi", cwd = "test/pytest", depends-on = ["test-fans"] }

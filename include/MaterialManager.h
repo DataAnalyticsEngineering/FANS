@@ -31,10 +31,11 @@ class MaterialManager {
     int                           n_phases;
 
   public:
-    vector<Matmodel<howmany, n_str> *> models;             // vector of unique material models
-    Matrix<double, n_str, n_str>       kapparef_mat;       // Reference stiffness for fundamental solution
-    bool                               all_linear{true};   // True if ALL phases use linear models
-    bool                               any_batched{false}; // True if any model wants batched assembly
+    vector<Matmodel<howmany, n_str> *> models;              // vector of unique material models
+    Matrix<double, n_str, n_str>       kapparef_mat;        // Reference stiffness for fundamental solution
+    bool                               all_linear{true};    // True if ALL phases use linear models
+    bool                               all_stiffness{true}; // True if ALL of them have element stiffnesses (LinearModel)
+    bool                               any_batched{false};  // True if any model wants batched assembly
 
     MaterialManager(const Reader &reader)
     {
@@ -93,9 +94,11 @@ class MaterialManager {
                 any_batched = true;
 
             auto *linear_model = dynamic_cast<LinearModel<howmany, n_str> *>(model);
-            bool  is_linear    = (linear_model != nullptr);
+            bool  is_linear    = (linear_model != nullptr) || model->is_linear();
             if (!is_linear)
                 all_linear = false;
+            if (!linear_model)
+                all_stiffness = false;
 
             auto phases = mg["phases"].get<vector<int>>();
             for (size_t i = 0; i < phases.size(); ++i) {

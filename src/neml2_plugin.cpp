@@ -35,10 +35,12 @@ namespace {
 
 // A model variable FANS passes as `size` doubles per point
 struct Var {
-    std::string          name;      // history: the output, the input being name + "~1"
-    std::vector<int64_t> shape;     // {-1, per-point shape...}
-    int64_t              size;      // doubles per point
-    int64_t              offset{0}; // history: position among the history doubles
+    std::string          name;             // history: the output, the input being name + "~1"
+    std::vector<int64_t> shape;            // {-1, per-point shape...}
+    int64_t              size;             // doubles per point
+    int64_t              offset{0};        // history: position among the history doubles
+    at::Tensor           table;            // field: its rows, on the device
+    bool                 per_phase{false}; // field: a row per phase, else per voxel
 };
 
 Var make_var(const std::string &name, const std::vector<int64_t> &base_shape)
@@ -57,8 +59,6 @@ struct FANSPluginModel {
     at::Device                          device{at::kCPU};
     Var                                 gradient, flux;
     std::vector<Var>                    history, fields;
-    std::vector<at::Tensor>             tables;                                           // per field: its rows, on the device
-    std::vector<bool>                   per_phase;                                        // per field: rows per phase, else per voxel
     int64_t                             n_history{0};                                     // history doubles per point
     at::Tensor                          perm = at::tensor({0, 1, 2, 5, 4, 3}, at::kLong); // FANS <-> NEML2 Mandel order
 
@@ -139,8 +139,6 @@ FANSPluginModel *fans_plugin_load(const char *config, char *msg, size_t msglen)
                 h->fields.push_back(var);
             }
         }
-        h->tables.resize(h->fields.size());
-        h->per_phase.resize(h->fields.size());
 
         nlohmann::json description = {{"gradient", h->gradient.size},
                                       {"batch_size", props.value("batch_size", h->device.is_cpu() ? 1024 : 65536)},
@@ -165,10 +163,10 @@ int fans_plugin_set_table(FANSPluginModel *m, size_t field, int per_phase, size_
                           size_t errlen)
 {
     try {
-        const Var       &var  = m->fields.at(field);
+        Var             &var  = m->fields.at(field);
         const at::Tensor rows = at::from_blob(const_cast<double *>(table), {int64_t(n_rows), var.size}, kF64);
-        m->tables[field]      = m->to_neml2(rows, var).clone(); // our own copy: FANS may free `table`
-        m->per_phase[field]   = per_phase;
+        var.table             = m->to_neml2(rows, var).clone(); // our own copy: FANS may free `table`
+        var.per_phase         = per_phase;
         return 0;
     } catch (const std::exception &e) {
         std::snprintf(err, errlen, "%s", e.what());
@@ -189,10 +187,9 @@ int fans_plugin_evaluate(FANSPluginModel *m, size_t n_points, double t_old, doub
         inputs[m->gradient.name] = m->to_neml2(view(gradient, m->gradient.size), m->gradient);
         inputs["t"]              = at::full({n}, t, kF64.device(m->device));
         inputs["t~1"]            = at::full({n}, t_old, kF64.device(m->device));
-        for (size_t f = 0; f < m->fields.size(); ++f) {
-            const int *r              = m->per_phase[f] ? phase : voxel; // each point's row in the table
-            const auto rows           = at::from_blob(const_cast<int *>(r), {n}, at::kInt).to(m->device, at::kLong);
-            inputs[m->fields[f].name] = m->tables[f].index_select(0, rows);
+        for (const Var &f : m->fields) { // each point's row of the table
+            const auto rows = at::from_blob(const_cast<int *>(f.per_phase ? phase : voxel), {n}, at::kInt).to(m->device, at::kLong);
+            inputs[f.name]  = f.table.index_select(0, rows);
         }
 
         const at::Tensor old_history = view(history_old, m->n_history), new_history = view(history_new, m->n_history);

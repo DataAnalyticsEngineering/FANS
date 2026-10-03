@@ -95,13 +95,21 @@ void SolverCG<howmany, n_str>::internalSolve()
         std::string details;
         if (islinear && !this->isMixedBCActive()) {
             d_real = s_real + fmax(0.0, (delta - deltamid) / delta0) * d_real;
-            Matrix<double, howmany * 8, 1> res_e;
-            this->template compute_residual_basic<0>(rnew_real, d_real,
-                                                     [&](Matrix<double, howmany * 8, 1> &ue, int phase_id, ptrdiff_t element_idx) -> Matrix<double, howmany * 8, 1> & {
-                                                         const MaterialInfo<howmany, n_str> &info = this->matmanager->get_info(phase_id);
-                                                         res_e.noalias()                          = info.linear_model->phase_stiffness[info.local_mat_id] * ue;
-                                                         return res_e;
-                                                     });
+            if (this->matmanager->all_stiffness) {
+                Matrix<double, howmany * 8, 1> res_e;
+                this->template compute_residual_basic<0>(rnew_real, d_real,
+                                                         [&](Matrix<double, howmany * 8, 1> &ue, int phase_id, ptrdiff_t element_idx) -> Matrix<double, howmany * 8, 1> & {
+                                                             const MaterialInfo<howmany, n_str> &info = this->matmanager->get_info(phase_id);
+                                                             res_e.noalias()                          = info.linear_model->phase_stiffness[info.local_mat_id] * ue;
+                                                             return res_e;
+                                                         });
+            } else {
+                // K d through the models themselves
+                v_u_real += d_real;
+                this->template compute_residual<0>(rnew_real, v_u_real);
+                v_u_real -= d_real;
+                rnew_real -= v_r_real;
+            }
 
             double alpha = delta / dotProduct(d_real, rnew_real);
             v_r_real -= alpha * rnew_real;
@@ -148,8 +156,9 @@ std::string SolverCG<howmany, n_str>::LineSearchSecant()
             break;
 
         alpha_next = alpha_curr - r1pd * (alpha_curr - alpha_prev) / denom;
-        if (alpha_next <= 0.0 || alpha_next > 10.0)
+        if (alpha_next <= 0.0)
             alpha_next = 0.5 * (alpha_prev + alpha_curr);
+        alpha_next = fmin(alpha_next, 10.0 * alpha_curr);
 
         v_u_real += d_real * (alpha_next - alpha_curr);
         alpha_prev = alpha_curr;
@@ -161,8 +170,8 @@ std::string SolverCG<howmany, n_str>::LineSearchSecant()
         r1pd = dotProduct(rnew_real, d_real);
     }
     ls_converged = (fabs(r1pd) <= tol * fabs(r1pd0));
-    if (ls_converged) {
-        alpha_warm = alpha_curr;
+    if (ls_converged || fabs(r1pd) < fabs(r1pd0)) {
+        alpha_warm = ls_converged ? alpha_curr : 0.1;
         v_r_real   = rnew_real;
     } else {
         v_u_real -= d_real * alpha_curr;
