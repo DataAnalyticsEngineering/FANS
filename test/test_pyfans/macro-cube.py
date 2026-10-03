@@ -11,7 +11,7 @@ def main():
 
     # preCICE setup
     participant = precice.Participant("macro-cube", "precice-config.xml", 0, 1)
-    mesh_name = "cube"
+    mesh_name = "Cube-Mesh"
 
     # Coupling mesh - unit cube
     x_coords, y_coords, z_coords = np.meshgrid(

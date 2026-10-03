@@ -20,12 +20,13 @@ time = ">=1.10,<2"
 MSUtils = ">=0.1.2,<0.2"
 
 [feature.dashboard.tasks]
-pytest = "pytest -v -s"
-precommit = "pre-commit run --all-files"
+pytest = { cmd = "pytest -v -s", default-environment = "dashboard" }
+precommit = { cmd = "pre-commit run --all-files", default-environment = "dashboard" }
 
 [feature.dashboard.tasks.h52xdmf]
 args = ["file", { arg = "extra", default = "" }]
 cmd  = "cd \"$INIT_CWD\" && python -m MSUtils.general.h52xdmf {{ extra }} {{ file }}"
+default-environment = "dashboard"
 
 [feature.dev.dependencies]
 cmake = ">=4.4.3,<5"
