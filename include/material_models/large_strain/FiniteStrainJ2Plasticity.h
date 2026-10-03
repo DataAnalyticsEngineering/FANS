@@ -91,10 +91,7 @@ class FiniteStrainJ2Plasticity : public LargeStrainMechModel {
         lambda /= static_cast<double>(n_mat);
         mu /= static_cast<double>(n_mat);
 
-        Matrix<double, 6, 6> C = Matrix<double, 6, 6>::Zero();
-        C.topLeftCorner(3, 3).setConstant(lambda);
-        C.diagonal().array() += 2.0 * mu;
-        return compute_spatial_tangent(Matrix3d::Identity(), Matrix3d::Zero(), C);
+        return isotropic_reference_stiffness(lambda, mu);
     }
 
     void postprocess(Solver<3, 9> &solver, Reader &reader, int load_idx, int time_idx) override
@@ -238,16 +235,14 @@ class FiniteStrainJ2Plasticity : public LargeStrainMechModel {
         double D;
     };
 
-    using Matrix3dVector = std::vector<Matrix3d, Eigen::aligned_allocator<Matrix3d>>;
-
     vector<Params> params;
 
-    Matrix3dVector F_inv;
-    Matrix3dVector F_inv_t;
-    Matrix3dVector be;
-    Matrix3dVector be_t;
-    VectorXd       ep;
-    VectorXd       ep_t;
+    vector<Matrix3d> F_inv;
+    vector<Matrix3d> F_inv_t;
+    vector<Matrix3d> be;
+    vector<Matrix3d> be_t;
+    VectorXd         ep;
+    VectorXd         ep_t;
 };
 
 #endif // FINITESTRAINJ2PLASTICITY_H

@@ -1,35 +1,37 @@
 [workspace]
 channels = ["conda-forge"]
 name = "FANS"
-platforms = ["linux-64", "linux-aarch64", "osx-arm64", "osx-64"]
+platforms = ["linux-64", "linux-aarch64", "osx-arm64", "osx-64",
+  { name = "linux-64-cuda", platform = "linux-64", cuda = "12" },
+]
 preview = ["pixi-build"]
 
 [dependencies]
 fans = { path = "." }
 
 [feature.dashboard.dependencies]
-python = ">=3.14.6,<3.15"
+python = ">=3.14.7,<3.15"
 pytest = ">=9.1.1,<10"
 pre-commit = ">=4.6.2,<5"
-identify = ">=2.6.19,<3"
+identify = ">=2.6.20,<3"
 git = ">=2.55.0,<3"
 ipykernel = ">=7.3.0,<8"
 time = ">=1.10,<2"
 MSUtils = ">=0.1.2,<0.2"
 
 [feature.dashboard.tasks]
-pytest = "pytest -v -s"
-precommit = "pre-commit run --all-files"
+pytest = { cmd = "pytest -v -s", default-environment = "dashboard" }
+precommit = { cmd = "pre-commit run --all-files", default-environment = "dashboard" }
 
 [feature.dashboard.tasks.h52xdmf]
 args = ["file", { arg = "extra", default = "" }]
 cmd  = "cd \"$INIT_CWD\" && python -m MSUtils.general.h52xdmf {{ extra }} {{ file }}"
+default-environment = "dashboard"
 
 [feature.dev.dependencies]
-cmake = ">=4.4.2,<5"
-clang-tools = ">=22.1.8,<23"
-clangxx = ">=22.1.8,<23"
-openmpi-mpicxx = ">=5.0.10,<6"
+cmake = ">=4.4.3,<5"
+clangxx = ">=23.1.1,<24"
+openmpi-mpicxx = ">=5.0.11,<6"
 hdf5 = { version = ">=2.2.0,<3", build = "mpi_openmpi_*" }
 fftw = { version = ">=3.3.11,<4", build = "mpi_openmpi_*" }
 eigen = ">=5.0.1,<6"
@@ -38,15 +40,38 @@ spdlog = ">=1.17.0,<2"
 time = ">=1.10,<2"
 
 # For pyfans
-python = ">=3.14.6,<3.15"
+python = ">=3.14.7,<3.15"
 pip = ">=26.2.1,<27"
-nanobind = ">=2.14.0,<3"
-scikit-build-core = ">=1.0.3,<2"
-numpy = ">=2.5.2,<3"
+nanobind = ">=3.1.0,<4"
+scikit-build-core = ">=1.1.0,<2"
+numpy = ">=2.5.3,<3"
 mpi4py = ">=4.1.2,<5"
 
 [feature.dev.tasks]
-clang-tidy = { cmd = "./tools/run_clang_tidy.sh {{ args }}", args = [ { arg = "args", default = "" }] }
+build-fans = { cmd = "cmake -S . -B build -DFANS_ENABLE_NATIVE=ON && cmake --build build -j", default-environment = "dev" }
+
+# On Linux, torch is the CUDA build (it also runs on CPUs)
+[feature.neml2]
+platforms = ["linux-64-cuda", "osx-arm64"]
+
+# torch 2.13+ breaks NEML2 3.1
+[feature.neml2.dependencies]
+pytorch = ">=2.10,<2.13"
+
+[feature.neml2.target.linux-64.dependencies]
+pytorch-gpu = ">=2.10,<2.13"
+cuda-version = "12.9.*"
+cuda-nvcc = "*"
+
+[feature.neml2.pypi-dependencies]
+neml2 = ">=3.1.0, <4"
+
+[feature.neml2.tasks]
+build-fans_neml2 = "cmake -S . -B build-neml2 -DFANS_NEML2=ON -DFANS_ENABLE_NATIVE=ON && cmake --build build-neml2 -j"
+
+[feature.neml2.tasks.neml2-compile]
+args = ["file", { arg = "device", default = "cpu" }, { arg = "load", default = "" }]
+cmd  = "cd \"$INIT_CWD\" && neml2-compile {{ file }} --model $(basename {{ file }} .i) --device {{ device }} --dtype float64 --output-dir $(dirname {{ file }})/compiled_models{% for f in load | split %} --load {{ f }}{% endfor %}"
 
 [tasks]
 test = { cmd = "pytest -v -s --from-pixi", cwd = "test/pytest", depends-on = ["test-fans"] }
@@ -58,6 +83,7 @@ test-fans = { cmd = "./run_tests.sh -n {{n}}", args = [
 default   = { features = ["dashboard"]}
 dashboard = { features = ["dashboard"], no-default-feature = true }
 dev       = { features = ["dev"],       no-default-feature = true }
+dev-neml2 = { features = ["dev", "neml2"], no-default-feature = true }
 
 ################## Pixi build part ##################
 

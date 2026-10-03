@@ -12,6 +12,7 @@ project(
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -127,8 +128,9 @@ add_executable(FANS_main)
 add_custom_command(
   TARGET FANS_main
   POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E create_symlink $<TARGET_FILE:FANS_main>
-          ${CMAKE_CURRENT_SOURCE_DIR}/test/$<TARGET_FILE_NAME:FANS_main>
+  COMMAND
+    ${CMAKE_COMMAND} -E create_symlink $<TARGET_FILE:FANS_main>
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/$<IF:$<TARGET_EXISTS:fans_neml2>,FANS_neml2,$<TARGET_FILE_NAME:FANS_main>>
   COMMENT
     "Create a symlink for FANS executable to ${CMAKE_CURRENT_SOURCE_DIR}/test/")
 
@@ -154,14 +156,14 @@ target_include_directories(FANS_main PRIVATE "${PROJECT_BINARY_DIR}/include")
 # SOURCES
 # ##############################################################################
 
-target_sources(FANS_FANS PRIVATE src/reader.cpp)
+target_sources(FANS_FANS PRIVATE src/reader.cpp src/plugin_material.cpp)
 target_sources(FANS_main PRIVATE src/main.cpp)
 
 # ##############################################################################
 # LINKING
 # ##############################################################################
 
-target_link_libraries(FANS_FANS PRIVATE m)
+target_link_libraries(FANS_FANS PRIVATE m ${CMAKE_DL_LIBS})
 
 target_link_libraries(FANS_FANS PUBLIC HDF5::HDF5)
 if(HDF5_IS_PARALLEL)
@@ -229,4 +231,29 @@ option(FANS_ENABLE_TESTING "Enable testing" ${FANS_ENABLE_TESTING_DEFAULT})
 if(FANS_ENABLE_TESTING)
   enable_testing()
   add_subdirectory(test)
+endif()
+
+# ##############################################################################
+# NEML2 MATERIAL PLUGIN
+# ##############################################################################
+
+option(FANS_NEML2 "Also build libfans_neml2.so, the NEML2 material plugin" OFF)
+if(FANS_NEML2)
+  find_package(Python REQUIRED COMPONENTS Interpreter)
+  execute_process(
+    COMMAND ${Python_EXECUTABLE} -c "import neml2; print(neml2.__path__[0])"
+    OUTPUT_VARIABLE neml2_dir
+    OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
+  get_filename_component(torch_prefix "${Python_EXECUTABLE}/../.." ABSOLUTE)
+  set(ENV{torch_ROOT} ${torch_prefix})
+  find_package(neml2 CONFIG REQUIRED PATHS ${neml2_dir})
+
+  add_library(fans_neml2 SHARED src/neml2_plugin.cpp)
+  target_include_directories(fans_neml2 PRIVATE include)
+  target_link_libraries(fans_neml2 PRIVATE neml2::aoti
+                                           nlohmann_json::nlohmann_json)
+  set_target_properties(
+    fans_neml2 PROPERTIES CXX_STANDARD 20
+                          INSTALL_RPATH "${neml2_dir}/lib;${torch_prefix}/lib")
+  install(TARGETS fans_neml2 LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()

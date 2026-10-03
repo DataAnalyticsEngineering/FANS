@@ -197,6 +197,8 @@ cd ../test
 | `FANS_BUILD_STATIC` | Build static library | `OFF` |
 | `CMAKE_INSTALL_PREFIX` | Installation directory | System default |
 | `FANS_ENABLE_SANITIZERS` | Enable runtime sanitizers (AddressSanitizer and LeakSanitizer) for memory debugging | `OFF` |
+| `FANS_ENABLE_NATIVE` | Optimise for the building machine's CPU (`-march=native`) | `OFF` |
+| `FANS_NEML2` | Build a FANS that runs [NEML2](https://github.com/applied-material-modeling/neml2) materials | `OFF` |
 
 ---
 
@@ -283,6 +285,8 @@ FANS requires a JSON input file specifying the problem parameters. Example input
     - `SaintVenantKirchhoff` for the hyperelastic Saint Venant-Kirchhoff material model.
     - `CompressibleNeoHookean` for the compressible Neo-Hookean material model.
     - `FiniteStrainJ2Plasticity` for rate-independent finite-strain J2 plasticity with linear isotropic hardening.
+
+    - `NEML2` for a thermal, small- or large-strain material compiled from a [NEML2](https://github.com/applied-material-modeling/neml2) model with `neml2-compile` (needs `FANS_NEML2`), see [docs/NEML2.md](docs/NEML2.md).
 
   - `material_properties`: Material parameters specific to the chosen model. Properties are defined as arrays, where each element corresponds to one of the phases listed in the `phases` array.
 

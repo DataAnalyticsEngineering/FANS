@@ -84,100 +84,21 @@ class LargeStrainMechModel : public Matmodel<3, 9> {
     {
         throw std::logic_error("Large-strain material model must override compute_S() or get_sigma().");
     }
-    virtual Matrix<double, 6, 6> compute_material_tangent(const Matrix3d &F, int mat_index, ptrdiff_t element_idx, int i)
-    {
-        throw std::logic_error("Algorithmic material tangent is not implemented for this large-strain model.");
-    }
 
     /**
-     * @brief Convert material tangent C (dS/dE) to spatial tangent A (dP/dF)
-     *
-     * Computes the spatial tangent dP/dF from the material tangent dS/dE.
-     *
-     * The full expression is:
-     *   dP_iJ/dF_kL = δ_ik S_LJ + F_iM * dS_MJ/dE_PQ * dE_PQ/dF_kL
-     * where:
-     *   dE_PQ/dF_kL = 0.5 * (F_kP δ_QL + F_kQ δ_PL)
-     *
-     * @param F Deformation gradient (3×3)
-     * @param S 2nd Piola-Kirchhoff stress (3×3 symmetric)
-     * @param C_mandel Material tangent dS/dE in Mandel notation (6×6)
-     * @return Spatial tangent A = dP/dF in full notation (9×9)
+     * @brief Reference stiffness dP/dF at F = I of an isotropic material with Lame
+     * constants lambda and mu, as a 9x9 matrix on row-major F and P:
+     *   A_iJkL = lambda d_iJ d_kL + mu (d_ik d_JL + d_iL d_Jk)
      */
-    inline Matrix<double, 9, 9> compute_spatial_tangent(const Matrix3d             &F,
-                                                        const Matrix3d             &S,
-                                                        const Matrix<double, 6, 6> &C_mandel) const
+    static Matrix<double, 9, 9> isotropic_reference_stiffness(double lambda, double mu)
     {
         Matrix<double, 9, 9> A = Matrix<double, 9, 9>::Zero();
-
-        // Mandel to tensor index mapping
-        int mandel_to_ij[6][2] = {{0, 0}, {1, 1}, {2, 2}, {0, 1}, {0, 2}, {1, 2}};
-
-        // Compute A_iJkL = dP_iJ/dF_kL
-        for (int i = 0; i < 3; ++i) {
-            for (int J = 0; J < 3; ++J) {
-                int row = 3 * i + J; // Index for P_iJ
-
-                for (int k = 0; k < 3; ++k) {
-                    for (int L = 0; L < 3; ++L) {
-                        int col = 3 * k + L; // Index for F_kL
-
-                        // First term: δ_ik S_LJ
-                        if (i == k) {
-                            A(row, col) += S(L, J);
-                        }
-
-                        // Second term: F_iM * C_MJPQ * dE_PQ/dF_kL
-                        for (int M = 0; M < 3; ++M) {
-                            // Find MJ in Mandel notation
-                            int MJ_mandel = -1;
-                            for (int idx = 0; idx < 6; ++idx) {
-                                if ((mandel_to_ij[idx][0] == M && mandel_to_ij[idx][1] == J) ||
-                                    (mandel_to_ij[idx][0] == J && mandel_to_ij[idx][1] == M)) {
-                                    MJ_mandel = idx;
-                                    break;
-                                }
-                            }
-                            if (MJ_mandel < 0)
-                                continue;
-
-                            for (int P = 0; P < 3; ++P) {
-                                for (int Q = P; Q < 3; ++Q) { // Q >= P due to symmetry
-                                    // Find PQ in Mandel notation
-                                    int PQ_mandel = -1;
-                                    for (int idx = 0; idx < 6; ++idx) {
-                                        if ((mandel_to_ij[idx][0] == P && mandel_to_ij[idx][1] == Q) ||
-                                            (mandel_to_ij[idx][0] == Q && mandel_to_ij[idx][1] == P)) {
-                                            PQ_mandel = idx;
-                                            break;
-                                        }
-                                    }
-                                    if (PQ_mandel < 0)
-                                        continue;
-
-                                    // Get C_MJPQ and account for Mandel factors
-                                    double C_val = C_mandel(MJ_mandel, PQ_mandel);
-                                    if (MJ_mandel >= 3)
-                                        C_val /= sqrt(2.0);
-                                    if (PQ_mandel >= 3)
-                                        C_val /= sqrt(2.0);
-
-                                    // Compute dE_PQ/dF_kL = 0.5 * (F_kP δ_QL + F_kQ δ_PL)
-                                    double dE_dF = 0.0;
-                                    if (Q == L)
-                                        dE_dF += 0.5 * F(k, P);
-                                    if (P == L)
-                                        dE_dF += 0.5 * F(k, Q);
-
-                                    A(row, col) += F(i, M) * C_val * dE_dF;
-                                }
-                            }
-                        }
-                    }
-                }
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < 3; ++j) {
+                A(3 * i + i, 3 * j + j) += lambda; // lambda d_iJ d_kL
+                A(3 * i + j, 3 * i + j) += mu;     // mu d_ik d_JL
+                A(3 * i + j, 3 * j + i) += mu;     // mu d_iL d_Jk
             }
-        }
-
         return A;
     }
 

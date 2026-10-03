@@ -9,7 +9,6 @@
 #include "material_models/small_strain/LinearElastic.h"
 #include "material_models/small_strain/PseudoPlastic.h"
 #include "material_models/small_strain/J2Plasticity.h"
-#include "material_models/small_strain/J2PlasticityNew.h"
 
 // Large strain mechanical models
 #include "material_models/large_strain/SaintVenantKirchhoff.h"
@@ -18,6 +17,10 @@
 
 template <int howmany, int n_str>
 Matmodel<howmany, n_str> *createMatmodel(const Reader &reader);
+
+// A material from a run-time plugin
+template <int howmany, int n_str>
+Matmodel<howmany, n_str> *create_plugin_material(const Reader &reader);
 
 template <>
 Matmodel<1, 3> *createMatmodel<1, 3>(const Reader &reader)
@@ -28,6 +31,8 @@ Matmodel<1, 3> *createMatmodel<1, 3>(const Reader &reader)
         return new LinearThermalTriclinic(reader);
     } else if (reader.matmodel == "GBDiffusion") {
         return new GBDiffusion(reader);
+    } else if (reader.matmodel == "NEML2") {
+        return create_plugin_material<1, 3>(reader);
     } else {
         throw std::invalid_argument(reader.matmodel + " is not a valid matmodel for thermal problem");
     }
@@ -53,8 +58,10 @@ Matmodel<3, 6> *createMatmodel<3, 6>(const Reader &reader)
         return new J2ViscoPlastic_LinearIsotropicHardening(reader);
     } else if (reader.matmodel == "J2ViscoPlastic_NonLinearIsotropicHardening") {
         return new J2ViscoPlastic_NonLinearIsotropicHardening(reader);
-    } else if (reader.matmodel == "J2PlasticityNew_LinearIsotropicHardening") {
-        return new J2PlasticityNew_LinearIsotropicHardening(reader);
+
+        // NEML2 material
+    } else if (reader.matmodel == "NEML2") {
+        return create_plugin_material<3, 6>(reader);
 
     } else {
         throw std::invalid_argument(reader.matmodel + " is not a valid small strain material model");
@@ -70,6 +77,8 @@ Matmodel<3, 9> *createMatmodel<3, 9>(const Reader &reader)
         return new CompressibleNeoHookean(reader);
     } else if (reader.matmodel == "FiniteStrainJ2Plasticity") {
         return new FiniteStrainJ2Plasticity(reader);
+    } else if (reader.matmodel == "NEML2") {
+        return create_plugin_material<3, 9>(reader);
     } else {
         throw std::invalid_argument(reader.matmodel + " is not a valid large strain material model");
     }

@@ -48,22 +48,18 @@ void Reader::ComputeVolumeFractions()
     Log::logger().info("# Number of materials: {} (from {} to {})", n_mat, global_min, global_max);
     Log::logger().info("# Volume fractions");
 
-    // Using dynamic allocation for arrays since we don't know size at compile time
-    std::vector<long>   vol_frac(n_mat, 0);
-    std::vector<double> v_frac(n_mat, 0.0);
-
+    // Voxels of each phase, summed over all ranks at once
+    std::vector<long> vol_frac(n_mat, 0);
     for (size_t i = 0; i < local_size; i++) {
         unsigned short val   = static_cast<unsigned short>(ms[i]);
         int            index = val - global_min; // Adjust index to start from 0
         vol_frac[index]++;
     }
+    MPI_Allreduce(MPI_IN_PLACE, vol_frac.data(), n_mat, MPI_LONG, MPI_SUM, communicator);
 
-    for (int i = 0; i < n_mat; i++) {
-        long vf;
-        MPI_Allreduce(&(vol_frac[i]), &vf, 1, MPI_LONG, MPI_SUM, communicator);
-        v_frac[i] = double(vf) / double(dims[0] * dims[1] * dims[2]);
-        Log::logger().info("# material {:4}    vol. frac. {:10.4f}%  ", static_cast<unsigned int>(i) + global_min, 100. * v_frac[i]);
-    }
+    for (int i = 0; i < n_mat; i++)
+        Log::logger().info("# material {:4}    vol. frac. {:10.4f}%  ", static_cast<unsigned int>(i) + global_min,
+                           100. * vol_frac[i] / (double(dims[0]) * dims[1] * dims[2]));
 }
 
 void Reader ::ReadInputFile(const std::string &input_fn)
@@ -164,6 +160,16 @@ void Reader ::ReadInputFile(const std::string &input_fn)
             load_cases.push_back(std::move(lc));
         }
 
+        // "time_step": one size for all steps, or a list per load case like macroscale_loading
+        const json time_step = j.value("time_step", json(1.0));
+        for (size_t c = 0; c < load_cases.size(); ++c) {
+            auto &lc = load_cases[c];
+            lc.dt    = time_step.is_number() ? vector<double>(lc.n_steps, time_step.get<double>()) : time_step.at(c).get<vector<double>>();
+            if (lc.dt.size() != lc.n_steps || *std::min_element(lc.dt.begin(), lc.dt.end()) <= 0.0)
+                throw std::invalid_argument("time_step of load case " + std::to_string(c + 1) + " must hold " +
+                                            std::to_string(lc.n_steps) + " positive values");
+        }
+
         Log::logger().info("# microstructure file name: \t '{}'", ms_filename);
         Log::logger().info("# microstructure dataset name: \t '{}'", ms_datasetname);
         Log::logger().info("# strain type: \t {}", strain_type);
@@ -178,119 +184,40 @@ void Reader ::ReadInputFile(const std::string &input_fn)
     }
 }
 
+// Creates the groups on the path of `name` that do not exist yet, e.g. /a and /a/b for /a/b/c
 void Reader::safe_create_group(hid_t file, const char *const name)
 {
-    // no leading '/' --> exit
-    const char DELIMITER = '/';
-    if (name[0] != DELIMITER)
-        return;
-
-    // copy name to buffer
-    char buffer[4096];
-    strcpy(buffer, name);
-    char *str = buffer;
-    str       = strchr(str + 1, DELIMITER);
-    while (str != nullptr) {
-        // while another / character is found
-        long int l = str - buffer; // length of substring
-        buffer[l]  = '\0';         // temporary 'end of string'
-
-        // safely create the group if needed
-        hid_t group;
-
-        /* Save old error handler */
-        herr_t (*old_func)(hid_t, void *);
-        void *old_client_data;
-        H5Eget_auto(H5E_DEFAULT, &old_func, &old_client_data);
-        /* Turn off error handling */
-        H5Eset_auto(H5E_DEFAULT, nullptr, nullptr);
-
-        group = H5Gopen(file, buffer, H5P_DEFAULT);
-        /* Restore previous error handler */
-        H5Eset_auto(H5E_DEFAULT, old_func, old_client_data);
-
-        if (group < 0) {
-            group = H5Gcreate(file, buffer, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        }
-        H5Gclose(group);
-
-        buffer[l] = DELIMITER; // restore original string
-
-        str = strchr(str + 1, DELIMITER); // find next delimiter
+    const string path(name);
+    for (size_t i = path.find('/', 1); i != string::npos; i = path.find('/', i + 1)) {
+        const string group = path.substr(0, i);
+        if (H5Lexists(file, group.c_str(), H5P_DEFAULT) <= 0)
+            H5Gclose(H5Gcreate(file, group.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT));
     }
 }
 
 void Reader ::ReadMS(int hm)
 {
+    // Grid size, and whether the file is laid out [Z][Y][X] (the default) or [X][Y][Z]
+    hid_t   file_id;
+    hid_t   dset_id = h5_open_dataset(ms_filename, ms_datasetname, file_id);
+    hid_t   space   = H5Dget_space(dset_id);
+    hsize_t file_dims[3];
+    if (H5Sget_simple_extent_ndims(space) != 3)
+        throw std::runtime_error("Microstructure dataset " + string(ms_datasetname) + " must be 3D");
+    H5Sget_simple_extent_dims(space, file_dims, nullptr);
+    H5Sclose(space);
 
-    hid_t   file_id, dset_id;    /* file and dataset identifiers */
-    hid_t   filespace, memspace; /* file and memory dataspace identifiers */
-    hid_t   data_type;
-    hsize_t _dims[3]; /* dataset dimensions */
-    hsize_t count[3]; /* hyperslab selection parameters */
-    hsize_t offset[3];
-    hid_t   plist_id; /* property list identifier */
-    herr_t  status;
-
-    // Set up file access property list with parallel I/O access
-    plist_id = H5Pcreate(H5P_FILE_ACCESS);
-    // H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, info);        // "set File Access Property List"
-
-    // Open the file collectively and release property list identifier.
-    file_id = H5Fopen(ms_filename, H5F_ACC_RDONLY, plist_id);
-    H5Pclose(plist_id);
-
-    if (file_id < 0) {
-        throw std::runtime_error("Failed to open microstructure file " + string(ms_filename));
-    }
-
-    // Create property list for collective dataset write.
-    // plist_id = H5Pcreate(H5P_DATASET_XFER);
-    // H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);   // "set Data Transfer Property List" (x means transfer)
-    plist_id = H5P_DEFAULT;
-
-    dset_id = H5Dopen2(file_id, ms_datasetname, plist_id);
-
-    if (dset_id < 0) {
-        throw std::runtime_error("Failed to open microstructure dataset " + string(ms_datasetname));
-    }
-
-    hid_t dspace = H5Dget_space(dset_id);
-    int   rank   = H5Sget_simple_extent_dims(dspace, _dims, nullptr);
-    data_type    = H5T_NATIVE_USHORT; // H5Dget_type(dset_id);
-
-    // Check if microstructure dataset has ZYX ordering through the permute_order attribute
-    hid_t attr_id = H5Aexists(dset_id, "permute_order") ? H5Aopen(dset_id, "permute_order", H5P_DEFAULT) : -1;
-    if (attr_id > 0) {
-        hid_t attr_type     = H5Aget_type(attr_id);
-        char *permute_order = nullptr;
-        if (H5Aread(attr_id, attr_type, &permute_order) >= 0 && permute_order != nullptr) {
-            is_zyx = (permute_order[0] == 'z' || permute_order[0] == 'Z');
-            H5free_memory(permute_order);
-        }
-        H5Aclose(attr_id);
-        H5Tclose(attr_type);
-    }
-    if (is_zyx)
+    is_zyx = h5_is_zyx(dset_id);
+    H5Dclose(dset_id);
+    H5Fclose(file_id);
+    if (is_zyx) {
         Log::logger().info("# Using Z-Y-X dimension ordering for the microstructure data");
-    else
+        dims = {int(file_dims[2]), int(file_dims[1]), int(file_dims[0])};
+    } else {
         Log::logger().info("# Using X-Y-Z dimension ordering for the microstructure data");
-
-    dims.resize(3);
-    if (is_zyx) {           /* file layout Z Y X  -> logical X Y Z */
-        dims[0] = _dims[2]; /* Nx */
-        dims[1] = _dims[1]; /* Ny */
-        dims[2] = _dims[0]; /* Nz */
-    } else {                /* default layout X Y Z */
-        dims[0] = _dims[0];
-        dims[1] = _dims[1];
-        dims[2] = _dims[2];
+        dims = {int(file_dims[0]), int(file_dims[1]), int(file_dims[2])};
     }
-
-    l_e.resize(3);
-    l_e[0] = L[0] / double(dims[0]);
-    l_e[1] = L[1] / double(dims[1]);
-    l_e[2] = L[2] / double(dims[2]);
+    l_e = {L[0] / dims[0], L[1] / dims[1], L[2] / dims[2]};
 
     Log::logger().info("# Grid size set to [{} x {} x {}] --> {} voxels", dims[0], dims[1], dims[2], dims[0] * dims[1] * dims[2]);
     Log::logger().info("# Microstructure length: [{:3.6f} x {:3.6f} x {:3.6f}]", L[0], L[1], L[2]);
@@ -305,107 +232,73 @@ void Reader ::ReadMS(int hm)
     if (dims[0] / 4 < world_size)
         throw std::runtime_error("[ FANS3D_Grid ] ERROR: Please decrease the number of processes or increase the grid size to ensure that each process has at least 4 boxels in the x direction.");
 
-    const ptrdiff_t n[3]   = {dims[0], dims[1], dims[2] / 2 + 1};
-    ptrdiff_t       block0 = FFTW_MPI_DEFAULT_BLOCK;
-    ptrdiff_t       block1 = FFTW_MPI_DEFAULT_BLOCK;
-
-    // see https://fftw.org/doc/Basic-and-advanced-distribution-interfaces.html
-    // and https://www.fftw.org/fftw3_doc/Transposed-distributions.html
-    // on there it is recommended to use one of fftw's allocation functions "to ensure optimal alignment"
-
-    /* there is no documentation for this method, so here is the signature from "fftw3-mpi.h"
-    FFTW_EXTERN ptrdiff_t XM(local_size_many_transposed)	\
-     (int rnk, const ptrdiff_t *n, ptrdiff_t howmany,		\
-      ptrdiff_t block0, ptrdiff_t block1, MPI_Comm comm,	\
-      ptrdiff_t *local_n0, ptrdiff_t *local_0_start,		\
-      ptrdiff_t *local_n1, ptrdiff_t *local_1_start);		\
-    */
-
-    alloc_local = fftw_mpi_local_size_many_transposed(rank, n, hm, block0, block1, communicator, &local_n0, &local_0_start, &local_n1, &local_1_start);
-
+    // This rank's part of the grid: x-slab [local_0_start, local_0_start + local_n0), see
+    // https://www.fftw.org/fftw3_doc/Transposed-distributions.html
+    const ptrdiff_t n[3] = {dims[0], dims[1], dims[2] / 2 + 1};
+    alloc_local          = fftw_mpi_local_size_many_transposed(3, n, hm, FFTW_MPI_DEFAULT_BLOCK, FFTW_MPI_DEFAULT_BLOCK, communicator,
+                                                               &local_n0, &local_0_start, &local_n1, &local_1_start);
     if (local_n0 < 4)
         throw std::runtime_error("[ FANS3D_Grid ] ERROR: Number of voxels in x-direction is less than 4 in process " + to_string(world_rank));
-    MPI_Barrier(communicator);
 
-    hsize_t fcount[3], foffset[3];
-    if (is_zyx) {              /* file layout  Z Y X */
-        fcount[0]  = dims[2];  /* Nz  (file-dim 0) */
-        fcount[1]  = dims[1];  /* Ny  (file-dim 1) */
-        fcount[2]  = local_n0; /* Nx-slab (file-dim 2) */
-        foffset[0] = 0;
-        foffset[1] = 0;
-        foffset[2] = static_cast<hsize_t>(local_0_start);
-    } else { /* file layout  X Y Z */
-        fcount[0]  = local_n0;
-        fcount[1]  = dims[1];
-        fcount[2]  = dims[2];
-        foffset[0] = static_cast<hsize_t>(local_0_start);
-        foffset[1] = 0;
-        foffset[2] = 0;
-    }
-    filespace = H5Dget_space(dset_id);
-    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, foffset, nullptr, fcount, nullptr);
-
-    /*--------------------------------------------------------------------
-     * 2. Build MEMORY dataspace that exactly matches the FILE slab
-     *------------------------------------------------------------------*/
-    hsize_t memcount[3];
-    if (is_zyx) {
-        memcount[0] = fcount[0]; // Nz
-        memcount[1] = fcount[1]; // Ny
-        memcount[2] = fcount[2]; // local_n0  (X-slab)
-    } else {
-        memcount[0] = fcount[0];
-        memcount[1] = fcount[1];
-        memcount[2] = fcount[2];
-    }
-    memspace = H5Screate_simple(3, memcount, nullptr);
-
-    /*--------------------------------------------------------------------
-     * 3. Read into a temporary buffer; transpose if needed
-     *------------------------------------------------------------------*/
-    size_t nElem = static_cast<size_t>(memcount[0]) *
-                   static_cast<size_t>(memcount[1]) *
-                   static_cast<size_t>(memcount[2]);
-
-    unsigned short *tmp = FANS_malloc<unsigned short>(nElem);
-    status              = H5Dread(dset_id, data_type,
-                                  memspace, filespace, plist_id, tmp);
-    if (status < 0)
-        throw std::runtime_error("[ReadMS] H5Dread failed");
-
-    /* allocate the final buffer in logical order:  Nx × Ny × Nz */
-    ms = FANS_malloc<unsigned short>(static_cast<size_t>(local_n0) *
-                                     static_cast<size_t>(dims[1]) *
-                                     static_cast<size_t>(dims[2]));
-
-    if (is_zyx) {
-        const Eigen::Index Nx = static_cast<Eigen::Index>(local_n0);
-        const Eigen::Index Ny = static_cast<Eigen::Index>(dims[1]);
-        const Eigen::Index Nz = static_cast<Eigen::Index>(dims[2]);
-
-        Eigen::TensorMap<Eigen::Tensor<const unsigned short, 3, Eigen::RowMajor>>
-            input_tensor(tmp, Nz, Ny, Nx); // [Z][Y][X] in file
-        Eigen::TensorMap<Eigen::Tensor<unsigned short, 3, Eigen::RowMajor>>
-            output_tensor(ms, Nx, Ny, Nz); // [X][Y][Z] in memory
-        output_tensor = input_tensor.shuffle(Eigen::array<Eigen::Index, 3>{2, 1, 0});
-        FANS_free(tmp);
-    } else {
-        /* XYZ case: the slab is already in correct order */
-        FANS_free(ms); // dealloc mem
-        ms = tmp;      // steal the buffer; no copy
-    }
-
-    /*--------------------------------------------------------------------
-     * 4. Cleanup HDF5 objects
-     *------------------------------------------------------------------*/
-    H5Sclose(memspace);
-    H5Sclose(filespace);
-    H5Dclose(dset_id);
-    H5Pclose(plist_id);
-    H5Fclose(file_id);
+    ms = FANS_malloc<unsigned short>(size_t(local_n0) * dims[1] * dims[2]);
+    ReadSlab(ms, {}, ms_filename, ms_datasetname);
 
     this->ComputeVolumeFractions();
+}
+
+hid_t h5_open_dataset(const string &file, const string &dset_name, hid_t &file_id)
+{
+    file_id = H5Fopen(file.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    if (file_id < 0)
+        throw std::runtime_error("Failed to open the HDF5 file " + file);
+    hid_t dset_id = H5Dopen2(file_id, dset_name.c_str(), H5P_DEFAULT);
+    if (dset_id < 0) {
+        H5Fclose(file_id);
+        throw std::runtime_error("No dataset " + dset_name + " in " + file);
+    }
+    return dset_id;
+}
+
+bool h5_is_zyx(hid_t dset_id)
+{
+    if (H5Aexists(dset_id, "permute_order") <= 0)
+        return true;
+    // a variable-length string (h5py's default) or a fixed-length one (C, MATLAB, WriteSlab)
+    hid_t  attr_id   = H5Aopen(dset_id, "permute_order", H5P_DEFAULT);
+    hid_t  attr_type = H5Aget_type(attr_id);
+    string permute_order;
+    if (H5Tis_variable_str(attr_type) > 0) {
+        char *str = nullptr;
+        if (H5Aread(attr_id, attr_type, &str) >= 0 && str != nullptr)
+            permute_order = str;
+        H5free_memory(str);
+    } else {
+        permute_order.resize(H5Tget_size(attr_type));
+        if (H5Aread(attr_id, attr_type, permute_order.data()) < 0)
+            permute_order.clear();
+    }
+    H5Tclose(attr_type);
+    H5Aclose(attr_id);
+    return permute_order.empty() || permute_order[0] == 'z' || permute_order[0] == 'Z';
+}
+
+string Reader::MSGroup() const
+{
+    const string path(ms_datasetname);
+    return path.substr(0, path.find_last_of('/') + 1);
+}
+
+std::vector<hsize_t> Reader::DataShape(const string &file, const string &dset_name)
+{
+    hid_t                file_id;
+    hid_t                dset_id = h5_open_dataset(file, dset_name, file_id);
+    hid_t                space   = H5Dget_space(dset_id);
+    std::vector<hsize_t> shape(H5Sget_simple_extent_ndims(space));
+    H5Sget_simple_extent_dims(space, shape.data(), nullptr);
+    H5Sclose(space);
+    H5Dclose(dset_id);
+    H5Fclose(file_id);
+    return shape;
 }
 
 void Reader::FreeMS()

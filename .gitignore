@@ -212,7 +212,15 @@ test/input_files/**/*.json
 !test_FiniteStrainJ2Plasticity.json
 !test_MixedBCs_LargeStrain.json
 
+output/
 # pixi environments
 .pixi
 *.egg-info
 *.conda
+
+# NEML2 artifacts
+build-neml2/
+FANS_neml2
+test/NEML2/models/*/
+test/NEML2/models/*_aoti.i
+test/NEML2/

@@ -31,9 +31,11 @@ class MaterialManager {
     int                           n_phases;
 
   public:
-    vector<Matmodel<howmany, n_str> *> models;           // vector of unique material models
-    Matrix<double, n_str, n_str>       kapparef_mat;     // Reference stiffness for fundamental solution
-    bool                               all_linear{true}; // True if ALL phases use linear models
+    vector<Matmodel<howmany, n_str> *> models;              // vector of unique material models
+    Matrix<double, n_str, n_str>       kapparef_mat;        // Reference stiffness for fundamental solution
+    bool                               all_linear{true};    // True if ALL phases use linear models
+    bool                               all_stiffness{true}; // True if ALL of them have element stiffnesses (LinearModel)
+    bool                               any_batched{false};  // True if any model wants batched assembly
 
     MaterialManager(const Reader &reader)
     {
@@ -88,10 +90,15 @@ class MaterialManager {
             auto *model = create_material_model_from_json(mg, reader);
             models.push_back(model);
 
+            if (model->wants_batch())
+                any_batched = true;
+
             auto *linear_model = dynamic_cast<LinearModel<howmany, n_str> *>(model);
-            bool  is_linear    = (linear_model != nullptr);
+            bool  is_linear    = (linear_model != nullptr) || model->is_linear();
             if (!is_linear)
                 all_linear = false;
+            if (!linear_model)
+                all_stiffness = false;
 
             auto phases = mg["phases"].get<vector<int>>();
             for (size_t i = 0; i < phases.size(); ++i) {
@@ -159,9 +166,11 @@ class MaterialManager {
             for (int i = 0; i < n_str; ++i) {
                 kapparef_mat.row(i) = Eigen::Map<const Eigen::RowVectorXd>(ref_mat[i].data(), n_str);
             }
-            Eigen::LLT<Matrix<double, n_str, n_str>> llt(kapparef_mat);
-            if (llt.info() != Eigen::Success) {
-                throw std::invalid_argument("reference_material must be symmetric positive definite");
+            // Semi-definite is enough: the exact large-strain reference has no stiffness against rigid rotations
+            const Eigen::SelfAdjointEigenSolver<Matrix<double, n_str, n_str>> eig(kapparef_mat);
+            const double                                                      max_eigenvalue = eig.eigenvalues().maxCoeff();
+            if (!kapparef_mat.isApprox(kapparef_mat.transpose()) || max_eigenvalue <= 0 || eig.eigenvalues().minCoeff() < -1e-12 * max_eigenvalue) {
+                throw std::invalid_argument("reference_material must be symmetric positive semi-definite");
             }
 
             Log::logger().info("# Using user-defined reference material for fundamental solution.");
@@ -180,6 +189,14 @@ class MaterialManager {
     {
         for (auto *model : models) {
             model->updateInternalVariables();
+        }
+    }
+
+    void set_time(double t_old, double t)
+    {
+        for (auto *model : models) {
+            model->time_old = t_old;
+            model->time     = t;
         }
     }
 
@@ -219,31 +236,13 @@ class MaterialManager {
         const json   &mat_group,
         const Reader &base_reader)
     {
-        // Create a minimal temporary reader
-        Reader temp_reader;
-
-        // Copy safe members
-        temp_reader.world_rank  = base_reader.world_rank;
-        temp_reader.world_size  = base_reader.world_size;
-        temp_reader.FE_type     = base_reader.FE_type;
-        temp_reader.strain_type = base_reader.strain_type;
-        temp_reader.problemType = base_reader.problemType;
-        temp_reader.method      = base_reader.method;
-        temp_reader.l_e         = base_reader.l_e;
-        temp_reader.dims        = base_reader.dims;
-        std::snprintf(temp_reader.ms_filename, sizeof(temp_reader.ms_filename), "%s", base_reader.ms_filename);
-        std::snprintf(temp_reader.ms_datasetname, sizeof(temp_reader.ms_datasetname), "%s", base_reader.ms_datasetname);
-
-        // Override material properties and n_mat for this specific material group
+        // This group's copy of the reader, with its material properties and number of
+        // phases; the microstructure stays with base_reader, which frees it
+        Reader temp_reader             = base_reader;
+        temp_reader.ms                 = nullptr;
         temp_reader.materialProperties = mat_group["material_properties"];
-
-        // n_mat for this model is the number of phases using it
-        auto phases       = mat_group["phases"].get<vector<int>>();
-        temp_reader.n_mat = phases.size();
-
-        // Override matmodel name for factory function
-        temp_reader.matmodel = mat_group["matmodel"].get<string>();
-
+        temp_reader.n_mat              = mat_group["phases"].size();
+        temp_reader.matmodel           = mat_group["matmodel"].get<string>();
         return createMatmodel<howmany, n_str>(temp_reader);
     }
 };

@@ -10,9 +10,7 @@ class Solver;
 template <int howmany, int n_str>
 class Matmodel {
   public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW // see http://eigen.tuxfamily.org/dox-devel/group__TopicStructHavingEigenMembers.html
-
-        static constexpr int num_str = n_str; // length of strain and stress
+    static constexpr int num_str = n_str; // length of strain and stress
 
     int    verbosity; //!< output verbosity
     int    n_mat;     //!< Number of Materials
@@ -25,7 +23,7 @@ class Matmodel {
     Matmodel(const Reader &reader);
 
     Matrix<double, howmany * 8, howmany * 8> Compute_Reference_ElementStiffness(const Matrix<double, n_str, n_str> &kapparef_mat);
-    Matrix<double, howmany * 8, 1>          &element_residual(Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
+    virtual Matrix<double, howmany * 8, 1>  &element_residual(Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
     void                                     getStrainStress(double *strain, double *stress, Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
     void                                     setGradient(vector<double> _g0);
 
@@ -48,7 +46,24 @@ class Matmodel {
     virtual void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) {}
     virtual void updateInternalVariables() {}
 
+    // Batched models (plugin materials) get all their elements' stresses from
+    // evaluate_batch before each sweep over the elements, which then takes them.
+    virtual bool wants_batch() const
+    {
+        return false;
+    }
+    virtual void evaluate_batch(const vector<ptrdiff_t> &elems, const unsigned short *phase,
+                                const double *ue, double *sig_gp) {}
+
+    // A model without the element stiffnesses of a LinearModel can still say that its
+    // flux is linear in the gradient: then the linear CG applies.
+    virtual bool is_linear() const
+    {
+        return false;
+    }
+
     vector<double>                       macroscale_loading;
+    double                               time_old{0.0}, time{0.0};
     virtual Matrix<double, n_str, n_str> get_reference_stiffness() = 0;
 
     virtual ~Matmodel() = default;

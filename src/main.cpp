@@ -18,10 +18,14 @@ void runSolver(Reader &reader, char input_fn[])
         Log::logger().info("\n╔════════════════════════════════════════════════════════════ Load case {}/{}: {} time steps ════════════════════════════════════════════════════════════╗",
                            load_path_idx + 1, reader.load_cases.size(), reader.load_cases[load_path_idx].n_steps);
 
+        double time = 0.0;
         for (size_t time_step_idx = 0; time_step_idx < reader.load_cases[load_path_idx].n_steps; ++time_step_idx) {
             Log::logger().info("║   ▶ Time step {}/{} (load case {}/{}) ◀ ",
                                time_step_idx + 1, reader.load_cases[load_path_idx].n_steps,
                                load_path_idx + 1, reader.load_cases.size());
+            const double dt = reader.load_cases[load_path_idx].dt[time_step_idx];
+            matmanager->set_time(time, time + dt);
+            time += dt;
             if (reader.load_cases[load_path_idx].mixed) {
                 solver->enableMixedBC(reader.load_cases[load_path_idx].mbc, time_step_idx);
             } else {

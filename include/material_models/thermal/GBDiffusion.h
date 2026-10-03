@@ -4,7 +4,6 @@
 #include "matmodel.h"
 #include <array>
 #include <cstdint>
-#include <Eigen/StdVector> // For Eigen's aligned_allocator
 
 /**
  * @class GBDiffusion
@@ -75,14 +74,10 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
             const int num_GB       = static_cast<int>(boundary_count);
             n_mat                  = num_crystals + num_GB;
 
-            auto sibling = [&](const char *name) {
-                std::string path(reader.ms_datasetname);
-                path.replace(path.find_last_of('/') + 1, std::string::npos, name);
-                return path;
-            };
-            vector<double> grain_rot_matrices(9 * num_crystals), GB_normals(3 * n_mat);
-            file.openDataSet(sibling("rotation_matrices")).read(grain_rot_matrices.data(), H5::PredType::NATIVE_DOUBLE);
-            file.openDataSet(sibling("GB_normals")).read(GB_normals.data(), H5::PredType::NATIVE_DOUBLE);
+            const vector<double> grain_rot_matrices = Reader::ReadData<double>(reader.ms_filename, reader.MSGroup() + "rotation_matrices");
+            const vector<double> GB_normals         = Reader::ReadData<double>(reader.ms_filename, reader.MSGroup() + "GB_normals");
+            if (grain_rot_matrices.size() < 9 * size_t(num_crystals) || GB_normals.size() < 3 * size_t(n_mat))
+                throw std::runtime_error("rotation_matrices or GB_normals has too few entries");
 
             Matrix<double, 6, Dynamic> D_bulk_constants = Matrix<double, 6, Dynamic>::Zero(6, n_mat);
             VectorXd                   D_par = VectorXd::Zero(n_mat), D_perp = VectorXd::Zero(n_mat);
@@ -149,9 +144,9 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
     }
 
   private:
-    std::vector<Matrix3d, Eigen::aligned_allocator<Matrix3d>>                         phase_diffusivities;
-    std::vector<Matrix<double, 8, 8>, Eigen::aligned_allocator<Matrix<double, 8, 8>>> phase_stiffness_storage;
-    Matrix3d                                                                          kappa_average;
+    std::vector<Matrix3d>             phase_diffusivities;
+    std::vector<Matrix<double, 8, 8>> phase_stiffness_storage;
+    Matrix3d                          kappa_average;
 };
 
 #endif // GBDIFFUSION_H
