@@ -286,7 +286,7 @@ FANS requires a JSON input file specifying the problem parameters. Example input
     - `CompressibleNeoHookean` for the compressible Neo-Hookean material model.
     - `FiniteStrainJ2Plasticity` for rate-independent finite-strain J2 plasticity with linear isotropic hardening.
 
-    - `NEML2` for a thermal, small- or large-strain material compiled from a [NEML2](https://github.com/applied-material-modeling/neml2) model with `neml2-compile` (needs `FANS_NEML2`).
+    - `NEML2` for a thermal, small- or large-strain material compiled from a [NEML2](https://github.com/applied-material-modeling/neml2) model with `neml2-compile` (needs `FANS_NEML2`), see [docs/NEML2.md](docs/NEML2.md).
 
   - `material_properties`: Material parameters specific to the chosen model. Properties are defined as arrays, where each element corresponds to one of the phases listed in the `phases` array.
 
