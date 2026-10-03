@@ -23,15 +23,15 @@ void runSolver(Reader &reader, char input_fn[])
             Log::logger().info("║   ▶ Time step {}/{} (load case {}/{}) ◀ ",
                                time_step_idx + 1, reader.load_cases[load_path_idx].n_steps,
                                load_path_idx + 1, reader.load_cases.size());
+            const double dt = reader.load_cases[load_path_idx].dt[time_step_idx];
+            matmanager->set_time(time, time + dt);
+            time += dt;
             if (reader.load_cases[load_path_idx].mixed) {
                 solver->enableMixedBC(reader.load_cases[load_path_idx].mbc, time_step_idx);
             } else {
                 const auto &g0 = reader.load_cases[load_path_idx].g0_path[time_step_idx];
                 matmanager->set_gradient(g0);
             }
-            const double dt = reader.load_cases[load_path_idx].dt[time_step_idx];
-            matmanager->set_time(time, time + dt);
-            time += dt;
             solver->solve();
             solver->postprocess(reader, load_path_idx, time_step_idx);
             if (reader.extrapolate_displacement)
