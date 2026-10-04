@@ -60,6 +60,7 @@ int main(int argc, char *argv[])
         return 10;
     }
 
+    Log::logger().info("# FANS version {}", PROJECT_VERSION);
     fftw_mpi_init();
 
     Reader reader{MPI_COMM_WORLD};

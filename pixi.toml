@@ -14,8 +14,8 @@ python = ">=3.14.7,<3.15"
 pytest = ">=9.1.1,<10"
 pre-commit = ">=4.6.2,<5"
 identify = ">=2.6.20,<3"
-git = ">=2.55.0,<3"
-ipykernel = ">=7.3.0,<8"
+git = ">=2.56.0,<3"
+ipykernel = ">=7.4.0,<8"
 time = ">=1.10,<2"
 MSUtils = ">=0.1.2,<0.2"
 
@@ -29,7 +29,7 @@ cmd  = "cd \"$INIT_CWD\" && python -m MSUtils.general.h52xdmf {{ extra }} {{ fil
 default-environment = "dashboard"
 
 [feature.dev.dependencies]
-cmake = ">=4.4.3,<5"
+cmake = ">=4.4.4,<5"
 clangxx = ">=23.1.1,<24"
 openmpi-mpicxx = ">=5.0.11,<6"
 hdf5 = { version = ">=2.2.0,<3", build = "mpi_openmpi_*" }
@@ -43,7 +43,7 @@ time = ">=1.10,<2"
 python = ">=3.14.7,<3.15"
 pip = ">=26.2.1,<27"
 nanobind = ">=3.1.0,<4"
-scikit-build-core = ">=1.1.0,<2"
+scikit-build-core = ">=1.1.1,<2"
 numpy = ">=2.5.3,<3"
 mpi4py = ">=4.1.2,<5"
 
@@ -55,13 +55,14 @@ build-fans = { cmd = "cmake -S . -B build -DFANS_ENABLE_NATIVE=ON && cmake --bui
 platforms = ["linux-64-cuda", "osx-arm64"]
 
 # torch 2.13+ breaks NEML2 3.1
+# pixi upgrade --exclude pytorch --exclude pytorch-gpu
 [feature.neml2.dependencies]
 pytorch = ">=2.10,<2.13"
 
 [feature.neml2.target.linux-64.dependencies]
 pytorch-gpu = ">=2.10,<2.13"
-cuda-version = "12.9.*"
-cuda-nvcc = "*"
+cuda-version = ">=12.9,<13"
+cuda-nvcc = ">=12.9.86,<13"
 
 [feature.neml2.pypi-dependencies]
 neml2 = ">=3.1.0, <4"
