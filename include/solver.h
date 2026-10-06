@@ -698,8 +698,7 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
                    << std::setprecision(12) << homogenized_tangent << '\n';
             Log::logger().info("{}", output.str());
         }
-        const Matrix<double, Dynamic, Dynamic, RowMajor> rows = homogenized_tangent; // as the file stores it
-        reader.writeData("homogenized_tangent", load_idx, time_idx, rows.data(), dims, 2);
+        reader.writeData("homogenized_tangent", load_idx, time_idx, homogenized_tangent.data(), dims, 2);
     }
 }
 

@@ -36,10 +36,11 @@ class Matmodel {
         for (int i = 0; i < n_gp; ++i)
             get_tangent(n_str * i, mat_index, element_idx, Tangent(tangent + i * n_str * n_str));
     }
-    // A nonlinear model that has a get_tangent says so here
+    // A nonlinear model with a tangent: a batched one gives it in evaluate_batch,
+    // any other writes a get_tangent and says so here
     virtual bool has_tangent() const
     {
-        return false;
+        return wants_batch();
     }
 
     // Accessors for internal Gauss point data (populated after getStrainStress call)

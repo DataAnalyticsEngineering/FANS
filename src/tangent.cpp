@@ -5,11 +5,11 @@
 // Its homogenized stiffness is the consistent homogenized tangent, and FANS
 // finds it as for any linear material: a solve per unit macroscopic gradient,
 // whose mean flux is a column.
-// Otherwise the materials themselves are perturbed, by a finite difference.
+// Otherwise the materials themselves are perturbed, by a finite difference. That
+// is not for materials with internal variables: every perturbed solve advances them.
 
 #include "solver.h"
 #include "LargeStrainMechModel.h"
-#include "material_models/small_strain/J2Plasticity.h"
 
 namespace {
 
@@ -82,10 +82,9 @@ MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
     // Does every material have a tangent? Linear models with element stiffnesses are
     // left as they are: perturbing them is exact, and faster.
     bool consistent = !matmanager->all_stiffness;
-    for (int phase = 0; phase < reader.n_mat; ++phase) {
-        const MaterialInfo<howmany, n_str> &info = matmanager->get_info(phase);
-        consistent                               = consistent && (info.is_linear || info.model->has_tangent());
-    }
+    for (int phase = 0; phase < reader.n_mat; ++phase)
+        if (!matmanager->get_info(phase).is_linear && !matmanager->get_info(phase).model->has_tangent())
+            consistent = false;
 
     // If so, the frozen tangents take the place of the materials
     std::unique_ptr<MaterialManager<howmany, n_str>> linearised;
@@ -94,12 +93,10 @@ MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
         collect_tangents(*this, frozen->C);
         linearised = std::make_unique<MaterialManager<howmany, n_str>>(frozen, reader.n_mat); // owns `frozen`
         matmanager = linearised.get();
-    } else {
-        for (auto *model : matmanager->models) // perturbing would change its history
-            if (dynamic_cast<J2Plasticity *>(model) != nullptr)
-                throw std::runtime_error("Homogenized tangent computation not implemented for J2Plasticity models.");
+        Log::logger().info("# Homogenized tangent from the materials' tangents");
+    } else if (!matmanager->all_linear) {
+        Log::logger().warn("# Homogenized tangent by perturbation: For materials with internal variables, this is WRONG!");
     }
-    Log::logger().info("# Homogenized tangent {}: {} solves", consistent ? "from the materials' tangents" : "by perturbation", n_str);
 
     const bool linear = matmanager->all_linear;
     VectorXd   stress;
@@ -110,10 +107,10 @@ MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
     homogenized_tangent.resize(n_str, n_str);
     for (int j = 0; j < n_str; ++j) {
         vector<double> gradient(n_str, 0.0);
-        if (linear) { // a unit gradient, from rest
+        if (linear) {
             gradient[j] = 1.0;
             std::fill_n(v_u, u.size(), 0.0);
-        } else { // a small step from the gradient of the step
+        } else {
             gradient = g0;
             gradient[j] += pert_param;
         }
@@ -125,12 +122,10 @@ MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
         else
             homogenized_tangent.col(j) = (get_homogenized_stress() - stress) / pert_param;
     }
-    if (!consistent)
-        homogenized_tangent = 0.5 * (homogenized_tangent + homogenized_tangent.transpose()).eval();
+    homogenized_tangent = 0.5 * (homogenized_tangent + homogenized_tangent.transpose()).eval();
 
     // Back to the step
     matmanager = materials;
-    matmanager->set_gradient(g0);
     std::copy(u.begin(), u.end(), v_u);
     return homogenized_tangent;
 }

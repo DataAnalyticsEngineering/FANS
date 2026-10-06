@@ -118,13 +118,14 @@ FANSPluginModel *fans_plugin_load(const char *config, char *msg, size_t msglen)
             throw std::runtime_error("the artifact has no input '" + gradient + "' (the \"gradient\")");
         if (fi < 0)
             throw std::runtime_error("the artifact has no output '" + flux + "' (the \"flux\")");
-        h->gradient                        = make_var(gradient, in_shape[gi]);
-        h->flux                            = make_var(flux, out_shape[fi]);
+        h->gradient = make_var(gradient, in_shape[gi]);
+        h->flux     = make_var(flux, out_shape[fi]);
+        if (h->flux.size != h->gradient.size)
+            throw std::runtime_error("the gradient '" + gradient + "' and the flux '" + flux + "' differ in size");
+
         std::vector<int64_t> tangent_shape = out_shape[fi];
         tangent_shape.insert(tangent_shape.end(), in_shape[gi].begin(), in_shape[gi].end());
         h->tangent = make_var("tangent", tangent_shape);
-        if (h->flux.size != h->gradient.size)
-            throw std::runtime_error("the gradient '" + gradient + "' and the flux '" + flux + "' differ in size");
 
         for (size_t i = 0; i < in.size(); ++i) {
             const std::string &name = in[i];

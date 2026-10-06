@@ -201,11 +201,6 @@ class PluginModel : public Base {
         return true;
     }
 
-    bool has_tangent() const override
-    {
-        return true;
-    }
-
     // "linear": true in the material properties; FANS trusts it
     bool is_linear() const override
     {
