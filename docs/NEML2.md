@@ -27,12 +27,10 @@ This gives `test/FANS_neml2`. Without pixi, configure with `-DFANS_NEML2=ON` in 
 ## Compile a model
 
 ```bash
-pixi run -e dev-neml2 neml2-compile model.i "cpu cuda"
+pixi run -e dev-neml2 neml2-compile model.i --model model --device cpu cuda --dtype float64 --output-dir compiled_models -d state/S:forces/E
 ```
 
-This compiles the model block named like the file (`[model]`) for both devices into `compiled_models/model`, next to `model.i`. A third argument lists Python files the model needs, e.g. `"a.py b.py"`.
-
-For `homogenized_tangent`, compile the model's flux-gradient derivative, e.g. `neml2-compile ... -d state/S:forces/E` for small strain. The current sensitivity solve uses PCG and therefore requires a symmetric, CG-compatible algorithmic tangent.
+This compiles the block `[model]` of `model.i` for both devices into `compiled_models/model`. `--load a.py` (repeatable) imports a Python file the model needs. `-d flux:gradient` also compiles the model's tangent.
 
 ## Input file
 

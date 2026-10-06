@@ -82,31 +82,6 @@ struct FANSPluginModel {
     {
         out.copy_(reorder(v.cpu(), var).reshape(out.sizes()));
     }
-
-    at::Tensor view(const double *data, int64_t n, int64_t size) const
-    {
-        return at::from_blob(const_cast<double *>(data), {n, size}, kF64);
-    }
-
-    std::map<std::string, at::Tensor> inputs(int64_t n, double t_old, double t, const double *gradient,
-                                             const int *voxel, const int *phase, const double *history_old,
-                                             const double *history_current) const
-    {
-        std::map<std::string, at::Tensor> in;
-        in[this->gradient.name] = to_neml2(view(gradient, n, this->gradient.size), this->gradient);
-        in["t"]                 = at::full({n}, t, kF64.device(device));
-        in["t~1"]               = at::full({n}, t_old, kF64.device(device));
-        for (const Var &f : fields) {
-            const auto rows = at::from_blob(const_cast<int *>(f.per_phase ? phase : voxel), {n}, at::kInt).to(device, at::kLong);
-            in[f.name]      = f.table.index_select(0, rows);
-        }
-        const auto old = view(history_old, n, n_history), current = view(history_current, n, n_history);
-        for (const Var &h : history) {
-            in[h.name + "~1"] = to_neml2(old.narrow(1, h.offset, h.size), h);
-            in[h.name]        = to_neml2(current.narrow(1, h.offset, h.size), h);
-        }
-        return in;
-    }
 };
 
 extern "C" {
@@ -201,38 +176,42 @@ int fans_plugin_set_table(FANSPluginModel *m, size_t field, int per_phase, size_
 
 int fans_plugin_evaluate(FANSPluginModel *m, size_t n_points, double t_old, double t, const double *gradient,
                          const int *voxel, const int *phase, const double *history_old, double *flux,
-                         double *history_new, char *err, size_t errlen)
+                         double *history_new, double *tangent, char *err, size_t errlen)
 {
     try {
-        const int64_t n           = int64_t(n_points);
-        const auto    new_history = m->view(history_new, n, m->n_history);
-        const auto    outputs     = m->model->forward(m->inputs(n, t_old, t, gradient, voxel, phase,
-                                                                history_old, history_new));
+        // A FANS array as an [n][size] tensor, without copying
+        const int64_t n    = int64_t(n_points);
+        auto          view = [n](const double *p, int64_t size) { return at::from_blob(const_cast<double *>(p), {n, size}, kF64); };
 
-        m->to_fans(outputs.at(m->flux.name), m->flux, m->view(flux, n, m->flux.size));
+        std::map<std::string, at::Tensor> inputs;
+        inputs[m->gradient.name] = m->to_neml2(view(gradient, m->gradient.size), m->gradient);
+        inputs["t"]              = at::full({n}, t, kF64.device(m->device));
+        inputs["t~1"]            = at::full({n}, t_old, kF64.device(m->device));
+        for (const Var &f : m->fields) { // each point's row of the table
+            const auto rows = at::from_blob(const_cast<int *>(f.per_phase ? phase : voxel), {n}, at::kInt).to(m->device, at::kLong);
+            inputs[f.name]  = f.table.index_select(0, rows);
+        }
+
+        const at::Tensor old_history = view(history_old, m->n_history), new_history = view(history_new, m->n_history);
+        for (const Var &h : m->history) {
+            inputs[h.name + "~1"] = m->to_neml2(old_history.narrow(1, h.offset, h.size), h);
+            inputs[h.name]        = m->to_neml2(new_history.narrow(1, h.offset, h.size), h); // initial guess
+        }
+
+        std::map<std::string, at::Tensor> outputs;
+        if (!tangent) {
+            outputs = m->model->forward(inputs);
+        } else { // the same evaluation with its Jacobian, whose flux-gradient block has the flux's shape, then the gradient's
+            auto [values, jacobian] = m->model->jacobian(inputs);
+            outputs                 = std::move(values);
+            Var d                   = m->flux;
+            d.shape.insert(d.shape.end(), m->gradient.shape.begin() + 1, m->gradient.shape.end());
+            m->to_fans(jacobian.at(m->flux.name).at(m->gradient.name), d, view(tangent, m->flux.size * m->gradient.size));
+        }
+
+        m->to_fans(outputs.at(m->flux.name), m->flux, view(flux, m->flux.size));
         for (const Var &h : m->history)
             m->to_fans(outputs.at(h.name), h, new_history.narrow(1, h.offset, h.size));
-        return 0;
-    } catch (const std::exception &e) {
-        std::snprintf(err, errlen, "%s", e.what());
-        return 1;
-    }
-}
-
-int fans_plugin_tangent(FANSPluginModel *m, size_t n_points, double t_old, double t,
-                        const double *gradient, const int *voxel, const int *phase,
-                        const double *history_old, const double *history_current,
-                        double *tangent, char *err, size_t errlen)
-{
-    try {
-        const int64_t n           = int64_t(n_points);
-        Var           tangent_var = m->flux;
-        tangent_var.shape.insert(tangent_var.shape.end(), m->gradient.shape.begin() + 1, m->gradient.shape.end());
-        tangent_var.size *= m->gradient.size;
-        const auto result = m->model->jacobian(m->inputs(n, t_old, t, gradient, voxel, phase,
-                                                         history_old, history_current));
-        m->to_fans(result.second.at(m->flux.name).at(m->gradient.name), tangent_var,
-                   m->view(tangent, n, tangent_var.size));
         return 0;
     } catch (const std::exception &e) {
         std::snprintf(err, errlen, "%s", e.what());

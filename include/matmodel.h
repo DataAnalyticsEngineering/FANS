@@ -54,32 +54,14 @@ class Matmodel {
     }
     virtual void evaluate_batch(const vector<ptrdiff_t> &elems, const unsigned short *phase,
                                 const double *ue, double *sig_gp) {}
-    virtual bool has_consistent_tangent() const { return false; }
-    virtual void compute_tangent_field(ptrdiff_t, const unsigned short *, vector<double> &)
+    // The tangent d flux / d gradient of the converged step at the Gauss points of `elems`,
+    // [element][n_gp][n_str][n_str]; false if the model has none.
+    virtual bool evaluate_tangent(const vector<ptrdiff_t> &elems, const unsigned short *phase,
+                                  const double *ue, double *tangent_gp)
     {
-        throw std::logic_error("Material tangent not implemented.");
+        return false;
     }
-    Matrix<double, howmany * 8, 1> &element_tangent_residual(
-        const Matrix<double, howmany * 8, 1> &ue, const Matrix<double, n_str, 1> &macro, const double *tangent)
-    {
-        res_e.setZero();
-        for (int gp = 0; gp < n_gp; ++gp) {
-            const Matrix<double, n_str, 1> deps = B_int[gp] * ue + macro;
-            const Matrix<double, n_str, 1> dsig = Map<const Matrix<double, n_str, n_str, RowMajor>>(tangent + gp * n_str * n_str) * deps;
-            res_e.noalias() += B_int[gp].transpose() * dsig * v_e / n_gp;
-        }
-        return res_e;
-    }
-    Matrix<double, n_str, 1> element_tangent_stress(
-        const Matrix<double, howmany * 8, 1> &ue, const Matrix<double, n_str, 1> &macro, const double *tangent) const
-    {
-        Matrix<double, n_str, 1> stress = Matrix<double, n_str, 1>::Zero();
-        for (int gp = 0; gp < n_gp; ++gp) {
-            const Matrix<double, n_str, 1> deps = B_int[gp] * ue + macro;
-            stress.noalias() += Map<const Matrix<double, n_str, n_str, RowMajor>>(tangent + gp * n_str * n_str) * deps / n_gp;
-        }
-        return stress;
-    }
+
     // A model without the element stiffnesses of a LinearModel can still say that its
     // flux is linear in the gradient: then the linear CG applies.
     virtual bool is_linear() const

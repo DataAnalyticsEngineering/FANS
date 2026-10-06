@@ -7,9 +7,11 @@
 template <int howmany, int n_str>
 class SolverCG : public Solver<howmany, n_str> {
   public:
+    using Solver<howmany, n_str>::n_x;
     using Solver<howmany, n_str>::n_y;
     using Solver<howmany, n_str>::n_z;
     using Solver<howmany, n_str>::local_n0;
+    using Solver<howmany, n_str>::local_n1;
     using Solver<howmany, n_str>::v_u_real;
     using Solver<howmany, n_str>::v_r_real;
 
@@ -27,6 +29,7 @@ class SolverCG : public Solver<howmany, n_str> {
 
     void        internalSolve() override;
     std::string LineSearchSecant();
+    double      dotProduct(RealArray &a, RealArray &b);
 
   protected:
     using Solver<howmany, n_str>::iter;
@@ -44,7 +47,18 @@ SolverCG<howmany, n_str>::SolverCG(Reader &reader, MaterialManager<howmany, n_st
 
       d(fftw_alloc_real((local_n0 + 1) * n_y * n_z * howmany)),
       d_real(d, n_z * howmany, local_n0 * n_y, OuterStride<>(n_z * howmany))
-{}
+{
+    this->CreateFFTWPlans(this->v_r, (fftw_complex *) s, s);
+}
+
+template <int howmany, int n_str>
+double SolverCG<howmany, n_str>::dotProduct(RealArray &a, RealArray &b)
+{
+    double local_value = (a * b).sum();
+    double result;
+    MPI_Allreduce(&local_value, &result, 1, MPI_DOUBLE, MPI_SUM, this->communicator);
+    return result;
+}
 
 template <int howmany, int n_str>
 void SolverCG<howmany, n_str>::internalSolve()
@@ -70,13 +84,13 @@ void SolverCG<howmany, n_str>::internalSolve()
 
     while ((iter < this->n_it) && (err_rel > this->TOL)) {
 
-        deltamid = this->dotProduct(v_r_real, s_real);
+        deltamid = dotProduct(v_r_real, s_real);
 
-        this->apply_preconditioner(this->v_r, s);
+        this->convolution();
 
         s_real *= -1;
         delta0 = delta;
-        delta  = this->dotProduct(v_r_real, s_real);
+        delta  = dotProduct(v_r_real, s_real);
 
         std::string details;
         if (islinear && !this->isMixedBCActive()) {
@@ -97,7 +111,7 @@ void SolverCG<howmany, n_str>::internalSolve()
                 rnew_real -= v_r_real;
             }
 
-            double alpha = delta / this->dotProduct(d_real, rnew_real);
+            double alpha = delta / dotProduct(d_real, rnew_real);
             v_r_real -= alpha * rnew_real;
             v_u_real -= alpha * d_real;
         } else {
@@ -123,7 +137,7 @@ std::string SolverCG<howmany, n_str>::LineSearchSecant()
     double       alpha_prev = 0.0;
     double       alpha_curr = alpha_warm;
 
-    double rpd = this->dotProduct(v_r_real, d_real);
+    double rpd = dotProduct(v_r_real, d_real);
     if (rpd >= 0.0) {
         ls_converged = false;
         alpha_warm   = 0.1;
@@ -132,7 +146,7 @@ std::string SolverCG<howmany, n_str>::LineSearchSecant()
     v_u_real += d_real * alpha_curr;
     this->updateMixedBC();
     this->template compute_residual<0>(rnew_real, v_u_real);
-    double       r1pd  = this->dotProduct(rnew_real, d_real);
+    double       r1pd  = dotProduct(rnew_real, d_real);
     const double r1pd0 = this->isMixedBCActive() ? r1pd : rpd;
 
     double denom, alpha_next;
@@ -153,7 +167,7 @@ std::string SolverCG<howmany, n_str>::LineSearchSecant()
         _iter++;
 
         this->template compute_residual<0>(rnew_real, v_u_real);
-        r1pd = this->dotProduct(rnew_real, d_real);
+        r1pd = dotProduct(rnew_real, d_real);
     }
     ls_converged = (fabs(r1pd) <= tol * fabs(r1pd0));
     if (ls_converged || fabs(r1pd) < fabs(r1pd0)) {

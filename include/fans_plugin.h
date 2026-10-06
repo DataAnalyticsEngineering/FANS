@@ -53,16 +53,11 @@ FANSPluginModel *fans_plugin_load(const char *config, char *msg, size_t msglen);
 int fans_plugin_set_table(FANSPluginModel *model, size_t field, int per_phase, size_t n_rows, const double *table,
                           char *err, size_t errlen);
 
-/* The step runs from time t_old to t. */
+/* The step runs from time t_old to t. Unless NULL, `tangent` gets the consistent
+   tangent d flux / d gradient, [n_points][n_str][n_str]. */
 int fans_plugin_evaluate(FANSPluginModel *model, size_t n_points, double t_old, double t, const double *gradient,
                          const int *voxel, const int *phase, const double *history_old, double *flux,
-                         double *history_new, char *err, size_t errlen);
-
-/* Consistent flux-gradient tangent [n_points][n_str][n_str]. */
-int fans_plugin_tangent(FANSPluginModel *model, size_t n_points, double t_old, double t,
-                        const double *gradient, const int *voxel, const int *phase,
-                        const double *history_old, const double *history_current,
-                        double *tangent, char *err, size_t errlen);
+                         double *history_new, double *tangent, char *err, size_t errlen);
 
 void fans_plugin_free(FANSPluginModel *model);
 

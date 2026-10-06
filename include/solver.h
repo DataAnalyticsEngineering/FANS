@@ -40,6 +40,7 @@ class Solver : private MixedBCController<howmany> {
 
     RealArray      v_r_real; // can't do the "classname()" intialization here, and Map doesn't have a default constructor
     RealArray      v_u_real;
+    Map<VectorXcd> rhat;
 
     ArrayXd                          err_all; //!< Absolute error history
     Matrix<double, howmany, Dynamic> fundamentalSolution;
@@ -62,9 +63,9 @@ class Solver : private MixedBCController<howmany> {
 
     void postprocess(Reader &reader, int load_idx, int time_idx); //!< Computes Strain and stress
 
-    void   apply_preconditioner(double *input, double *output);
-    double dotProduct(RealArray &a, RealArray &b);
+    void   convolution();
     double compute_error(RealArray &r, const std::string &details = {});
+    void   CreateFFTWPlans(double *in, fftw_complex *transformed, double *out);
 
     VectorXd homogenized_strain;
     VectorXd homogenized_stress;
@@ -73,6 +74,7 @@ class Solver : private MixedBCController<howmany> {
 
     MatrixXd homogenized_tangent;
     MatrixXd get_homogenized_tangent(double pert_param);
+    bool     consistent_homogenized_tangent(); //!< in src/tangent.cpp
 
     void enableMixedBC(const MixedBC &mbc, size_t step)
     {
@@ -100,18 +102,13 @@ class Solver : private MixedBCController<howmany> {
                (svd.singularValues().array() > tolerance).select(svd.singularValues().array().inverse(), 0).matrix().asDiagonal() *
                svd.matrixU().adjoint();
     }
-    double   *fft_workspace;
-    fftw_plan planfft{nullptr}, planifft{nullptr};
-    void createFFTWPlans();
     void computeFundamentalSolution();
 
   protected:
+    fftw_plan planfft, planifft;
     clock_t   fft_time, buftime;
     size_t    iter;
 };
-
-template <int howmany, int n_str>
-MatrixXd compute_consistent_homogenized_tangent(Solver<howmany, n_str> &solver);
 
 template <int howmany, int n_str>
 Solver<howmany, n_str>::Solver(Reader &reader, MaterialManager<howmany, n_str> *matmgr)
@@ -139,8 +136,8 @@ Solver<howmany, n_str>::Solver(Reader &reader, MaterialManager<howmany, n_str> *
       v_u_real(v_u, n_z * howmany, local_n0 * n_y, OuterStride<>(n_z * howmany)),
       v_u_prev(fftw_alloc_real(local_n0 * n_y * n_z * howmany)),
 
-      buffer_padding(fftw_alloc_real(n_y * (n_z + 2) * howmany)),
-      fft_workspace(fftw_alloc_real(reader.alloc_local * 2))
+      rhat((std::complex<double> *) v_r, local_n1 * n_x * (n_z / 2 + 1) * howmany), // actual initialization is below
+      buffer_padding(fftw_alloc_real(n_y * (n_z + 2) * howmany))
 {
     v_u_real.setZero();
     for (ptrdiff_t i = local_n0 * n_y * n_z * howmany; i < (local_n0 + 1) * n_y * n_z * howmany; i++) {
@@ -151,7 +148,6 @@ Solver<howmany, n_str>::Solver(Reader &reader, MaterialManager<howmany, n_str> *
     matmanager->initialize_internal_variables(local_n0 * n_y * n_z, matmanager->models[0]->n_gp);
 
     computeFundamentalSolution();
-    createFFTWPlans();
 }
 
 template <int howmany, int n_str>
@@ -213,7 +209,7 @@ void Solver<howmany, n_str>::computeFundamentalSolution()
 }
 
 template <int howmany, int n_str>
-void Solver<howmany, n_str>::createFFTWPlans()
+void Solver<howmany, n_str>::CreateFFTWPlans(double *in, fftw_complex *transformed, double *out)
 {
     int       rank   = 3;
     ptrdiff_t iblock = FFTW_MPI_DEFAULT_BLOCK;
@@ -227,8 +223,11 @@ void Solver<howmany, n_str>::createFFTWPlans()
     // But, according to https://fftw.org/doc/MPI-Plan-Creation.html the BLOCK sizes must be the same:
     // "These must be the same block sizes as were passed to the corresponding ‘local_size’ function"
     const ptrdiff_t n[3] = {n_x, n_y, n_z};
-    planfft  = fftw_mpi_plan_many_dft_r2c(rank, n, howmany, iblock, oblock, v_r, reinterpret_cast<fftw_complex *>(fft_workspace), communicator, FFTW_MEASURE | FFTW_MPI_TRANSPOSED_OUT);
-    planifft = fftw_mpi_plan_many_dft_c2r(rank, n, howmany, iblock, oblock, reinterpret_cast<fftw_complex *>(fft_workspace), v_r, communicator, FFTW_MEASURE | FFTW_MPI_TRANSPOSED_IN);
+    planfft              = fftw_mpi_plan_many_dft_r2c(rank, n, howmany, iblock, oblock, in, transformed, communicator, FFTW_MEASURE | FFTW_MPI_TRANSPOSED_OUT);
+    planifft             = fftw_mpi_plan_many_dft_c2r(rank, n, howmany, iblock, oblock, transformed, out, communicator, FFTW_MEASURE | FFTW_MPI_TRANSPOSED_IN);
+
+    // see https://eigen.tuxfamily.org/dox/group__TutorialMapClass.html#title3
+    new (&rhat) Map<VectorXcd>((std::complex<double> *) transformed, local_n1 * n_x * (n_z / 2 + 1) * howmany);
 }
 
 // TODO: possibly circumvent the padding problem by accessing r as a matrix?
@@ -392,40 +391,30 @@ void Solver<howmany, n_str>::iterateCubes(F f)
 }
 
 template <int howmany, int n_str>
-void Solver<howmany, n_str>::apply_preconditioner(double *input, double *output)
+void Solver<howmany, n_str>::convolution()
 {
 
     // it is important that at least one of the dimensions n_x and n_z is divisible by two (or local_n1, but that can't be guaranteed from the outside)
     // discussion of real times complex: https://forum.kde.org/viewtopic.php?f=74&t=85678
 
     clock_t dtime = clock();
-    fftw_mpi_execute_dft_r2c(planfft, input, reinterpret_cast<fftw_complex *>(fft_workspace));
+    fftw_execute(planfft);
     fft_time += clock() - dtime;
     buftime = clock() - dtime;
 
-    Map<VectorXcd>                            spectrum(reinterpret_cast<complex<double> *>(fft_workspace), local_n1 * n_x * (n_z / 2 + 1) * howmany);
     Matrix<complex<double>, howmany, howmany> tmp;
     for (ptrdiff_t i = 0; i < (local_n1 * n_x * (n_z / 2 + 1)) / 2; i++) {
 
         tmp                                          = fundamentalSolution.template middleCols<howmany>(i * (howmany + 1)).template cast<complex<double>>();
-        spectrum.segment<howmany>(2 * i * howmany)  = tmp.template selfadjointView<Lower>() * spectrum.segment<howmany>(2 * i * howmany);
+        rhat.segment<howmany>(2 * i * howmany)       = tmp.template selfadjointView<Lower>() * rhat.segment<howmany>(2 * i * howmany);
         tmp                                          = fundamentalSolution.template middleCols<howmany>(i * (howmany + 1) + 1).template cast<complex<double>>();
-        spectrum.segment<howmany>((2 * i + 1) * howmany) = tmp.template selfadjointView<Upper>() * spectrum.segment<howmany>((2 * i + 1) * howmany);
+        rhat.segment<howmany>((2 * i + 1) * howmany) = tmp.template selfadjointView<Upper>() * rhat.segment<howmany>((2 * i + 1) * howmany);
     }
 
     dtime = clock();
-    fftw_mpi_execute_dft_c2r(planifft, reinterpret_cast<fftw_complex *>(fft_workspace), output);
+    fftw_execute(planifft);
     fft_time += clock() - dtime;
     buftime += clock() - dtime;
-}
-
-template <int howmany, int n_str>
-double Solver<howmany, n_str>::dotProduct(RealArray &a, RealArray &b)
-{
-    double local_value = (a * b).sum();
-    double result;
-    MPI_Allreduce(&local_value, &result, 1, MPI_DOUBLE, MPI_SUM, communicator);
-    return result;
 }
 
 template <int howmany, int n_str>
@@ -712,8 +701,8 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
                    << std::setprecision(12) << homogenized_tangent << '\n';
             Log::logger().info("{}", output.str());
         }
-        const Matrix<double, Dynamic, Dynamic, RowMajor> tangent_output = homogenized_tangent;
-        reader.writeData("homogenized_tangent", load_idx, time_idx, tangent_output.data(), dims, 2);
+        const Matrix<double, Dynamic, Dynamic, RowMajor> rows = homogenized_tangent; // as the file stores it
+        reader.writeData("homogenized_tangent", load_idx, time_idx, rows.data(), dims, 2);
     }
 }
 
@@ -754,8 +743,8 @@ VectorXd Solver<howmany, n_str>::get_homogenized_stress()
 template <int howmany, int n_str>
 MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
 {
-    if (matmanager->models.size() == 1 && matmanager->models[0]->has_consistent_tangent())
-        return compute_consistent_homogenized_tangent(*this);
+    if (consistent_homogenized_tangent()) // from the materials' own tangents, if they all have one
+        return homogenized_tangent;
 
     homogenized_tangent               = MatrixXd::Zero(n_str, n_str);
     VectorXd       unperturbed_stress = get_homogenized_stress();
@@ -810,10 +799,6 @@ Solver<howmany, n_str>::~Solver()
     if (buffer_padding) {
         fftw_free(buffer_padding);
         buffer_padding = nullptr;
-    }
-    if (fft_workspace) {
-        fftw_free(fft_workspace);
-        fft_workspace = nullptr;
     }
     if (planfft) {
         fftw_destroy_plan(planfft);
