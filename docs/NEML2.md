@@ -32,6 +32,8 @@ pixi run -e dev-neml2 neml2-compile model.i "cpu cuda"
 
 This compiles the model block named like the file (`[model]`) for both devices into `compiled_models/model`, next to `model.i`. A third argument lists Python files the model needs, e.g. `"a.py b.py"`.
 
+For `homogenized_tangent`, compile the model's flux-gradient derivative, e.g. `neml2-compile ... -d state/S:forces/E` for small strain. The current sensitivity solve uses PCG and therefore requires a symmetric, CG-compatible algorithmic tangent.
+
 ## Input file
 
 ```json

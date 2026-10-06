@@ -25,9 +25,7 @@ class SolverFP : public Solver<howmany, n_str> {
 template <int howmany, int n_str>
 SolverFP<howmany, n_str>::SolverFP(Reader &reader, MaterialManager<howmany, n_str> *matmanager)
     : Solver<howmany, n_str>(reader, matmanager)
-{
-    this->CreateFFTWPlans(this->v_r, (fftw_complex *) this->v_r, this->v_r);
-}
+{}
 
 template <int howmany, int n_str>
 void SolverFP<howmany, n_str>::internalSolve()
@@ -41,7 +39,7 @@ void SolverFP<howmany, n_str>::internalSolve()
 
     while ((iter < this->n_it) && (err_rel > this->TOL)) {
 
-        this->convolution();
+        this->apply_preconditioner(this->v_r, this->v_r);
         v_u_real -= v_r_real;
         this->updateMixedBC();
         this->template compute_residual<2>(v_r_real, v_u_real);

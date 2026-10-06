@@ -58,6 +58,12 @@ int fans_plugin_evaluate(FANSPluginModel *model, size_t n_points, double t_old, 
                          const int *voxel, const int *phase, const double *history_old, double *flux,
                          double *history_new, char *err, size_t errlen);
 
+/* Consistent flux-gradient tangent [n_points][n_str][n_str]. */
+int fans_plugin_tangent(FANSPluginModel *model, size_t n_points, double t_old, double t,
+                        const double *gradient, const int *voxel, const int *phase,
+                        const double *history_old, const double *history_current,
+                        double *tangent, char *err, size_t errlen);
+
 void fans_plugin_free(FANSPluginModel *model);
 
 #ifdef __cplusplus
