@@ -58,6 +58,7 @@ struct FANSPluginModel {
     std::unique_ptr<neml2::aoti::Model> model;
     at::Device                          device{at::kCPU};
     Var                                 gradient, flux;
+    Var                                 tangent; // d flux / d gradient: the flux's shape, then the gradient's
     std::vector<Var>                    history, fields;
     int64_t                             n_history{0};                                     // history doubles per point
     at::Tensor                          perm = at::tensor({0, 1, 2, 5, 4, 3}, at::kLong); // FANS <-> NEML2 Mandel order
@@ -117,8 +118,11 @@ FANSPluginModel *fans_plugin_load(const char *config, char *msg, size_t msglen)
             throw std::runtime_error("the artifact has no input '" + gradient + "' (the \"gradient\")");
         if (fi < 0)
             throw std::runtime_error("the artifact has no output '" + flux + "' (the \"flux\")");
-        h->gradient = make_var(gradient, in_shape[gi]);
-        h->flux     = make_var(flux, out_shape[fi]);
+        h->gradient                        = make_var(gradient, in_shape[gi]);
+        h->flux                            = make_var(flux, out_shape[fi]);
+        std::vector<int64_t> tangent_shape = out_shape[fi];
+        tangent_shape.insert(tangent_shape.end(), in_shape[gi].begin(), in_shape[gi].end());
+        h->tangent = make_var("tangent", tangent_shape);
         if (h->flux.size != h->gradient.size)
             throw std::runtime_error("the gradient '" + gradient + "' and the flux '" + flux + "' differ in size");
 
@@ -199,14 +203,12 @@ int fans_plugin_evaluate(FANSPluginModel *m, size_t n_points, double t_old, doub
         }
 
         std::map<std::string, at::Tensor> outputs;
-        if (!tangent) {
+        if (tangent) { // the same evaluation, with its Jacobian
+            neml2::aoti::VariablePairJacobian jacobian;
+            std::tie(outputs, jacobian) = m->model->jacobian(inputs);
+            m->to_fans(jacobian.at(m->flux.name).at(m->gradient.name), m->tangent, view(tangent, m->tangent.size));
+        } else {
             outputs = m->model->forward(inputs);
-        } else { // the same evaluation with its Jacobian, whose flux-gradient block has the flux's shape, then the gradient's
-            auto [values, jacobian] = m->model->jacobian(inputs);
-            outputs                 = std::move(values);
-            Var d                   = m->flux;
-            d.shape.insert(d.shape.end(), m->gradient.shape.begin() + 1, m->gradient.shape.end());
-            m->to_fans(jacobian.at(m->flux.name).at(m->gradient.name), d, view(tangent, m->flux.size * m->gradient.size));
         }
 
         m->to_fans(outputs.at(m->flux.name), m->flux, view(flux, m->flux.size));

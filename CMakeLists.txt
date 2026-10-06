@@ -156,7 +156,8 @@ target_include_directories(FANS_main PRIVATE "${PROJECT_BINARY_DIR}/include")
 # SOURCES
 # ##############################################################################
 
-target_sources(FANS_FANS PRIVATE src/reader.cpp src/plugin_material.cpp src/tangent.cpp)
+target_sources(FANS_FANS PRIVATE src/reader.cpp src/plugin_material.cpp
+                                 src/tangent.cpp)
 target_sources(FANS_main PRIVATE src/main.cpp)
 
 # ##############################################################################

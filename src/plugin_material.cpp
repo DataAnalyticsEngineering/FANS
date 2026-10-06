@@ -10,7 +10,7 @@
 //   the state a step starts from, and `trial`, the state of the step itself.
 //   Once a step has converged, the solver evaluates it a last time (for the
 //   output) and `trial` becomes `converged`; `previous` keeps the state that
-//   step started from, for its tangent (evaluate_tangent).
+//   step started from, for its tangent.
 // Fields: further model inputs, e.g. an orientation, read from the
 //   microstructure file per voxel or per phase (read_field).
 // Linear: "linear": true in the material properties says that the flux is
@@ -201,20 +201,29 @@ class PluginModel : public Base {
         return true;
     }
 
+    bool has_tangent() const override
+    {
+        return true;
+    }
+
     // "linear": true in the material properties; FANS trusts it
     bool is_linear() const override
     {
         return linear;
     }
 
-    // The flux at all Gauss points of `elems`, into flux_all, and their state, into `trial`
+    // The flux at all Gauss points of `elems`, into flux_all, and their state, into `trial`.
+    // With tangent_all, the converged step once more, from the state it started from, for its tangent
     void evaluate_batch(const vector<ptrdiff_t> &elems, const unsigned short *phase, const double *ue_all,
-                        double *flux_all) override
+                        double *flux_all, double *tangent_all) override
     {
         const size_t n_dof     = size_t(howmany) * 8; // nodal values per element
         const size_t per_elem  = size_t(n_gp) * n_str;
         const size_t hist_elem = size_t(n_gp) * n_history;
         flux_cache             = flux_all;
+
+        const vector<double> &old = tangent_all ? previous : converged;
+        vector<double>        tangent_buf(tangent_all ? chunk * per_elem * n_str : 0);
 
         for (size_t b = 0; b < elems.size(); b += chunk) {
             const size_t ne = std::min(chunk, elems.size() - b);
@@ -227,55 +236,24 @@ class PluginModel : public Base {
                 std::fill_n(&phase_buf[k * n_gp], n_gp, phase[e]);
                 if (phase[e] >= n_phase_rows)
                     throw std::runtime_error("Phase " + std::to_string(phase[e]) + " has no row in the per-phase fields of its plugin material.");
-                std::copy_n(converged.data() + e * hist_elem, hist_elem, history_old_buf.data() + k * hist_elem);
+                std::copy_n(old.data() + e * hist_elem, hist_elem, history_old_buf.data() + k * hist_elem);
                 std::copy_n(trial.data() + e * hist_elem, hist_elem, history_new_buf.data() + k * hist_elem); // initial guess
             }
 
             char err[FANS_PLUGIN_MSGLEN] = {0};
             if (plugin.evaluate(model, ne * n_gp, this->time_old, this->time, gradient_buf.data(), voxel_buf.data(), phase_buf.data(),
-                                history_old_buf.data(), flux_buf.data(), history_new_buf.data(), nullptr, err, sizeof(err)) != 0)
+                                history_old_buf.data(), flux_buf.data(), history_new_buf.data(), tangent_all ? tangent_buf.data() : nullptr,
+                                err, sizeof(err)) != 0)
                 throw std::runtime_error(string("Plugin material evaluation failed: ") + err);
 
             for (size_t k = 0; k < ne; ++k) {
                 const ptrdiff_t e = elems[b + k];
                 std::copy_n(&flux_buf[k * per_elem], per_elem, flux_all + e * per_elem);
                 std::copy_n(history_new_buf.data() + k * hist_elem, hist_elem, trial.data() + e * hist_elem);
+                if (tangent_all)
+                    std::copy_n(&tangent_buf[k * per_elem * n_str], per_elem * n_str, tangent_all + e * per_elem * n_str);
             }
         }
-    }
-
-    // The tangent of the converged step at all Gauss points of `elems`, into tangent_all:
-    // that step once more, from the state it started from (`previous`) to the one it reached
-    bool evaluate_tangent(const vector<ptrdiff_t> &elems, const unsigned short *phase, const double *ue_all,
-                          double *tangent_all) override
-    {
-        const size_t   n_dof     = size_t(howmany) * 8;
-        const size_t   per_elem  = size_t(n_gp) * n_str;
-        const size_t   hist_elem = size_t(n_gp) * n_history;
-        vector<double> tangent_buf(chunk * per_elem * n_str);
-
-        for (size_t b = 0; b < elems.size(); b += chunk) {
-            const size_t ne = std::min(chunk, elems.size() - b);
-
-            for (size_t k = 0; k < ne; ++k) {
-                const ptrdiff_t e = elems[b + k];
-                Eigen::Map<VectorXd>(&gradient_buf[k * per_elem], per_elem).noalias() =
-                    B * Eigen::Map<const VectorXd>(ue_all + e * n_dof, n_dof) + g0;
-                std::fill_n(&voxel_buf[k * n_gp], n_gp, int(e));
-                std::fill_n(&phase_buf[k * n_gp], n_gp, phase[e]);
-                std::copy_n(previous.data() + e * hist_elem, hist_elem, history_old_buf.data() + k * hist_elem);
-                std::copy_n(converged.data() + e * hist_elem, hist_elem, history_new_buf.data() + k * hist_elem); // initial guess
-            }
-
-            char err[FANS_PLUGIN_MSGLEN] = {0};
-            if (plugin.evaluate(model, ne * n_gp, this->time_old, this->time, gradient_buf.data(), voxel_buf.data(), phase_buf.data(),
-                                history_old_buf.data(), flux_buf.data(), history_new_buf.data(), tangent_buf.data(), err, sizeof(err)) != 0)
-                throw std::runtime_error(string("Plugin material tangent failed: ") + err);
-
-            for (size_t k = 0; k < ne; ++k)
-                std::copy_n(&tangent_buf[k * per_elem * n_str], per_elem * n_str, tangent_all + elems[b + k] * per_elem * n_str);
-        }
-        return true;
     }
 
     // Writes every history variable, e.g. state/internal/Ep as state_internal_Ep

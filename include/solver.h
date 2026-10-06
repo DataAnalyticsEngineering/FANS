@@ -4,8 +4,6 @@
 #include "matmodel.h"
 #include "MaterialManager.h"
 
-class J2Plasticity;
-
 typedef Map<Array<double, Dynamic, Dynamic>, Unaligned, OuterStride<>> RealArray;
 
 template <int howmany, int n_str>
@@ -73,8 +71,7 @@ class Solver : private MixedBCController<howmany> {
     void     evaluate_batched_stress(double *u); //!< in src/plugin_material.cpp
 
     MatrixXd homogenized_tangent;
-    MatrixXd get_homogenized_tangent(double pert_param);
-    bool     consistent_homogenized_tangent(); //!< in src/tangent.cpp
+    MatrixXd get_homogenized_tangent(double pert_param); //!< in src/tangent.cpp
 
     void enableMixedBC(const MixedBC &mbc, size_t step)
     {
@@ -738,47 +735,6 @@ VectorXd Solver<howmany, n_str>::get_homogenized_stress()
     homogenized_stress /= (n_x * n_y * n_z);
 
     return homogenized_stress;
-}
-
-template <int howmany, int n_str>
-MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
-{
-    if (consistent_homogenized_tangent()) // from the materials' own tangents, if they all have one
-        return homogenized_tangent;
-
-    homogenized_tangent               = MatrixXd::Zero(n_str, n_str);
-    VectorXd       unperturbed_stress = get_homogenized_stress();
-    VectorXd       perturbed_stress;
-    vector<double> pert_strain(n_str, 0.0);
-    vector<double> g0       = matmanager->get_info(0).model->macroscale_loading;
-    bool           islinear = matmanager->all_linear;
-
-    for (auto *model : matmanager->models) {
-        if (dynamic_cast<J2Plasticity *>(model) != nullptr) {
-            throw std::runtime_error("Homogenized tangent computation not implemented for J2Plasticity models.");
-        }
-    }
-    // TODO: a deep copy of the solver object is needed here to avoid modifying the history of the solver object
-
-    for (int i = 0; i < n_str; i++) {
-        if (islinear) {
-            pert_strain    = vector<double>(n_str, 0.0);
-            pert_strain[i] = 1.0;
-        } else {
-            pert_strain = g0;
-            pert_strain[i] += pert_param;
-        }
-
-        matmanager->set_gradient(pert_strain);
-        disableMixedBC();
-        solve();
-        perturbed_stress = get_homogenized_stress();
-
-        homogenized_tangent.col(i) = islinear ? perturbed_stress : (perturbed_stress - unperturbed_stress) / pert_param;
-    }
-
-    homogenized_tangent = 0.5 * (homogenized_tangent + homogenized_tangent.transpose()).eval();
-    return homogenized_tangent;
 }
 
 template <int howmany, int n_str>
