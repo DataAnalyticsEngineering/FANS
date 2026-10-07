@@ -203,14 +203,9 @@ int fans_plugin_evaluate(FANSPluginModel *m, size_t n_points, double t_old, doub
             inputs[h.name]        = m->to_neml2(new_history.narrow(1, h.offset, h.size), h); // initial guess
         }
 
-        std::map<std::string, at::Tensor> outputs;
-        if (tangent) { // the same evaluation, with its Jacobian
-            neml2::aoti::VariablePairJacobian jacobian;
-            std::tie(outputs, jacobian) = m->model->jacobian(inputs);
-            m->to_fans(jacobian.at(m->flux.name).at(m->gradient.name), m->tangent, view(tangent, m->tangent.size));
-        } else {
-            outputs = m->model->forward(inputs);
-        }
+        const auto outputs = m->model->forward(inputs);
+        if (tangent) // from the Jacobian of the same evaluation
+            m->to_fans(m->model->jacobian(inputs).second.at(m->flux.name).at(m->gradient.name), m->tangent, view(tangent, m->tangent.size));
 
         m->to_fans(outputs.at(m->flux.name), m->flux, view(flux, m->flux.size));
         for (const Var &h : m->history)

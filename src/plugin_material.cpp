@@ -50,15 +50,13 @@ Plugin load_plugin(const string &name)
         throw std::runtime_error("Could not load the '" + name + "' material plugin: " + dlerror() +
                                  "\nBuild FANS with -DFANS_" + name + "=ON.");
 
-    auto sym = [&](auto &f, const char *n) {
-        if (!(f = reinterpret_cast<std::remove_reference_t<decltype(f)>>(dlsym(h, n))))
-            throw std::runtime_error(lib + " is missing '" + n + "'");
-    };
     Plugin p;
-    sym(p.load, "fans_plugin_load");
-    sym(p.set_table, "fans_plugin_set_table");
-    sym(p.evaluate, "fans_plugin_evaluate");
-    sym(p.free_model, "fans_plugin_free");
+    p.load       = reinterpret_cast<decltype(p.load)>(dlsym(h, "fans_plugin_load"));
+    p.set_table  = reinterpret_cast<decltype(p.set_table)>(dlsym(h, "fans_plugin_set_table"));
+    p.evaluate   = reinterpret_cast<decltype(p.evaluate)>(dlsym(h, "fans_plugin_evaluate"));
+    p.free_model = reinterpret_cast<decltype(p.free_model)>(dlsym(h, "fans_plugin_free"));
+    if (!p.load || !p.set_table || !p.evaluate || !p.free_model)
+        throw std::runtime_error(lib + " lacks a function of fans_plugin.h");
     return p;
 }
 
@@ -181,11 +179,10 @@ class PluginModel : public Base {
         return {flux_cache + size_t(element_idx) * n_gp * n_str, n_gp * n_str};
     }
 
-    // Called per Gauss point: the first call brings the fluxes of them all
+    // The flux at a Gauss point, from the last evaluate_batch
     void get_sigma(int i, int, ptrdiff_t element_idx) override
     {
-        if (i == 0)
-            sigma = fluxes(element_idx);
+        sigma.segment(i, n_str) = fluxes(element_idx).segment(i, n_str);
     }
 
     // The element's residual straight from its fluxes: the gradient and the loop over

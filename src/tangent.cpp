@@ -13,7 +13,7 @@
 
 namespace {
 
-// The B matrices of the problem
+// The model base of the problem: thermal, small or large strain
 template <int n_str>
 using Kinematics = std::conditional_t<n_str == 3, ThermalModel, std::conditional_t<n_str == 6, SmallStrainMechModel, LargeStrainMechModel>>;
 
@@ -44,14 +44,10 @@ class FrozenTangent : public Kinematics<n_str> {
 template <int howmany, int n_str>
 void collect_tangents(Solver<howmany, n_str> &solver, vector<double> &C)
 {
-    const auto     &materials = *solver.matmanager;
-    const ptrdiff_t n_slab    = solver.n_y * solver.n_z * howmany; // nodal values of a slab of the grid
-    const size_t    per_elem  = C.size() / (solver.local_n0 * solver.n_y * solver.n_z);
-    double         *u         = solver.v_u;
+    const auto  &materials = *solver.matmanager;
+    const size_t per_elem  = C.size() / (solver.local_n0 * solver.n_y * solver.n_z);
 
     // The native materials element by element, as Solver::get_homogenized_stress goes through them
-    MPI_Sendrecv(u, n_slab, MPI_DOUBLE, (solver.world_rank + solver.world_size - 1) % solver.world_size, 0,
-                 u + solver.local_n0 * n_slab, n_slab, MPI_DOUBLE, (solver.world_rank + 1) % solver.world_size, 0, solver.communicator, MPI_STATUS_IGNORE);
     Matrix<double, howmany * 8, 1> ue;
     solver.template iterateCubes<0>([&](ptrdiff_t *idx, ptrdiff_t *) {
         const MaterialInfo<howmany, n_str> &info = materials.get_info(solver.ms[idx[0]]);
@@ -59,11 +55,11 @@ void collect_tangents(Solver<howmany, n_str> &solver, vector<double> &C)
             return;
         for (int i = 0; i < 8; ++i)
             for (int j = 0; j < howmany; ++j)
-                ue(howmany * i + j) = u[howmany * idx[i] + j];
+                ue(howmany * i + j) = solver.v_u[howmany * idx[i] + j];
         info.model->getTangent(&C[idx[0] * per_elem], ue, info.local_mat_id, idx[0]);
     });
 
-    // The batched materials in batches, from the nodal values of the step, which batch_ue still holds
+    // The batched materials in batches
     for (size_t m = 0; m < materials.models.size(); ++m)
         if (materials.models[m]->wants_batch())
             materials.models[m]->evaluate_batch(solver.batch_elems[m], solver.ms, solver.batch_ue.data(), solver.batch_gp_stress.data(), C.data());
@@ -74,7 +70,9 @@ void collect_tangents(Solver<howmany, n_str> &solver, vector<double> &C)
 template <int howmany, int n_str>
 MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
 {
-    // The step, to come back to
+    // The step: its stress (evaluating it also readies the nodal values the tangents are
+    // collected from), and what to come back to
+    const VectorXd                   stress    = get_homogenized_stress();
     MaterialManager<howmany, n_str> *materials = matmanager;
     const vector<double>             g0        = matmanager->models[0]->macroscale_loading;
     const vector<double>             u(v_u, v_u + local_n0 * n_y * n_z * howmany);
@@ -82,7 +80,7 @@ MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
     // Does every material have a tangent? Linear models with element stiffnesses are
     // left as they are: perturbing them is exact, and faster.
     bool consistent = !matmanager->all_stiffness;
-    for (int phase = 0; phase < reader.n_mat; ++phase)
+    for (int phase = 0; phase < matmanager->get_num_phases(); ++phase)
         if (!matmanager->get_info(phase).is_linear && !matmanager->get_info(phase).model->has_tangent())
             consistent = false;
 
@@ -91,7 +89,7 @@ MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
     if (consistent) {
         auto *frozen = new FrozenTangent<n_str>(reader, local_n0 * n_y * n_z);
         collect_tangents(*this, frozen->C);
-        linearised = std::make_unique<MaterialManager<howmany, n_str>>(frozen, reader.n_mat); // owns `frozen`
+        linearised = std::make_unique<MaterialManager<howmany, n_str>>(frozen, matmanager->get_num_phases()); // owns `frozen`
         matmanager = linearised.get();
         Log::logger().info("# Homogenized tangent from the materials' tangents");
     } else if (!matmanager->all_linear) {
@@ -99,9 +97,6 @@ MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
     }
 
     const bool linear = matmanager->all_linear;
-    VectorXd   stress;
-    if (!linear)
-        stress = get_homogenized_stress();
     disableMixedBC();
 
     homogenized_tangent.resize(n_str, n_str);
