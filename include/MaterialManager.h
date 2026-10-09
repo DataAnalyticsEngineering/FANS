@@ -228,10 +228,6 @@ class MaterialManager {
     {
         return phase_to_info[phase_id];
     }
-    inline size_t get_num_models() const
-    {
-        return models.size();
-    } // Get number of unique material models
     inline int get_num_phases() const
     {
         return n_phases;

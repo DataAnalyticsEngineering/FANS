@@ -12,13 +12,9 @@ class Matmodel {
   public:
     static constexpr int num_str = n_str; // length of strain and stress
 
-    int    verbosity; //!< output verbosity
-    int    n_mat;     //!< Number of Materials
-    int    n_gp;      //!< Number of Gauss points (computed from FE_type)
-    string FE_type;   //!< Finite element type: "HEX8", "HEX8R", "BBAR"
-
-    double *strain; //!< Gradient
-    double *stress; //!< Flux
+    int    n_mat;   //!< Number of Materials
+    int    n_gp;    //!< Number of Gauss points (computed from FE_type)
+    string FE_type; //!< Finite element type: "HEX8", "HEX8R", "BBAR"
 
     Matmodel(const Reader &reader);
 
@@ -51,10 +47,6 @@ class Matmodel {
     inline const double *get_sigma_data() const
     {
         return sigma.data();
-    }
-    inline int get_n_gp() const
-    {
-        return n_gp;
     }
 
     virtual void postprocess(Solver<howmany, n_str> &solver, Reader &reader, int load_idx, int time_idx) {};

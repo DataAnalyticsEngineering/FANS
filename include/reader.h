@@ -25,9 +25,9 @@ class Reader {
     ~Reader();
 
     // contents of input file:
-    char             ms_filename[4096]{};    // Name of Micro-structure hdf5 file
-    char             ms_datasetname[4096]{}; // Absolute path of Micro-structure in hdf5 file
-    char             results_prefix[4096]{};
+    string           ms_filename;    // Name of Micro-structure hdf5 file
+    string           ms_datasetname; // Absolute path of Micro-structure in hdf5 file
+    string           ms_group;       // Its group, where the datasets that go with it are: "/sphere/32x32x32/" for "/sphere/32x32x32/ms"
     int              n_mat;
     json             inputJson; // Complete input JSON (for MaterialManager)
     json             materialProperties;
@@ -45,9 +45,8 @@ class Reader {
     string           strain_type{"small"}; // "small" (default) or "large"
     string           FE_type;              // "HEX8" (default), "HEX8R", or "BBAR"
     vector<string>   resultsToWrite;
-    char             results_filename[4096]{}; // Output HDF5 filename
-    char             dataset_name[8192]{};     // Base path for results in HDF5 file
-    hid_t            results_file_id = -1;     // Open HDF5 file handle for results
+    string           dataset_name;         // Base path for results in HDF5 file
+    hid_t            results_file_id = -1; // Open HDF5 file handle for results
 
     // contents of microstructure file:
     vector<int>     dims;
@@ -66,12 +65,10 @@ class Reader {
     ptrdiff_t local_n1;
     ptrdiff_t local_1_start;
 
-    // void Setup(ptrdiff_t howmany);
     void ReadInputFile(const std::string &input_fn);
     void ReadMS(int hm);
     void FreeMS();
     void ComputeVolumeFractions();
-    // void ReadHDF5(char file_name[], char dset_name[]);
     void safe_create_group(hid_t file, const char *const name);
     void OpenResultsFile(const char *output_fn); // Open results file once
     void CloseResultsFile();                     // Explicitly close results file
@@ -94,10 +91,6 @@ class Reader {
     static std::vector<hsize_t> DataShape(const string &file, const string &dset_name);
     template <typename T>
     void ReadSlab(T *data, const std::vector<int> &extra_dims, const string &file, const string &dset_name) const;
-
-    // The microstructure's group, e.g. "/sphere/32x32x32/" for "/sphere/32x32x32/ms",
-    // where the datasets that go with it are
-    string MSGroup() const;
 };
 
 // Opens a dataset for reading; the caller closes it and file_id
@@ -262,9 +255,8 @@ void Reader::writeData(const char *fieldName, int load_idx, int time_idx, const 
     if (std::find(resultsToWrite.begin(), resultsToWrite.end(), fieldName) == resultsToWrite.end()) {
         return;
     }
-    char name[5096];
-    snprintf(name, sizeof(name), "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, fieldName);
-    WriteData(data, name, shape, rank);
+    const string name = dataset_name + "/load" + to_string(load_idx) + "/time_step" + to_string(time_idx) + "/" + fieldName;
+    WriteData(data, name.c_str(), shape, rank);
 }
 
 template <typename T>
@@ -273,9 +265,8 @@ void Reader::writeSlab(const char *fieldName, int load_idx, int time_idx, const 
     if (std::find(resultsToWrite.begin(), resultsToWrite.end(), fieldName) == resultsToWrite.end()) {
         return;
     }
-    char name[5096];
-    snprintf(name, sizeof(name), "%s/load%i/time_step%i/%s", dataset_name, load_idx, time_idx, fieldName);
-    WriteSlab(data, extra_dims, name);
+    const string name = dataset_name + "/load" + to_string(load_idx) + "/time_step" + to_string(time_idx) + "/" + fieldName;
+    WriteSlab(data, extra_dims, name.c_str());
 }
 
 #endif

@@ -70,7 +70,7 @@ struct Field {
 // absolute path; per voxel if it is [Z][Y][X][...] on the grid, else per phase [n_phase][...]
 Field read_field(const Reader &reader, const string &name, const string &dset, int size)
 {
-    const string          path      = dset[0] == '/' ? dset : reader.MSGroup() + dset;
+    const string          path      = dset[0] == '/' ? dset : reader.ms_group + dset;
     const vector<hsize_t> shape     = Reader::DataShape(reader.ms_filename, path);
     const bool            per_voxel = shape.size() >= 3 && shape[0] == hsize_t(reader.dims[2]) && shape[1] == hsize_t(reader.dims[1]) &&
                                       shape[2] == hsize_t(reader.dims[0]);
@@ -257,7 +257,7 @@ class PluginModel : public Base {
         if (!need && !need_gp)
             return;
         const size_t n_pts = size_t(solver.local_n0 * solver.n_y * solver.n_z) * n_gp;
-        const string dir   = string(reader.dataset_name) + "/load" + std::to_string(load_idx) + "/time_step" + std::to_string(time_idx) + "/";
+        const string dir   = reader.dataset_name + "/load" + std::to_string(load_idx) + "/time_step" + std::to_string(time_idx) + "/";
 
         size_t offset = 0;
         for (auto &[name, size] : history_vars) {
@@ -336,8 +336,7 @@ void Solver<howmany, n_str>::evaluate_batched_stress(double *u)
         batch_gp_stress.resize(size_t(n_elem) * models[0]->n_gp * n_str);
     }
 
-    MPI_Sendrecv(u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
-                 u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
+    update_ghost_layer(u);
 
     iterateCubes<0>([&](ptrdiff_t *idx, ptrdiff_t *idxPadding) {
         if (matmanager->get_info(ms[idx[0]]).model->wants_batch())

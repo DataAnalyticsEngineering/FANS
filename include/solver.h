@@ -49,6 +49,7 @@ class Solver : private MixedBCController<howmany> {
 
     template <int padding, typename F>
     void iterateCubes(F f);
+    void update_ghost_layer(double *u); //!< the next rank's first layer of nodal values, behind this rank's own
 
     void         solve();
     void         extrapolateDisplacement(); //!< Linear extrapolation for next time step
@@ -227,6 +228,15 @@ void Solver<howmany, n_str>::CreateFFTWPlans(double *in, fftw_complex *transform
     new (&rhat) Map<VectorXcd>((std::complex<double> *) transformed, local_n1 * n_x * (n_z / 2 + 1) * howmany);
 }
 
+// The elements of a rank's last layer reach into the first layer of nodes of the next rank
+template <int howmany, int n_str>
+void Solver<howmany, n_str>::update_ghost_layer(double *u)
+{
+    const int layer = n_y * n_z * howmany;
+    MPI_Sendrecv(u, layer, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
+                 u + local_n0 * layer, layer, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
+}
+
 // TODO: possibly circumvent the padding problem by accessing r as a matrix?
 template <int howmany, int n_str>
 template <int padding, typename F>
@@ -241,10 +251,7 @@ void Solver<howmany, n_str>::compute_residual_basic(RealArray &r_matrix, RealArr
         r[i] = 0;
     }
 
-    // int MPI_Sendrecv(void *sendbuf, int sendcount, MPI_Datatype sendtype, int dest, int sendtag, void *recvbuf,
-    //           int recvcount, MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm, MPI_Status *status)
-    MPI_Sendrecv(u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
-                 u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
+    update_ghost_layer(u);
 
     Matrix<double, howmany * 8, 1> ue;
 
@@ -494,8 +501,7 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     vector<VectorXd> phase_strain_average(n_mat, VectorXd::Zero(n_str));
     vector<int>      phase_counts(n_mat, 0);
 
-    MPI_Sendrecv(v_u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
-                 v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
+    update_ghost_layer(v_u);
 
     Matrix<double, howmany * 8, 1> ue;
     int                            phase_id;
@@ -705,17 +711,14 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
 template <int howmany, int n_str>
 VectorXd Solver<howmany, n_str>::get_homogenized_stress()
 {
-
-    VectorXd strain    = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
-    VectorXd stress    = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
     homogenized_stress = VectorXd::Zero(n_str);
 
-    MPI_Sendrecv(v_u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
-                 v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
+    update_ghost_layer(v_u);
     if (matmanager->any_batched)
         evaluate_batched_stress(v_u);
 
     Matrix<double, howmany * 8, 1> ue;
+    Matrix<double, n_str, 1>       strain, stress; // of one element
     int                            phase_id;
     iterateCubes<0>([&](ptrdiff_t *idx, ptrdiff_t *idxPadding) {
         for (int i = 0; i < 8; ++i) {
@@ -726,8 +729,8 @@ VectorXd Solver<howmany, n_str>::get_homogenized_stress()
         phase_id = ms[idx[0]];
 
         const MaterialInfo<howmany, n_str> &info = matmanager->get_info(phase_id);
-        info.model->getStrainStress(strain.segment(n_str * idx[0], n_str).data(), stress.segment(n_str * idx[0], n_str).data(), ue, info.local_mat_id, idx[0]);
-        homogenized_stress += stress.segment(n_str * idx[0], n_str);
+        info.model->getStrainStress(strain.data(), stress.data(), ue, info.local_mat_id, idx[0]);
+        homogenized_stress += stress;
     });
 
     MPI_Allreduce(MPI_IN_PLACE, homogenized_stress.data(), n_str, MPI_DOUBLE, MPI_SUM, communicator);
