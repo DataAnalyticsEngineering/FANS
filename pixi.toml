@@ -10,7 +10,7 @@ preview = ["pixi-build"]
 fans = { path = "." }
 
 [feature.dashboard.dependencies]
-python = ">=3.14.7,<3.15"
+python = ">=3.14.8,<3.15"
 pytest = ">=9.1.1,<10"
 pre-commit = ">=4.6.2,<5"
 identify = ">=2.6.20,<3"
@@ -30,7 +30,7 @@ default-environment = "dashboard"
 
 [feature.dev.dependencies]
 cmake = ">=4.4.4,<5"
-clangxx = ">=23.1.1,<24"
+clangxx = ">=23.1.2,<24"
 openmpi-mpicxx = ">=5.0.11,<6"
 hdf5 = { version = ">=2.2.0,<3", build = "mpi_openmpi_*" }
 fftw = { version = ">=3.3.11,<4", build = "mpi_openmpi_*" }
@@ -40,7 +40,7 @@ spdlog = ">=1.17.0,<2"
 time = ">=1.10,<2"
 
 # For pyfans
-python = ">=3.14.7,<3.15"
+python = ">=3.14.8,<3.16"
 pip = ">=26.2.1,<27"
 nanobind = ">=3.1.0,<4"
 scikit-build-core = ">=1.1.1,<2"
