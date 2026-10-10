@@ -12,13 +12,9 @@ class Matmodel {
   public:
     static constexpr int num_str = n_str; // length of strain and stress
 
-    int    verbosity; //!< output verbosity
-    int    n_mat;     //!< Number of Materials
-    int    n_gp;      //!< Number of Gauss points (computed from FE_type)
-    string FE_type;   //!< Finite element type: "HEX8", "HEX8R", "BBAR"
-
-    double *strain; //!< Gradient
-    double *stress; //!< Flux
+    int    n_mat;   //!< Number of Materials
+    int    n_gp;    //!< Number of Gauss points (computed from FE_type)
+    string FE_type; //!< Finite element type: "HEX8", "HEX8R", "BBAR"
 
     Matmodel(const Reader &reader);
 
@@ -26,6 +22,22 @@ class Matmodel {
     virtual Matrix<double, howmany * 8, 1>  &element_residual(Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
     void                                     getStrainStress(double *strain, double *stress, Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx);
     void                                     setGradient(vector<double> _g0);
+
+    // As getStrainStress, for the tangents C = d sigma / d eps of the converged step at the
+    // element's Gauss points, [n_gp][n_str][n_str]
+    using Tangent = Map<Matrix<double, n_str, n_str, RowMajor>>;
+    void getTangent(double *tangent, Matrix<double, howmany * 8, 1> &ue, int mat_index, ptrdiff_t element_idx)
+    {
+        eps.noalias() = B * ue + g0;
+        for (int i = 0; i < n_gp; ++i)
+            get_tangent(n_str * i, mat_index, element_idx, Tangent(tangent + i * n_str * n_str));
+    }
+    // A nonlinear model with a tangent: a batched one gives it in evaluate_batch,
+    // any other writes a get_tangent and says so here
+    virtual bool has_tangent() const
+    {
+        return wants_batch();
+    }
 
     // Accessors for internal Gauss point data (populated after getStrainStress call)
     inline const double *get_eps_data() const
@@ -35,10 +47,6 @@ class Matmodel {
     inline const double *get_sigma_data() const
     {
         return sigma.data();
-    }
-    inline int get_n_gp() const
-    {
-        return n_gp;
     }
 
     virtual void postprocess(Solver<howmany, n_str> &solver, Reader &reader, int load_idx, int time_idx) {};
@@ -52,8 +60,10 @@ class Matmodel {
     {
         return false;
     }
+    // Unless null, tangent_gp gets the tangent d flux / d gradient of the converged
+    // step, [element][n_gp][n_str][n_str] (src/tangent.cpp).
     virtual void evaluate_batch(const vector<ptrdiff_t> &elems, const unsigned short *phase,
-                                const double *ue, double *sig_gp) {}
+                                const double *ue, double *sig_gp, double *tangent_gp = nullptr) {}
 
     // A model without the element stiffnesses of a LinearModel can still say that its
     // flux is linear in the gradient: then the linear CG applies.
@@ -87,6 +97,16 @@ class Matmodel {
     void                                       Construct_B();
 
     virtual void get_sigma(int i, int mat_index, ptrdiff_t element_idx) = 0;
+    // As get_sigma, for the tangent C = d sigma / d eps at that Gauss point. This one is that
+    // of a linear model, its stresses at unit strains; a nonlinear model writes its own.
+    virtual void get_tangent(int i, int mat_index, ptrdiff_t element_idx, Tangent C)
+    {
+        for (int j = 0; j < n_str; ++j) {
+            eps.segment<n_str>(i) = Matrix<double, n_str, 1>::Unit(j);
+            get_sigma(i, mat_index, element_idx);
+            C.col(j) = sigma.segment<n_str>(i);
+        }
+    }
 };
 
 template <int howmany, int n_str>

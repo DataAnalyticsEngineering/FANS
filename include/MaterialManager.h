@@ -138,6 +138,13 @@ class MaterialManager {
         }
     }
 
+    // One linear model for all phases, e.g. the frozen tangent of src/tangent.cpp
+    MaterialManager(Matmodel<howmany, n_str> *model, int n_phases)
+        : phase_to_info(new MaterialInfo<howmany, n_str>[n_phases]), n_phases(n_phases), models{model}, all_stiffness(false)
+    {
+        std::fill_n(phase_to_info, n_phases, MaterialInfo<howmany, n_str>{model, nullptr, 0, true});
+    }
+
     ~MaterialManager()
     {
         for (auto *m : models)
@@ -221,10 +228,6 @@ class MaterialManager {
     {
         return phase_to_info[phase_id];
     }
-    inline size_t get_num_models() const
-    {
-        return models.size();
-    } // Get number of unique material models
     inline int get_num_phases() const
     {
         return n_phases;

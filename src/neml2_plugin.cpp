@@ -58,6 +58,7 @@ struct FANSPluginModel {
     std::unique_ptr<neml2::aoti::Model> model;
     at::Device                          device{at::kCPU};
     Var                                 gradient, flux;
+    Var                                 tangent; // d flux / d gradient: the flux's shape, then the gradient's
     std::vector<Var>                    history, fields;
     int64_t                             n_history{0};                                     // history doubles per point
     at::Tensor                          perm = at::tensor({0, 1, 2, 5, 4, 3}, at::kLong); // FANS <-> NEML2 Mandel order
@@ -122,6 +123,10 @@ FANSPluginModel *fans_plugin_load(const char *config, char *msg, size_t msglen)
         if (h->flux.size != h->gradient.size)
             throw std::runtime_error("the gradient '" + gradient + "' and the flux '" + flux + "' differ in size");
 
+        std::vector<int64_t> tangent_shape = out_shape[fi];
+        tangent_shape.insert(tangent_shape.end(), in_shape[gi].begin(), in_shape[gi].end());
+        h->tangent = make_var("tangent", tangent_shape);
+
         for (size_t i = 0; i < in.size(); ++i) {
             const std::string &name = in[i];
             if (name == gradient || name == "t" || name == "t~1")
@@ -176,7 +181,7 @@ int fans_plugin_set_table(FANSPluginModel *m, size_t field, int per_phase, size_
 
 int fans_plugin_evaluate(FANSPluginModel *m, size_t n_points, double t_old, double t, const double *gradient,
                          const int *voxel, const int *phase, const double *history_old, double *flux,
-                         double *history_new, char *err, size_t errlen)
+                         double *history_new, double *tangent, char *err, size_t errlen)
 {
     try {
         // A FANS array as an [n][size] tensor, without copying
@@ -199,6 +204,8 @@ int fans_plugin_evaluate(FANSPluginModel *m, size_t n_points, double t_old, doub
         }
 
         const auto outputs = m->model->forward(inputs);
+        if (tangent) // from the Jacobian of the same evaluation
+            m->to_fans(m->model->jacobian(inputs).second.at(m->flux.name).at(m->gradient.name), m->tangent, view(tangent, m->tangent.size));
 
         m->to_fans(outputs.at(m->flux.name), m->flux, view(flux, m->flux.size));
         for (const Var &h : m->history)

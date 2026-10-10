@@ -74,8 +74,8 @@ class GBDiffusion : public ThermalModel, public LinearModel<1, 3> {
             const int num_GB       = static_cast<int>(boundary_count);
             n_mat                  = num_crystals + num_GB;
 
-            const vector<double> grain_rot_matrices = Reader::ReadData<double>(reader.ms_filename, reader.MSGroup() + "rotation_matrices");
-            const vector<double> GB_normals         = Reader::ReadData<double>(reader.ms_filename, reader.MSGroup() + "GB_normals");
+            const vector<double> grain_rot_matrices = Reader::ReadData<double>(reader.ms_filename, reader.ms_group + "rotation_matrices");
+            const vector<double> GB_normals         = Reader::ReadData<double>(reader.ms_filename, reader.ms_group + "GB_normals");
             if (grain_rot_matrices.size() < 9 * size_t(num_crystals) || GB_normals.size() < 3 * size_t(n_mat))
                 throw std::runtime_error("rotation_matrices or GB_normals has too few entries");
 

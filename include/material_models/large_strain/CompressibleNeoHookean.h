@@ -47,6 +47,26 @@ class CompressibleNeoHookean : public LargeStrainMechModel {
         return lambda[mat_index] * logJ * C_inv + mu[mat_index] * (Matrix3d::Identity() - C_inv);
     }
 
+    bool has_tangent() const override
+    {
+        return true;
+    }
+
+    // A = dP/dF of P = mu F + (lambda log(J) - mu) G with G = F^{-T}:
+    //   A_iJkL = mu d_ik d_JL + lambda G_iJ G_kL + (mu - lambda log(J)) G_iL G_kJ
+    void get_tangent(int i_eps, int mat_index, ptrdiff_t element_idx, Tangent A) override
+    {
+        const Matrix3d F = extract_F(i_eps);
+        const Matrix3d G = F.inverse().transpose();
+        const double   c = mu[mat_index] - lambda[mat_index] * log(F.determinant());
+
+        for (int i = 0; i < 3; ++i)
+            for (int J = 0; J < 3; ++J)
+                for (int k = 0; k < 3; ++k)
+                    for (int L = 0; L < 3; ++L)
+                        A(3 * i + J, 3 * k + L) = mu[mat_index] * (i == k) * (J == L) + lambda[mat_index] * G(i, J) * G(k, L) + c * G(i, L) * G(k, J);
+    }
+
     // At F = I the tangent is that of linear isotropic elasticity
     Matrix<double, 9, 9> get_reference_stiffness() override
     {

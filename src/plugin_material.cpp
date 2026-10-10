@@ -9,7 +9,8 @@
 // History: the plugin's internal variables at every Gauss point: `converged`,
 //   the state a step starts from, and `trial`, the state of the step itself.
 //   Once a step has converged, the solver evaluates it a last time (for the
-//   output) and `trial` becomes `converged`.
+//   output) and `trial` becomes `converged`; `previous` keeps the state that
+//   step started from, for its tangent.
 // Fields: further model inputs, e.g. an orientation, read from the
 //   microstructure file per voxel or per phase (read_field).
 // Linear: "linear": true in the material properties says that the flux is
@@ -49,15 +50,13 @@ Plugin load_plugin(const string &name)
         throw std::runtime_error("Could not load the '" + name + "' material plugin: " + dlerror() +
                                  "\nBuild FANS with -DFANS_" + name + "=ON.");
 
-    auto sym = [&](auto &f, const char *n) {
-        if (!(f = reinterpret_cast<std::remove_reference_t<decltype(f)>>(dlsym(h, n))))
-            throw std::runtime_error(lib + " is missing '" + n + "'");
-    };
     Plugin p;
-    sym(p.load, "fans_plugin_load");
-    sym(p.set_table, "fans_plugin_set_table");
-    sym(p.evaluate, "fans_plugin_evaluate");
-    sym(p.free_model, "fans_plugin_free");
+    p.load       = reinterpret_cast<decltype(p.load)>(dlsym(h, "fans_plugin_load"));
+    p.set_table  = reinterpret_cast<decltype(p.set_table)>(dlsym(h, "fans_plugin_set_table"));
+    p.evaluate   = reinterpret_cast<decltype(p.evaluate)>(dlsym(h, "fans_plugin_evaluate"));
+    p.free_model = reinterpret_cast<decltype(p.free_model)>(dlsym(h, "fans_plugin_free"));
+    if (!p.load || !p.set_table || !p.evaluate || !p.free_model)
+        throw std::runtime_error(lib + " lacks a function of fans_plugin.h");
     return p;
 }
 
@@ -71,7 +70,7 @@ struct Field {
 // absolute path; per voxel if it is [Z][Y][X][...] on the grid, else per phase [n_phase][...]
 Field read_field(const Reader &reader, const string &name, const string &dset, int size)
 {
-    const string          path      = dset[0] == '/' ? dset : reader.MSGroup() + dset;
+    const string          path      = dset[0] == '/' ? dset : reader.ms_group + dset;
     const vector<hsize_t> shape     = Reader::DataShape(reader.ms_filename, path);
     const bool            per_voxel = shape.size() >= 3 && shape[0] == hsize_t(reader.dims[2]) && shape[1] == hsize_t(reader.dims[1]) &&
                                       shape[2] == hsize_t(reader.dims[0]);
@@ -156,7 +155,7 @@ class PluginModel : public Base {
     // The history of every Gauss point, and the arrays of one plugin call
     void initializeInternalVariables(ptrdiff_t num_elements, int num_gauss_points) override
     {
-        trial = converged = vector<double>(num_elements * num_gauss_points * n_history, 0.0);
+        previous = trial = converged = vector<double>(num_elements * num_gauss_points * n_history, 0.0);
         gradient_buf.resize(chunk * n_gp * n_str);
         flux_buf.resize(chunk * n_gp * n_str);
         history_old_buf.resize(chunk * n_gp * n_history);
@@ -168,6 +167,7 @@ class PluginModel : public Base {
     // A step has converged: its state is what the next step starts from
     void updateInternalVariables() override
     {
+        previous.swap(converged);
         converged = trial;
     }
 
@@ -179,11 +179,10 @@ class PluginModel : public Base {
         return {flux_cache + size_t(element_idx) * n_gp * n_str, n_gp * n_str};
     }
 
-    // Called per Gauss point: the first call brings the fluxes of them all
+    // The flux at a Gauss point, from the last evaluate_batch
     void get_sigma(int i, int, ptrdiff_t element_idx) override
     {
-        if (i == 0)
-            sigma = fluxes(element_idx);
+        sigma.segment(i, n_str) = fluxes(element_idx).segment(i, n_str);
     }
 
     // The element's residual straight from its fluxes: the gradient and the loop over
@@ -205,14 +204,18 @@ class PluginModel : public Base {
         return linear;
     }
 
-    // The flux at all Gauss points of `elems`, into flux_all, and their state, into `trial`
+    // The flux at all Gauss points of `elems`, into flux_all, and their state, into `trial`.
+    // With tangent_all, the converged step once more, from the state it started from, for its tangent
     void evaluate_batch(const vector<ptrdiff_t> &elems, const unsigned short *phase, const double *ue_all,
-                        double *flux_all) override
+                        double *flux_all, double *tangent_all) override
     {
         const size_t n_dof     = size_t(howmany) * 8; // nodal values per element
         const size_t per_elem  = size_t(n_gp) * n_str;
         const size_t hist_elem = size_t(n_gp) * n_history;
         flux_cache             = flux_all;
+
+        const vector<double> &old = tangent_all ? previous : converged;
+        vector<double>        tangent_buf(tangent_all ? chunk * per_elem * n_str : 0);
 
         for (size_t b = 0; b < elems.size(); b += chunk) {
             const size_t ne = std::min(chunk, elems.size() - b);
@@ -225,19 +228,22 @@ class PluginModel : public Base {
                 std::fill_n(&phase_buf[k * n_gp], n_gp, phase[e]);
                 if (phase[e] >= n_phase_rows)
                     throw std::runtime_error("Phase " + std::to_string(phase[e]) + " has no row in the per-phase fields of its plugin material.");
-                std::copy_n(converged.data() + e * hist_elem, hist_elem, history_old_buf.data() + k * hist_elem);
+                std::copy_n(old.data() + e * hist_elem, hist_elem, history_old_buf.data() + k * hist_elem);
                 std::copy_n(trial.data() + e * hist_elem, hist_elem, history_new_buf.data() + k * hist_elem); // initial guess
             }
 
             char err[FANS_PLUGIN_MSGLEN] = {0};
             if (plugin.evaluate(model, ne * n_gp, this->time_old, this->time, gradient_buf.data(), voxel_buf.data(), phase_buf.data(),
-                                history_old_buf.data(), flux_buf.data(), history_new_buf.data(), err, sizeof(err)) != 0)
+                                history_old_buf.data(), flux_buf.data(), history_new_buf.data(), tangent_all ? tangent_buf.data() : nullptr,
+                                err, sizeof(err)) != 0)
                 throw std::runtime_error(string("Plugin material evaluation failed: ") + err);
 
             for (size_t k = 0; k < ne; ++k) {
                 const ptrdiff_t e = elems[b + k];
                 std::copy_n(&flux_buf[k * per_elem], per_elem, flux_all + e * per_elem);
                 std::copy_n(history_new_buf.data() + k * hist_elem, hist_elem, trial.data() + e * hist_elem);
+                if (tangent_all)
+                    std::copy_n(&tangent_buf[k * per_elem * n_str], per_elem * n_str, tangent_all + e * per_elem * n_str);
             }
         }
     }
@@ -251,7 +257,7 @@ class PluginModel : public Base {
         if (!need && !need_gp)
             return;
         const size_t n_pts = size_t(solver.local_n0 * solver.n_y * solver.n_z) * n_gp;
-        const string dir   = string(reader.dataset_name) + "/load" + std::to_string(load_idx) + "/time_step" + std::to_string(time_idx) + "/";
+        const string dir   = reader.dataset_name + "/load" + std::to_string(load_idx) + "/time_step" + std::to_string(time_idx) + "/";
 
         size_t offset = 0;
         for (auto &[name, size] : history_vars) {
@@ -287,7 +293,7 @@ class PluginModel : public Base {
     vector<std::pair<string, int>> history_vars;                                             // name, doubles per point
     int                            n_history{0};                                             // history doubles per point
     size_t                         n_phase_rows{SIZE_MAX};                                   // phases below have a row in every per-phase field
-    vector<double>                 trial, converged;                                         // history at every Gauss point
+    vector<double>                 trial, converged, previous;                               // history at every Gauss point
     vector<double>                 gradient_buf, flux_buf, history_old_buf, history_new_buf; // one plugin call
     vector<int>                    voxel_buf, phase_buf;
     const double                  *flux_cache{nullptr};
@@ -330,8 +336,7 @@ void Solver<howmany, n_str>::evaluate_batched_stress(double *u)
         batch_gp_stress.resize(size_t(n_elem) * models[0]->n_gp * n_str);
     }
 
-    MPI_Sendrecv(u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
-                 u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
+    update_ghost_layer(u);
 
     iterateCubes<0>([&](ptrdiff_t *idx, ptrdiff_t *idxPadding) {
         if (matmanager->get_info(ms[idx[0]]).model->wants_batch())

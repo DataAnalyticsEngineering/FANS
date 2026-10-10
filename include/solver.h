@@ -4,8 +4,6 @@
 #include "matmodel.h"
 #include "MaterialManager.h"
 
-class J2Plasticity;
-
 typedef Map<Array<double, Dynamic, Dynamic>, Unaligned, OuterStride<>> RealArray;
 
 template <int howmany, int n_str>
@@ -51,6 +49,7 @@ class Solver : private MixedBCController<howmany> {
 
     template <int padding, typename F>
     void iterateCubes(F f);
+    void update_ghost_layer(double *u); //!< the next rank's first layer of nodal values, behind this rank's own
 
     void         solve();
     void         extrapolateDisplacement(); //!< Linear extrapolation for next time step
@@ -73,7 +72,7 @@ class Solver : private MixedBCController<howmany> {
     void     evaluate_batched_stress(double *u); //!< in src/plugin_material.cpp
 
     MatrixXd homogenized_tangent;
-    MatrixXd get_homogenized_tangent(double pert_param);
+    MatrixXd get_homogenized_tangent(double pert_param); //!< in src/tangent.cpp
 
     void enableMixedBC(const MixedBC &mbc, size_t step)
     {
@@ -229,6 +228,15 @@ void Solver<howmany, n_str>::CreateFFTWPlans(double *in, fftw_complex *transform
     new (&rhat) Map<VectorXcd>((std::complex<double> *) transformed, local_n1 * n_x * (n_z / 2 + 1) * howmany);
 }
 
+// The elements of a rank's last layer reach into the first layer of nodes of the next rank
+template <int howmany, int n_str>
+void Solver<howmany, n_str>::update_ghost_layer(double *u)
+{
+    const int layer = n_y * n_z * howmany;
+    MPI_Sendrecv(u, layer, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
+                 u + local_n0 * layer, layer, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
+}
+
 // TODO: possibly circumvent the padding problem by accessing r as a matrix?
 template <int howmany, int n_str>
 template <int padding, typename F>
@@ -243,10 +251,7 @@ void Solver<howmany, n_str>::compute_residual_basic(RealArray &r_matrix, RealArr
         r[i] = 0;
     }
 
-    // int MPI_Sendrecv(void *sendbuf, int sendcount, MPI_Datatype sendtype, int dest, int sendtag, void *recvbuf,
-    //           int recvcount, MPI_Datatype recvtype, int source, int recvtag, MPI_Comm comm, MPI_Status *status)
-    MPI_Sendrecv(u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
-                 u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
+    update_ghost_layer(u);
 
     Matrix<double, howmany * 8, 1> ue;
 
@@ -481,11 +486,11 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     // Determine if we need to compute stress/strain at all
     bool need_compute = need_stress || need_stress_gp || need_strain || need_strain_gp || need_global_avg || need_phase_avg;
 
-    // Conditional allocation
-    VectorXd *strain_elem = need_strain ? new VectorXd(local_n0 * n_y * n_z * n_str) : nullptr;
-    VectorXd *stress_elem = need_stress ? new VectorXd(local_n0 * n_y * n_z * n_str) : nullptr;
-    VectorXd *strain_gp   = need_strain_gp ? new VectorXd(local_n0 * n_y * n_z * n_gp * n_str) : nullptr;
-    VectorXd *stress_gp   = need_stress_gp ? new VectorXd(local_n0 * n_y * n_z * n_gp * n_str) : nullptr;
+    // The requested fields; the others stay empty
+    VectorXd strain_elem(need_strain ? local_n0 * n_y * n_z * n_str : 0);
+    VectorXd stress_elem(need_stress ? local_n0 * n_y * n_z * n_str : 0);
+    VectorXd strain_gp(need_strain_gp ? local_n0 * n_y * n_z * n_gp * n_str : 0);
+    VectorXd stress_gp(need_stress_gp ? local_n0 * n_y * n_z * n_gp * n_str : 0);
 
     VectorXd stress_average = VectorXd::Zero(n_str);
     VectorXd strain_average = VectorXd::Zero(n_str);
@@ -496,8 +501,7 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     vector<VectorXd> phase_strain_average(n_mat, VectorXd::Zero(n_str));
     vector<int>      phase_counts(n_mat, 0);
 
-    MPI_Sendrecv(v_u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
-                 v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
+    update_ghost_layer(v_u);
 
     Matrix<double, howmany * 8, 1> ue;
     int                            phase_id;
@@ -523,23 +527,23 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
             // Store element averages if requested
             if (need_stress) {
                 for (int c = 0; c < n_str; ++c) {
-                    (*stress_elem)(idx[0] * n_str + c) = elem_stress_avg[c];
+                    stress_elem(idx[0] * n_str + c) = elem_stress_avg[c];
                 }
             }
             if (need_strain) {
                 for (int c = 0; c < n_str; ++c) {
-                    (*strain_elem)(idx[0] * n_str + c) = elem_strain_avg[c];
+                    strain_elem(idx[0] * n_str + c) = elem_strain_avg[c];
                 }
             }
 
             // Copy all GP data if requested
             if (need_stress_gp) {
-                memcpy(&(*stress_gp)(idx[0] * n_gp * n_str),
+                memcpy(&stress_gp(idx[0] * n_gp * n_str),
                        info.model->get_sigma_data(),
                        n_gp * n_str * sizeof(double));
             }
             if (need_strain_gp) {
-                memcpy(&(*strain_gp)(idx[0] * n_gp * n_str),
+                memcpy(&strain_gp(idx[0] * n_gp * n_str),
                        info.model->get_eps_data(),
                        n_gp * n_str * sizeof(double));
             }
@@ -585,65 +589,32 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     homogenized_stress = stress_average;
     homogenized_strain = strain_average;
 
-    /* ====================================================================== *
-     *  u_total = g0·X  +  ũ          (vector or scalar, decided at compile time)
-     * ====================================================================== */
-    const vector<double> &ml  = matmanager->models[0]->macroscale_loading;
-    const double          dx  = reader.l_e[0];
-    const double          dy  = reader.l_e[1];
-    const double          dz  = reader.l_e[2];
-    const double          Lx2 = reader.L[0] / 2.0;
-    const double          Ly2 = reader.L[1] / 2.0;
-    const double          Lz2 = reader.L[2] / 2.0;
-    constexpr double      rs2 = 0.7071067811865475; // 1.0 / std::sqrt(2.0)
-    VectorXd              u_total(local_n0 * n_y * n_z * howmany);
-    /* ---------- single sweep ------------------------------------------------- */
+    // u_total = u + G X, with G the macroscale gradient of the nodal values: the temperature
+    // gradient, the strain (ml holds its Mandel components) or F - I
+    const vector<double>      &ml  = matmanager->models[0]->macroscale_loading;
+    constexpr double           rs2 = 0.7071067811865475; // 1.0 / std::sqrt(2.0)
+    Matrix<double, howmany, 3> G;
+    if constexpr (n_str == 3)
+        G << ml[0], ml[1], ml[2];
+    else if constexpr (n_str == 6)
+        G << ml[0], ml[3] * rs2, ml[4] * rs2,
+            ml[3] * rs2, ml[1], ml[5] * rs2,
+            ml[4] * rs2, ml[5] * rs2, ml[2];
+    else
+        G << ml[0] - 1.0, ml[1], ml[2],
+            ml[3], ml[4] - 1.0, ml[5],
+            ml[6], ml[7], ml[8] - 1.0;
+
+    VectorXd  u_total(local_n0 * n_y * n_z * howmany);
     ptrdiff_t n = 0;
     for (ptrdiff_t ix = 0; ix < local_n0; ++ix) {
-        const double x = (local_0_start + ix) * dx - Lx2;
+        const double x = (local_0_start + ix) * reader.l_e[0] - reader.L[0] / 2.0;
         for (ptrdiff_t iy = 0; iy < n_y; ++iy) {
-            const double y = iy * dy - Ly2;
+            const double y = iy * reader.l_e[1] - reader.L[1] / 2.0;
             for (ptrdiff_t iz = 0; iz < n_z; ++iz, ++n) {
-                const double z = iz * dz - Lz2;
-                if (howmany == 3) { /* ===== mechanics (vector) ===== */
-                    if constexpr (n_str == 6) {
-                        /* Small strain: ml holds 6 Mandel components of the mean strain */
-                        const double    g11 = ml[0];
-                        const double    g22 = ml[1];
-                        const double    g33 = ml[2];
-                        const double    g12 = ml[3] * rs2;
-                        const double    g13 = ml[4] * rs2;
-                        const double    g23 = ml[5] * rs2;
-                        const double    ux  = g11 * x + g12 * y + g13 * z;
-                        const double    uy  = g12 * x + g22 * y + g23 * z;
-                        const double    uz  = g13 * x + g23 * y + g33 * z;
-                        const ptrdiff_t b   = 3 * n;
-                        u_total[b]          = v_u[b] + ux;
-                        u_total[b + 1]      = v_u[b + 1] + uy;
-                        u_total[b + 2]      = v_u[b + 2] + uz;
-                    } else if constexpr (n_str == 9) {
-                        /* Large strain: ml holds 9 components of the mean deformation gradient F */
-                        const double F11 = ml[0];
-                        const double F12 = ml[1];
-                        const double F13 = ml[2];
-                        const double F21 = ml[3];
-                        const double F22 = ml[4];
-                        const double F23 = ml[5];
-                        const double F31 = ml[6];
-                        const double F32 = ml[7];
-                        const double F33 = ml[8];
-                        // u = (F - I) * X
-                        const double    ux = (F11 - 1.0) * x + F12 * y + F13 * z;
-                        const double    uy = F21 * x + (F22 - 1.0) * y + F23 * z;
-                        const double    uz = F31 * x + F32 * y + (F33 - 1.0) * z;
-                        const ptrdiff_t b  = 3 * n;
-                        u_total[b]         = v_u[b] + ux;
-                        u_total[b + 1]     = v_u[b + 1] + uy;
-                        u_total[b + 2]     = v_u[b + 2] + uz;
-                    }
-                } else { /* ===== scalar (howmany==1) ==== */
-                    u_total[n] = v_u[n] + (ml[0] * x + ml[1] * y + ml[2] * z);
-                }
+                const double z = iz * reader.l_e[2] - reader.L[2] / 2.0;
+                for (int i = 0; i < howmany; ++i)
+                    u_total[howmany * n + i] = v_u[howmany * n + i] + (G(i, 0) * x + G(i, 1) * y + G(i, 2) * z);
             }
         }
     }
@@ -670,25 +641,15 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     reader.writeSlab("residual", load_idx, time_idx, v_r, {howmany});
 
     if (need_strain)
-        reader.writeSlab("strain", load_idx, time_idx, strain_elem->data(), {n_str});
+        reader.writeSlab("strain", load_idx, time_idx, strain_elem.data(), {n_str});
     if (need_stress)
-        reader.writeSlab("stress", load_idx, time_idx, stress_elem->data(), {n_str});
+        reader.writeSlab("stress", load_idx, time_idx, stress_elem.data(), {n_str});
     if (need_strain_gp)
-        reader.writeSlab("strain_gp", load_idx, time_idx, strain_gp->data(), {n_gp, n_str});
+        reader.writeSlab("strain_gp", load_idx, time_idx, strain_gp.data(), {n_gp, n_str});
     if (need_stress_gp)
-        reader.writeSlab("stress_gp", load_idx, time_idx, stress_gp->data(), {n_gp, n_str});
+        reader.writeSlab("stress_gp", load_idx, time_idx, stress_gp.data(), {n_gp, n_str});
 
     matmanager->postprocess(*this, reader, load_idx, time_idx);
-
-    // Cleanup
-    if (strain_elem)
-        delete strain_elem;
-    if (stress_elem)
-        delete stress_elem;
-    if (strain_gp)
-        delete strain_gp;
-    if (stress_gp)
-        delete stress_gp;
 
     // Compute homogenized tangent only if requested
     if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "homogenized_tangent") != reader.resultsToWrite.end()) {
@@ -707,17 +668,14 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
 template <int howmany, int n_str>
 VectorXd Solver<howmany, n_str>::get_homogenized_stress()
 {
-
-    VectorXd strain    = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
-    VectorXd stress    = VectorXd::Zero(local_n0 * n_y * n_z * n_str);
     homogenized_stress = VectorXd::Zero(n_str);
 
-    MPI_Sendrecv(v_u, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + world_size - 1) % world_size, 0,
-                 v_u + local_n0 * n_y * n_z * howmany, n_y * n_z * howmany, MPI_DOUBLE, (world_rank + 1) % world_size, 0, communicator, MPI_STATUS_IGNORE);
+    update_ghost_layer(v_u);
     if (matmanager->any_batched)
         evaluate_batched_stress(v_u);
 
     Matrix<double, howmany * 8, 1> ue;
+    Matrix<double, n_str, 1>       strain, stress; // of one element
     int                            phase_id;
     iterateCubes<0>([&](ptrdiff_t *idx, ptrdiff_t *idxPadding) {
         for (int i = 0; i < 8; ++i) {
@@ -728,52 +686,14 @@ VectorXd Solver<howmany, n_str>::get_homogenized_stress()
         phase_id = ms[idx[0]];
 
         const MaterialInfo<howmany, n_str> &info = matmanager->get_info(phase_id);
-        info.model->getStrainStress(strain.segment(n_str * idx[0], n_str).data(), stress.segment(n_str * idx[0], n_str).data(), ue, info.local_mat_id, idx[0]);
-        homogenized_stress += stress.segment(n_str * idx[0], n_str);
+        info.model->getStrainStress(strain.data(), stress.data(), ue, info.local_mat_id, idx[0]);
+        homogenized_stress += stress;
     });
 
     MPI_Allreduce(MPI_IN_PLACE, homogenized_stress.data(), n_str, MPI_DOUBLE, MPI_SUM, communicator);
     homogenized_stress /= (n_x * n_y * n_z);
 
     return homogenized_stress;
-}
-
-template <int howmany, int n_str>
-MatrixXd Solver<howmany, n_str>::get_homogenized_tangent(double pert_param)
-{
-    homogenized_tangent               = MatrixXd::Zero(n_str, n_str);
-    VectorXd       unperturbed_stress = get_homogenized_stress();
-    VectorXd       perturbed_stress;
-    vector<double> pert_strain(n_str, 0.0);
-    vector<double> g0       = matmanager->get_info(0).model->macroscale_loading;
-    bool           islinear = matmanager->all_linear;
-
-    for (auto *model : matmanager->models) {
-        if (dynamic_cast<J2Plasticity *>(model) != nullptr) {
-            throw std::runtime_error("Homogenized tangent computation not implemented for J2Plasticity models.");
-        }
-    }
-    // TODO: a deep copy of the solver object is needed here to avoid modifying the history of the solver object
-
-    for (int i = 0; i < n_str; i++) {
-        if (islinear) {
-            pert_strain    = vector<double>(n_str, 0.0);
-            pert_strain[i] = 1.0;
-        } else {
-            pert_strain = g0;
-            pert_strain[i] += pert_param;
-        }
-
-        matmanager->set_gradient(pert_strain);
-        disableMixedBC();
-        solve();
-        perturbed_stress = get_homogenized_stress();
-
-        homogenized_tangent.col(i) = islinear ? perturbed_stress : (perturbed_stress - unperturbed_stress) / pert_param;
-    }
-
-    homogenized_tangent = 0.5 * (homogenized_tangent + homogenized_tangent.transpose()).eval();
-    return homogenized_tangent;
 }
 
 template <int howmany, int n_str>

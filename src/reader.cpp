@@ -1,14 +1,7 @@
 #include "general.h"
 #include "reader.h"
 
-#include "H5Cpp.h"
-#include "fftw3-mpi.h"
-#include "hdf5.h"
-#include "mpi.h"
 #include <cstdlib>
-
-#include "H5FDmpi.h"
-#include "H5FDmpio.h"
 
 Reader::Reader(const MPI_Comm &comm)
     : communicator(comm)
@@ -19,47 +12,25 @@ Reader::Reader(const MPI_Comm &comm)
 
 void Reader::ComputeVolumeFractions()
 {
-    unsigned short local_max  = 0;
-    unsigned short local_min  = USHRT_MAX;
-    size_t         local_size = local_n0 * dims[1] * dims[2];
+    const size_t local_size = local_n0 * dims[1] * dims[2];
 
-    // Find the local maximum and minimum material indices
-    for (size_t i = 0; i < local_size; i++) {
-        unsigned short val = static_cast<unsigned short>(ms[i]);
-        if (val > local_max) {
-            local_max = val;
-        }
-        if (val < local_min) {
-            local_min = val;
-        }
-    }
+    // The phases are 0 ... n_mat - 1
+    int highest = *std::max_element(ms, ms + local_size);
+    MPI_Allreduce(MPI_IN_PLACE, &highest, 1, MPI_INT, MPI_MAX, communicator);
+    n_mat = highest + 1;
 
-    // Find the global maximum and minimum material indices
-    unsigned short global_max, global_min;
-    MPI_Allreduce(&local_max, &global_max, 1, MPI_UNSIGNED_SHORT, MPI_MAX, communicator);
-    MPI_Allreduce(&local_min, &global_min, 1, MPI_UNSIGNED_SHORT, MPI_MIN, communicator);
-
-    if (global_min != 0)
+    // Voxels of each phase, summed over all ranks
+    std::vector<long> voxels(n_mat, 0);
+    for (size_t i = 0; i < local_size; i++)
+        voxels[ms[i]]++;
+    MPI_Allreduce(MPI_IN_PLACE, voxels.data(), n_mat, MPI_LONG, MPI_SUM, communicator);
+    if (voxels[0] == 0)
         throw std::invalid_argument("Microstructure phase IDs must start at 0");
 
-    // Calculate total number of materials
-    n_mat = global_max - global_min + 1;
-
-    Log::logger().info("# Number of materials: {} (from {} to {})", n_mat, global_min, global_max);
+    Log::logger().info("# Number of materials: {} (from 0 to {})", n_mat, highest);
     Log::logger().info("# Volume fractions");
-
-    // Voxels of each phase, summed over all ranks at once
-    std::vector<long> vol_frac(n_mat, 0);
-    for (size_t i = 0; i < local_size; i++) {
-        unsigned short val   = static_cast<unsigned short>(ms[i]);
-        int            index = val - global_min; // Adjust index to start from 0
-        vol_frac[index]++;
-    }
-    MPI_Allreduce(MPI_IN_PLACE, vol_frac.data(), n_mat, MPI_LONG, MPI_SUM, communicator);
-
     for (int i = 0; i < n_mat; i++)
-        Log::logger().info("# material {:4}    vol. frac. {:10.4f}%  ", static_cast<unsigned int>(i) + global_min,
-                           100. * vol_frac[i] / (double(dims[0]) * dims[1] * dims[2]));
+        Log::logger().info("# material {:4}    vol. frac. {:10.4f}%  ", i, 100. * voxels[i] / (double(dims[0]) * dims[1] * dims[2]));
 }
 
 void Reader ::ReadInputFile(const std::string &input_fn)
@@ -71,23 +42,17 @@ void Reader ::ReadInputFile(const std::string &input_fn)
         inputJson = j; // Store complete input JSON for MaterialManager
 
         microstructure = j["microstructure"];
-        std::snprintf(ms_filename, sizeof(ms_filename), "%s", microstructure["filepath"].get<std::string>().c_str());
-        // dataset name handling
-        const auto tmp_str = microstructure["datasetname"].get<std::string>();
-        if (tmp_str.empty())
+        ms_filename    = microstructure["filepath"].get<string>();
+        ms_datasetname = microstructure["datasetname"].get<string>();
+        if (ms_datasetname.empty())
             throw std::invalid_argument("datasetname must not be empty and must refer to a valid HDF5 path");
-        // Ensure absolute HDF5 path, leading slash
-        std::snprintf(ms_datasetname, sizeof(ms_datasetname), "%s%s", tmp_str.front() == '/' ? "" : "/", tmp_str.c_str());
+        if (ms_datasetname.front() != '/')
+            ms_datasetname = "/" + ms_datasetname; // an absolute HDF5 path
         L = microstructure["L"].get<vector<double>>();
 
-        if (j.contains("results_prefix")) {
-            std::snprintf(results_prefix, sizeof(results_prefix), "%s", j["results_prefix"].get<std::string>().c_str());
-        } else {
-            strcpy(results_prefix, "");
-        }
-
-        // Construct dataset_name as "<ms_datasetname>_results/<results_prefix>"
-        std::snprintf(dataset_name, sizeof(dataset_name), "%s_results/%s", ms_datasetname, results_prefix);
+        // The group of the microstructure, and where the results go: "<ms_datasetname>_results/<results_prefix>"
+        ms_group     = ms_datasetname.substr(0, ms_datasetname.find_last_of('/') + 1);
+        dataset_name = ms_datasetname + "_results/" + j.value("results_prefix", "");
 
         errorParameters = j["error_parameters"];
         TOL             = errorParameters["tolerance"].get<double>();
@@ -105,25 +70,13 @@ void Reader ::ReadInputFile(const std::string &input_fn)
         problemType = j["problem_type"].get<string>();
         method      = j["method"].get<string>();
 
-        // Parse strain_type (optional, defaults to "small")
-        if (j.contains("strain_type")) {
-            strain_type = j["strain_type"].get<string>();
-            if (strain_type != "small" && strain_type != "large") {
-                throw std::invalid_argument("strain_type must be either 'small' or 'large'");
-            }
-        } else {
-            strain_type = "small"; // Default to small strain
-        }
+        strain_type = j.value("strain_type", "small");
+        if (strain_type != "small" && strain_type != "large")
+            throw std::invalid_argument("strain_type must be either 'small' or 'large'");
 
-        // Parse FE_type (optional, defaults to "HEX8")
-        if (j.contains("FE_type")) {
-            FE_type = j["FE_type"].get<string>();
-            if (FE_type != "HEX8" && FE_type != "HEX8R" && FE_type != "BBAR") {
-                throw std::invalid_argument("FE_type must be one of: 'HEX8', 'HEX8R', or 'BBAR'");
-            }
-        } else {
-            FE_type = "HEX8"; // Default to full integration
-        }
+        FE_type = j.value("FE_type", "HEX8"); // full integration
+        if (FE_type != "HEX8" && FE_type != "HEX8R" && FE_type != "BBAR")
+            throw std::invalid_argument("FE_type must be one of: 'HEX8', 'HEX8R', or 'BBAR'");
 
         resultsToWrite = j["results"].get<vector<string>>(); // Read the results_to_write field
 
@@ -203,7 +156,7 @@ void Reader ::ReadMS(int hm)
     hid_t   space   = H5Dget_space(dset_id);
     hsize_t file_dims[3];
     if (H5Sget_simple_extent_ndims(space) != 3)
-        throw std::runtime_error("Microstructure dataset " + string(ms_datasetname) + " must be 3D");
+        throw std::runtime_error("Microstructure dataset " + ms_datasetname + " must be 3D");
     H5Sget_simple_extent_dims(space, file_dims, nullptr);
     H5Sclose(space);
 
@@ -282,12 +235,6 @@ bool h5_is_zyx(hid_t dset_id)
     return permute_order.empty() || permute_order[0] == 'z' || permute_order[0] == 'Z';
 }
 
-string Reader::MSGroup() const
-{
-    const string path(ms_datasetname);
-    return path.substr(0, path.find_last_of('/') + 1);
-}
-
 std::vector<hsize_t> Reader::DataShape(const string &file, const string &dset_name)
 {
     hid_t                file_id;
@@ -311,10 +258,9 @@ void Reader::FreeMS()
 
 void Reader::OpenResultsFile(const char *output_fn)
 {
-    std::snprintf(results_filename, sizeof(results_filename), "%s", output_fn);
     hid_t plist_id = H5Pcreate(H5P_FILE_ACCESS);
     H5Pset_fapl_mpio(plist_id, communicator, MPI_INFO_NULL);
-    results_file_id = H5Fcreate(results_filename, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
+    results_file_id = H5Fcreate(output_fn, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
     H5Pclose(plist_id);
 
     if (results_file_id < 0) {
@@ -328,7 +274,6 @@ void Reader::CloseResultsFile()
         H5Fclose(results_file_id);
         results_file_id = -1;
     }
-    results_filename[0] = '\0';
 }
 
 Reader::~Reader()
