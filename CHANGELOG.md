@@ -2,6 +2,7 @@
 
 ## latest
 
+- Add consistent homogenized tangent from the materials' own tangents (NEML2 and native models) [#163](https://github.com/DataAnalyticsEngineering/FANS/pull/163)
 - Add NEML2 material support [#162](https://github.com/DataAnalyticsEngineering/FANS/pull/162)
 - Account for grain orientations in GBDiffusion material model [#161](https://github.com/DataAnalyticsEngineering/FANS/pull/161)
 

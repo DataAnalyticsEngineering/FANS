@@ -30,7 +30,7 @@ This gives `test/FANS_neml2`. Without pixi, configure with `-DFANS_NEML2=ON` in 
 pixi run -e dev-neml2 neml2-compile model.i --model model --device cpu cuda --dtype float64 --output-dir compiled_models -d state/S:forces/E
 ```
 
-This compiles the block `[model]` of `model.i` for both devices into `compiled_models/model`. `--load a.py` (repeatable) imports a Python file the model needs. `-d flux:gradient` also compiles the model's tangent.
+This compiles the block `[model]` of `model.i` for both devices into `compiled_models/model`. `--load a.py` (repeatable) imports a Python file the model needs. `-d flux:gradient` also compiles the model's tangent, which the `homogenized_tangent` result needs.
 
 ## Input file
 
