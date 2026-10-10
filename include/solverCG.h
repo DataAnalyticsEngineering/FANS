@@ -158,7 +158,7 @@ std::string SolverCG<howmany, n_str>::LineSearchSecant()
         alpha_next = alpha_curr - r1pd * (alpha_curr - alpha_prev) / denom;
         if (alpha_next <= 0.0)
             alpha_next = 0.5 * (alpha_prev + alpha_curr);
-        alpha_next = fmin(alpha_next, 10.0 * alpha_curr);
+        alpha_next = fmin(alpha_next, 50.0 * alpha_curr);
 
         v_u_real += d_real * (alpha_next - alpha_curr);
         alpha_prev = alpha_curr;
