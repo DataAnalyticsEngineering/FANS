@@ -138,9 +138,8 @@ void Reader ::ReadInputFile(const std::string &input_fn)
 }
 
 // Creates the groups on the path of `name` that do not exist yet, e.g. /a and /a/b for /a/b/c
-void Reader::safe_create_group(hid_t file, const char *const name)
+void Reader::safe_create_group(hid_t file, const string &path)
 {
-    const string path(name);
     for (size_t i = path.find('/', 1); i != string::npos; i = path.find('/', i + 1)) {
         const string group = path.substr(0, i);
         if (H5Lexists(file, group.c_str(), H5P_DEFAULT) <= 0)

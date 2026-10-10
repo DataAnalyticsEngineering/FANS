@@ -251,9 +251,8 @@ class PluginModel : public Base {
     // Writes every history variable, e.g. state/internal/Ep as state_internal_Ep
     void postprocess(Solver<howmany, n_str> &solver, Reader &reader, int load_idx, int time_idx) override
     {
-        const auto &res     = reader.resultsToWrite;
-        const bool  need    = std::find(res.begin(), res.end(), "internal_variables") != res.end();
-        const bool  need_gp = std::find(res.begin(), res.end(), "internal_variables_gp") != res.end();
+        const bool need    = reader.is_result_requested("internal_variables");
+        const bool need_gp = reader.is_result_requested("internal_variables_gp");
         if (!need && !need_gp)
             return;
         const size_t n_pts = size_t(solver.local_n0 * solver.n_y * solver.n_z) * n_gp;
@@ -270,9 +269,9 @@ class PluginModel : public Base {
                     elem[p / n_gp * size + c] += gp[p * size + c] / n_gp;
                 }
             if (need)
-                reader.WriteSlab(elem.data(), {size}, (dir + field).c_str());
+                reader.WriteSlab(elem.data(), {size}, dir + field);
             if (need_gp)
-                reader.WriteSlab(gp.data(), {n_gp, size}, (dir + field + "_gp").c_str());
+                reader.WriteSlab(gp.data(), {n_gp, size}, dir + field + "_gp");
             offset += size;
         }
     }

@@ -69,20 +69,26 @@ class Reader {
     void ReadMS(int hm);
     void FreeMS();
     void ComputeVolumeFractions();
-    void safe_create_group(hid_t file, const char *const name);
+    void safe_create_group(hid_t file, const string &name);
     void OpenResultsFile(const char *output_fn); // Open results file once
     void CloseResultsFile();                     // Explicitly close results file
 
+    // Whether the input file asks for this result
+    bool is_result_requested(const string &result) const
+    {
+        return std::find(resultsToWrite.begin(), resultsToWrite.end(), result) != resultsToWrite.end();
+    }
+
     // Convenience methods to check if a result should be written and write it
     template <typename T>
-    void writeData(const char *fieldName, int load_idx, int time_idx, const T *data, const hsize_t *shape, int rank);
+    void writeData(const string &fieldName, int load_idx, int time_idx, const T *data, const hsize_t *shape, int rank);
     template <typename T>
-    void writeSlab(const char *fieldName, int load_idx, int time_idx, const T *data, const std::vector<int> &extra_dims);
+    void writeSlab(const string &fieldName, int load_idx, int time_idx, const T *data, const std::vector<int> &extra_dims);
 
     template <typename T>
-    void WriteData(const T *data, const char *dset_name, const hsize_t *shape, int rank);
+    void WriteData(const T *data, const string &dset_name, const hsize_t *shape, int rank);
     template <typename T>
-    void WriteSlab(const T *data, const std::vector<int> &extra_dims, const char *dset_name);
+    void WriteSlab(const T *data, const std::vector<int> &extra_dims, const string &dset_name);
 
     // Read a dataset of any HDF5 file, on every rank: all of it, its shape, or
     // this rank's slab of a per-voxel dataset on the grid
@@ -127,16 +133,16 @@ void swap_xz(const T *in, T *out, Eigen::Index a, Eigen::Index b, Eigen::Index c
 
 // All ranks call; rank 0's data is written, replacing an existing dataset
 template <typename T>
-void Reader::WriteData(const T *data, const char *dset_name, const hsize_t *shape, int rank)
+void Reader::WriteData(const T *data, const string &dset_name, const hsize_t *shape, int rank)
 {
     if (results_file_id < 0)
         throw std::runtime_error("WriteData: results file is not open");
     safe_create_group(results_file_id, dset_name);
-    if (H5Lexists(results_file_id, dset_name, H5P_DEFAULT) > 0)
-        H5Ldelete(results_file_id, dset_name, H5P_DEFAULT);
+    if (H5Lexists(results_file_id, dset_name.c_str(), H5P_DEFAULT) > 0)
+        H5Ldelete(results_file_id, dset_name.c_str(), H5P_DEFAULT);
 
     hid_t space   = H5Screate_simple(rank, shape, nullptr);
-    hid_t dset_id = H5Dcreate2(results_file_id, dset_name, h5_native_type<T>(), space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hid_t dset_id = H5Dcreate2(results_file_id, dset_name.c_str(), h5_native_type<T>(), space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     if (world_rank != 0)
         H5Sselect_none(space); // the others take part, writing nothing
     hid_t xfer = H5Pcreate(H5P_DATASET_XFER);
@@ -146,13 +152,13 @@ void Reader::WriteData(const T *data, const char *dset_name, const hsize_t *shap
     H5Dclose(dset_id);
     H5Sclose(space);
     if (status < 0)
-        throw std::runtime_error(string("WriteData: cannot write ") + dset_name);
+        throw std::runtime_error("WriteData: cannot write " + dset_name);
 }
 
 // All ranks call with their slab, data as [X][Y][Z][d1][d2]... (local_n0 x Ny x Nz x ...);
 // on disk [Z][Y][X][d1][d2]... with permute_order = "zyx", created on first write
 template <typename T>
-void Reader::WriteSlab(const T *data, const std::vector<int> &extra_dims, const char *dset_name)
+void Reader::WriteSlab(const T *data, const std::vector<int> &extra_dims, const string &dset_name)
 {
     if (results_file_id < 0)
         throw std::runtime_error("WriteSlab: results file is not open");
@@ -166,13 +172,13 @@ void Reader::WriteSlab(const T *data, const std::vector<int> &extra_dims, const 
 
     safe_create_group(results_file_id, dset_name);
     hid_t dset_id;
-    if (H5Lexists(results_file_id, dset_name, H5P_DEFAULT) > 0) {
-        dset_id = H5Dopen2(results_file_id, dset_name, H5P_DEFAULT);
+    if (H5Lexists(results_file_id, dset_name.c_str(), H5P_DEFAULT) > 0) {
+        dset_id = H5Dopen2(results_file_id, dset_name.c_str(), H5P_DEFAULT);
     } else {
         std::vector<hsize_t> shape(count);
         shape[2]    = dims[0]; // all of X
         hid_t space = H5Screate_simple(shape.size(), shape.data(), nullptr);
-        dset_id     = H5Dcreate2(results_file_id, dset_name, h5_native_type<T>(), space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        dset_id     = H5Dcreate2(results_file_id, dset_name.c_str(), h5_native_type<T>(), space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         hid_t str = H5Tcopy(H5T_C_S1), scalar = H5Screate(H5S_SCALAR);
         H5Tset_size(str, 4);
         hid_t attr = H5Acreate2(dset_id, "permute_order", str, scalar, H5P_DEFAULT, H5P_DEFAULT);
@@ -194,7 +200,7 @@ void Reader::WriteSlab(const T *data, const std::vector<int> &extra_dims, const 
     H5Sclose(filespace);
     H5Dclose(dset_id);
     if (status < 0)
-        throw std::runtime_error(string("WriteSlab: cannot write ") + dset_name);
+        throw std::runtime_error("WriteSlab: cannot write " + dset_name);
 }
 
 template <typename T>
@@ -250,23 +256,21 @@ void Reader::ReadSlab(T *data, const std::vector<int> &extra_dims, const string 
 }
 
 template <typename T>
-void Reader::writeData(const char *fieldName, int load_idx, int time_idx, const T *data, const hsize_t *shape, int rank)
+void Reader::writeData(const string &fieldName, int load_idx, int time_idx, const T *data, const hsize_t *shape, int rank)
 {
-    if (std::find(resultsToWrite.begin(), resultsToWrite.end(), fieldName) == resultsToWrite.end()) {
+    if (!is_result_requested(fieldName))
         return;
-    }
     const string name = dataset_name + "/load" + to_string(load_idx) + "/time_step" + to_string(time_idx) + "/" + fieldName;
-    WriteData(data, name.c_str(), shape, rank);
+    WriteData(data, name, shape, rank);
 }
 
 template <typename T>
-void Reader::writeSlab(const char *fieldName, int load_idx, int time_idx, const T *data, const std::vector<int> &extra_dims)
+void Reader::writeSlab(const string &fieldName, int load_idx, int time_idx, const T *data, const std::vector<int> &extra_dims)
 {
-    if (std::find(resultsToWrite.begin(), resultsToWrite.end(), fieldName) == resultsToWrite.end()) {
+    if (!is_result_requested(fieldName))
         return;
-    }
     const string name = dataset_name + "/load" + to_string(load_idx) + "/time_step" + to_string(time_idx) + "/" + fieldName;
-    WriteSlab(data, extra_dims, name.c_str());
+    WriteSlab(data, extra_dims, name);
 }
 
 #endif

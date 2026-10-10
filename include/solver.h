@@ -66,7 +66,6 @@ class Solver : private MixedBCController<howmany> {
     double compute_error(RealArray &r, const std::string &details = {});
     void   CreateFFTWPlans(double *in, fftw_complex *transformed, double *out);
 
-    VectorXd homogenized_strain;
     VectorXd homogenized_stress;
     VectorXd get_homogenized_stress();
     void     evaluate_batched_stress(double *u); //!< in src/plugin_material.cpp
@@ -464,23 +463,17 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     int n_gp = matmanager->models[0]->n_gp;
 
     // Check what user requested
-    auto &results        = reader.resultsToWrite;
-    bool  need_stress    = std::find(results.begin(), results.end(), "stress") != results.end();
-    bool  need_stress_gp = std::find(results.begin(), results.end(), "stress_gp") != results.end();
-    bool  need_strain    = std::find(results.begin(), results.end(), "strain") != results.end();
-    bool  need_strain_gp = std::find(results.begin(), results.end(), "strain_gp") != results.end();
+    bool need_stress    = reader.is_result_requested("stress");
+    bool need_stress_gp = reader.is_result_requested("stress_gp");
+    bool need_strain    = reader.is_result_requested("strain");
+    bool need_strain_gp = reader.is_result_requested("strain_gp");
 
-    bool need_global_avg = std::find(results.begin(), results.end(), "stress_average") != results.end() ||
-                           std::find(results.begin(), results.end(), "strain_average") != results.end();
+    bool need_global_avg = reader.is_result_requested("stress_average") || reader.is_result_requested("strain_average");
 
     bool need_phase_avg = false;
     for (int mat_idx = 0; mat_idx < reader.n_mat; ++mat_idx) {
-        char name[512];
-        sprintf(name, "phase_stress_average_phase%d", mat_idx);
-        if (std::find(results.begin(), results.end(), name) != results.end()) {
+        if (reader.is_result_requested("phase_stress_average_phase" + to_string(mat_idx)))
             need_phase_avg = true;
-            break;
-        }
     }
 
     // Determine if we need to compute stress/strain at all
@@ -587,7 +580,6 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
         Log::logger().info("{}", output.str());
     }
     homogenized_stress = stress_average;
-    homogenized_strain = strain_average;
 
     // u_total = u + G X, with G the macroscale gradient of the nodal values: the temperature
     // gradient, the strain (ml holds its Mandel components) or F - I
@@ -623,12 +615,9 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     reader.writeData("stress_average", load_idx, time_idx, stress_average.data(), dims, 1);
     reader.writeData("strain_average", load_idx, time_idx, strain_average.data(), dims, 1);
     for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
-        char stress_name[512];
-        char strain_name[512];
-        sprintf(stress_name, "phase_stress_average_phase%d", mat_index);
-        sprintf(strain_name, "phase_strain_average_phase%d", mat_index);
-        reader.writeData(stress_name, load_idx, time_idx, phase_stress_average[mat_index].data(), dims, 1);
-        reader.writeData(strain_name, load_idx, time_idx, phase_strain_average[mat_index].data(), dims, 1);
+        const string phase = "_phase" + to_string(mat_index);
+        reader.writeData("phase_stress_average" + phase, load_idx, time_idx, phase_stress_average[mat_index].data(), dims, 1);
+        reader.writeData("phase_strain_average" + phase, load_idx, time_idx, phase_strain_average[mat_index].data(), dims, 1);
     }
     dims[0] = iter + 1;
     reader.writeData("absolute_error", load_idx, time_idx, err_all.data(), dims, 1);
@@ -652,7 +641,7 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     matmanager->postprocess(*this, reader, load_idx, time_idx);
 
     // Compute homogenized tangent only if requested
-    if (find(reader.resultsToWrite.begin(), reader.resultsToWrite.end(), "homogenized_tangent") != reader.resultsToWrite.end()) {
+    if (reader.is_result_requested("homogenized_tangent")) {
         homogenized_tangent = get_homogenized_tangent(1e-6);
         hsize_t dims[2]     = {static_cast<hsize_t>(n_str), static_cast<hsize_t>(n_str)};
         if (Log::logger().should_log(spdlog::level::info)) {

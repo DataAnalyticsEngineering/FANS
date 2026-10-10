@@ -96,13 +96,12 @@ class FiniteStrainJ2Plasticity : public LargeStrainMechModel {
 
     void postprocess(Solver<3, 9> &solver, Reader &reader, int load_idx, int time_idx) override
     {
-        const ptrdiff_t n_elem  = solver.local_n0 * solver.n_y * solver.n_z;
-        const auto     &results = reader.resultsToWrite;
+        const ptrdiff_t n_elem = solver.local_n0 * solver.n_y * solver.n_z;
 
-        const bool need_ep    = std::find(results.begin(), results.end(), "equivalent_plastic_strain") != results.end();
-        const bool need_ep_gp = std::find(results.begin(), results.end(), "equivalent_plastic_strain_gp") != results.end();
-        const bool need_be    = std::find(results.begin(), results.end(), "elastic_finger") != results.end();
-        const bool need_be_gp = std::find(results.begin(), results.end(), "elastic_finger_gp") != results.end();
+        const bool need_ep    = reader.is_result_requested("equivalent_plastic_strain");
+        const bool need_ep_gp = reader.is_result_requested("equivalent_plastic_strain_gp");
+        const bool need_be    = reader.is_result_requested("elastic_finger");
+        const bool need_be_gp = reader.is_result_requested("elastic_finger_gp");
 
         if (!(need_ep || need_ep_gp || need_be || need_be_gp))
             return;

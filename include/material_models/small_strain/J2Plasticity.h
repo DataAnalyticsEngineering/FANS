@@ -230,13 +230,12 @@ inline void J2Plasticity::postprocess(Solver<3, 6> &solver, Reader &reader, int 
     const ptrdiff_t n_elem = solver.local_n0 * solver.n_y * solver.n_z;
 
     // Check what user requested
-    auto      &results                = reader.resultsToWrite;
-    const bool need_plastic_strain    = std::find(results.begin(), results.end(), "plastic_strain") != results.end();
-    const bool need_plastic_strain_gp = std::find(results.begin(), results.end(), "plastic_strain_gp") != results.end();
-    const bool need_iso_hard          = std::find(results.begin(), results.end(), "isotropic_hardening_variable") != results.end();
-    const bool need_iso_hard_gp       = std::find(results.begin(), results.end(), "isotropic_hardening_variable_gp") != results.end();
-    const bool need_kin_hard          = std::find(results.begin(), results.end(), "kinematic_hardening_variable") != results.end();
-    const bool need_kin_hard_gp       = std::find(results.begin(), results.end(), "kinematic_hardening_variable_gp") != results.end();
+    const bool need_plastic_strain    = reader.is_result_requested("plastic_strain");
+    const bool need_plastic_strain_gp = reader.is_result_requested("plastic_strain_gp");
+    const bool need_iso_hard          = reader.is_result_requested("isotropic_hardening_variable");
+    const bool need_iso_hard_gp       = reader.is_result_requested("isotropic_hardening_variable_gp");
+    const bool need_kin_hard          = reader.is_result_requested("kinematic_hardening_variable");
+    const bool need_kin_hard_gp       = reader.is_result_requested("kinematic_hardening_variable_gp");
 
     VectorXd plastic_strain_elem, plastic_strain_gp_data;
     VectorXd iso_hard_elem, iso_hard_gp_data;

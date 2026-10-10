@@ -35,7 +35,6 @@ using namespace nlohmann;
 using namespace Eigen;
 
 #include "mpi.h"
-#include "sys/stat.h"
 
 #endif
 
