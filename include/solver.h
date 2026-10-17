@@ -164,7 +164,7 @@ void Solver<howmany, n_str>::computeFundamentalSolution()
     Matrix<complex<double>, 8, 1>    A;
     Matrix<double, 8, 8>             AA;
     Matrix<double, howmany, howmany> block;
-    fundamentalSolution = Matrix<double, howmany, Dynamic>(howmany, (local_n1 * n_x * (n_z / 2 + 1) * (howmany + 1)) / 2);
+    fundamentalSolution = Matrix<double, howmany, Dynamic>(howmany, ((local_n1 * n_x * (n_z / 2 + 1) + 1) / 2) * (howmany + 1)); // pairs, rounded up
     fundamentalSolution.setZero();
 
     for (int i_y = 0; i_y < local_n1; ++i_y) {
@@ -397,7 +397,7 @@ template <int howmany, int n_str>
 void Solver<howmany, n_str>::convolution()
 {
 
-    // it is important that at least one of the dimensions n_x and n_z is divisible by two (or local_n1, but that can't be guaranteed from the outside)
+    // the frequencies go in pairs, which share the storage of their symmetric blocks; with an odd number of them, the last one is alone
     // discussion of real times complex: https://forum.kde.org/viewtopic.php?f=74&t=85678
 
     clock_t dtime = clock();
@@ -406,12 +406,18 @@ void Solver<howmany, n_str>::convolution()
     buftime = clock() - dtime;
 
     Matrix<complex<double>, howmany, howmany> tmp;
-    for (ptrdiff_t i = 0; i < (local_n1 * n_x * (n_z / 2 + 1)) / 2; i++) {
+    const ptrdiff_t                           n_freq = local_n1 * n_x * (n_z / 2 + 1);
+    for (ptrdiff_t i = 0; i < n_freq / 2; i++) {
 
         tmp                                          = fundamentalSolution.template middleCols<howmany>(i * (howmany + 1)).template cast<complex<double>>();
         rhat.segment<howmany>(2 * i * howmany)       = tmp.template selfadjointView<Lower>() * rhat.segment<howmany>(2 * i * howmany);
         tmp                                          = fundamentalSolution.template middleCols<howmany>(i * (howmany + 1) + 1).template cast<complex<double>>();
         rhat.segment<howmany>((2 * i + 1) * howmany) = tmp.template selfadjointView<Upper>() * rhat.segment<howmany>((2 * i + 1) * howmany);
+    }
+    if (n_freq % 2 == 1) {
+        const ptrdiff_t i                      = n_freq / 2;
+        tmp                                    = fundamentalSolution.template middleCols<howmany>(i * (howmany + 1)).template cast<complex<double>>();
+        rhat.segment<howmany>(2 * i * howmany) = tmp.template selfadjointView<Lower>() * rhat.segment<howmany>(2 * i * howmany);
     }
 
     dtime = clock();

@@ -178,12 +178,8 @@ void Reader ::ReadMS(int hm)
     Log::logger().info("# Microstructure length: [{:3.6f} x {:3.6f} x {:3.6f}]", L[0], L[1], L[2]);
     Log::logger().info("# Voxel length: [{:.8f}, {:.8f}, {:.8f}]", l_e[0], l_e[1], l_e[2]);
 
-    if (dims[0] % 2 != 0)
-        Log::logger().warn("[ FANS3D_Grid ] WARNING: n_x is not a multiple of 2");
-    if (dims[1] % 2 != 0)
-        Log::logger().warn("[ FANS3D_Grid ] WARNING: n_y is not a multiple of 2");
     if (dims[2] % 2 != 0)
-        Log::logger().warn("[ FANS3D_Grid ] WARNING: n_z is not a multiple of 2");
+        throw std::runtime_error("[ FANS3D_Grid ] ERROR: n_z must be even.");
     if (dims[0] / 4 < world_size)
         throw std::runtime_error("[ FANS3D_Grid ] ERROR: Please decrease the number of processes or increase the grid size to ensure that each process has at least 4 boxels in the x direction.");
 
