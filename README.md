@@ -357,14 +357,15 @@ FANS also supports mixed boundary conditions, where some components can be strai
 
 ```json
 "results": ["stress_average", "strain_average", "absolute_error", "phase_stress_average", "phase_strain_average",
-            "microstructure", "displacement", "displacement_fluctuation", "stress", "strain"]
+            "phase_volume_fractions", "microstructure", "displacement", "displacement_fluctuation", "stress", "strain"]
 ```
 
 - `results`: This array lists the quantities that should be stored in the results HDF5 file during the simulation. Each string in the array corresponds to a specific result:
 
   - `stress_average` and `strain_average`: Volume averaged- homogenized stress and strain over the entire microstructure.
   - `absolute_error`: The L-infinity error of the finite element nodal residual at each iteration.
-  - `phase_stress_average` and `phase_strain_average`: Volume averaged- homogenized stress and strain for each phase within the microstructure.
+  - `phase_stress_average` and `phase_strain_average`: Volume averaged- homogenized stress and strain for each phase within the microstructure, a row per phase: `[n_phases][n_str]`.
+  - `phase_volume_fractions`: The volume fraction of each phase: `[n_phases]`.
   - `microstructure`: The original microstructure data.
   - `displacement`: The displacement field (for mechanical problems) and temperature field (for thermal problems) at each voxel in the microstructure.
   - `displacement_fluctuation`: The periodic displacement fluctuation field (for mechanical problems) and periodic temperature fluctuation field (for thermal problems at each voxel in the microstructure).

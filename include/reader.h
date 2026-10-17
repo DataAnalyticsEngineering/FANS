@@ -54,6 +54,7 @@ class Reader {
     vector<double>  L;
     unsigned short *ms{nullptr}; // Micro-structure
     bool            is_zyx = true;
+    vector<double>  volume_fractions; // of each phase
 
     int      world_rank;
     int      world_size;

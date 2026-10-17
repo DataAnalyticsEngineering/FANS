@@ -29,8 +29,11 @@ void Reader::ComputeVolumeFractions()
 
     Log::logger().info("# Number of materials: {} (from 0 to {})", n_mat, highest);
     Log::logger().info("# Volume fractions");
-    for (int i = 0; i < n_mat; i++)
-        Log::logger().info("# material {:4}    vol. frac. {:10.4f}%  ", i, 100. * voxels[i] / (double(dims[0]) * dims[1] * dims[2]));
+    volume_fractions.resize(n_mat);
+    for (int i = 0; i < n_mat; i++) {
+        volume_fractions[i] = voxels[i] / (double(dims[0]) * dims[1] * dims[2]);
+        Log::logger().info("# material {:4}    vol. frac. {:10.4f}%  ", i, 100. * volume_fractions[i]);
+    }
 }
 
 void Reader ::ReadInputFile(const std::string &input_fn)

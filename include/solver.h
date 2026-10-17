@@ -469,12 +469,7 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     bool need_strain_gp = reader.is_result_requested("strain_gp");
 
     bool need_global_avg = reader.is_result_requested("stress_average") || reader.is_result_requested("strain_average");
-
-    bool need_phase_avg = false;
-    for (int mat_idx = 0; mat_idx < reader.n_mat; ++mat_idx) {
-        if (reader.is_result_requested("phase_stress_average_phase" + to_string(mat_idx)))
-            need_phase_avg = true;
-    }
+    bool need_phase_avg  = reader.is_result_requested("phase_stress_average") || reader.is_result_requested("phase_strain_average");
 
     // Determine if we need to compute stress/strain at all
     bool need_compute = need_stress || need_stress_gp || need_strain || need_strain_gp || need_global_avg || need_phase_avg;
@@ -488,11 +483,11 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     VectorXd stress_average = VectorXd::Zero(n_str);
     VectorXd strain_average = VectorXd::Zero(n_str);
 
-    // Initialize per-phase accumulators
-    int              n_mat = reader.n_mat;
-    vector<VectorXd> phase_stress_average(n_mat, VectorXd::Zero(n_str));
-    vector<VectorXd> phase_strain_average(n_mat, VectorXd::Zero(n_str));
-    vector<int>      phase_counts(n_mat, 0);
+    // Per-phase accumulators, a row per phase: [n_mat][n_str], as written
+    using PhaseMatrix                = Matrix<double, Dynamic, n_str, RowMajor>;
+    int         n_mat                = reader.n_mat;
+    PhaseMatrix phase_stress_average = PhaseMatrix::Zero(n_mat, n_str);
+    PhaseMatrix phase_strain_average = PhaseMatrix::Zero(n_mat, n_str);
 
     update_ghost_layer(v_u);
 
@@ -546,10 +541,9 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
                 for (int c = 0; c < n_str; ++c) {
                     stress_average(c) += elem_stress_avg[c];
                     strain_average(c) += elem_strain_avg[c];
-                    phase_stress_average[phase_id](c) += elem_stress_avg[c];
-                    phase_strain_average[phase_id](c) += elem_strain_avg[c];
+                    phase_stress_average(phase_id, c) += elem_stress_avg[c];
+                    phase_strain_average(phase_id, c) += elem_strain_avg[c];
                 }
-                phase_counts[phase_id]++;
             }
         });
     }
@@ -559,16 +553,14 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     stress_average /= (n_x * n_y * n_z);
     strain_average /= (n_x * n_y * n_z);
 
-    // Reduce per-phase accumulations across all processes
+    // Per-phase sums across all processes, over the number of voxels of each phase
+    MPI_Allreduce(MPI_IN_PLACE, phase_stress_average.data(), n_mat * n_str, MPI_DOUBLE, MPI_SUM, communicator);
+    MPI_Allreduce(MPI_IN_PLACE, phase_strain_average.data(), n_mat * n_str, MPI_DOUBLE, MPI_SUM, communicator);
     for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
-        MPI_Allreduce(MPI_IN_PLACE, phase_stress_average[mat_index].data(), n_str, MPI_DOUBLE, MPI_SUM, communicator);
-        MPI_Allreduce(MPI_IN_PLACE, phase_strain_average[mat_index].data(), n_str, MPI_DOUBLE, MPI_SUM, communicator);
-        MPI_Allreduce(MPI_IN_PLACE, &phase_counts[mat_index], 1, MPI_INT, MPI_SUM, communicator);
-
-        // Compute average for each phase
-        if (phase_counts[mat_index] > 0) {
-            phase_stress_average[mat_index] /= phase_counts[mat_index];
-            phase_strain_average[mat_index] /= phase_counts[mat_index];
+        const double n_voxels = reader.volume_fractions[mat_index] * n_x * n_y * n_z;
+        if (n_voxels > 0) {
+            phase_stress_average.row(mat_index) /= n_voxels;
+            phase_strain_average.row(mat_index) /= n_voxels;
         }
     }
 
@@ -614,11 +606,10 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     hsize_t dims[1] = {static_cast<hsize_t>(n_str)};
     reader.writeData("stress_average", load_idx, time_idx, stress_average.data(), dims, 1);
     reader.writeData("strain_average", load_idx, time_idx, strain_average.data(), dims, 1);
-    for (int mat_index = 0; mat_index < n_mat; ++mat_index) {
-        const string phase = "_phase" + to_string(mat_index);
-        reader.writeData("phase_stress_average" + phase, load_idx, time_idx, phase_stress_average[mat_index].data(), dims, 1);
-        reader.writeData("phase_strain_average" + phase, load_idx, time_idx, phase_strain_average[mat_index].data(), dims, 1);
-    }
+    hsize_t phase_dims[2] = {hsize_t(n_mat), n_str};
+    reader.writeData("phase_stress_average", load_idx, time_idx, phase_stress_average.data(), phase_dims, 2);
+    reader.writeData("phase_strain_average", load_idx, time_idx, phase_strain_average.data(), phase_dims, 2);
+    reader.writeData("phase_volume_fractions", load_idx, time_idx, reader.volume_fractions.data(), phase_dims, 1);
     dims[0] = iter + 1;
     reader.writeData("absolute_error", load_idx, time_idx, err_all.data(), dims, 1);
 
@@ -627,7 +618,8 @@ void Solver<howmany, n_str>::postprocess(Reader &reader, int load_idx, int time_
     reader.writeSlab("microstructure", load_idx, time_idx, ms, {1});
     reader.writeSlab("displacement_fluctuation", load_idx, time_idx, v_u, {howmany});
     reader.writeSlab("displacement", load_idx, time_idx, u_total.data(), {howmany});
-    reader.writeSlab("residual", load_idx, time_idx, v_r, {howmany});
+    ArrayXXd residual = v_r_real; // v_r without its FFT padding
+    reader.writeSlab("residual", load_idx, time_idx, residual.data(), {howmany});
 
     if (need_strain)
         reader.writeSlab("strain", load_idx, time_idx, strain_elem.data(), {n_str});
