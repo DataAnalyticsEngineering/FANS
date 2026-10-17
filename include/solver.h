@@ -429,20 +429,21 @@ void Solver<howmany, n_str>::convolution()
 template <int howmany, int n_str>
 double Solver<howmany, n_str>::compute_error(RealArray &r, const std::string &details)
 {
-    double             err_local;
+    double             err_local, err;
     const std::string &measure = reader.errorParameters["measure"].get<std::string>();
     if (measure == "L1") {
         err_local = r.matrix().lpNorm<1>();
+        MPI_Allreduce(&err_local, &err, 1, MPI_DOUBLE, MPI_SUM, communicator);
     } else if (measure == "L2") {
-        err_local = r.matrix().lpNorm<2>();
+        err_local = r.matrix().squaredNorm();
+        MPI_Allreduce(&err_local, &err, 1, MPI_DOUBLE, MPI_SUM, communicator);
+        err = std::sqrt(err);
     } else if (measure == "Linfinity") {
         err_local = r.matrix().lpNorm<Infinity>();
+        MPI_Allreduce(&err_local, &err, 1, MPI_DOUBLE, MPI_MAX, communicator);
     } else {
         throw std::runtime_error("Unknown measure type: " + measure);
     }
-
-    double err;
-    MPI_Allreduce(&err_local, &err, 1, MPI_DOUBLE, MPI_MAX, communicator);
 
     err_all[iter]  = err;
     double err0    = err_all[0];
