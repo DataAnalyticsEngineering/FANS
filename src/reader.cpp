@@ -36,7 +36,7 @@ void Reader::ComputeVolumeFractions()
     }
 }
 
-void Reader ::ReadInputFile(const std::string &input_fn)
+void Reader::ReadInputFile(const std::string &input_fn)
 {
     try {
         ifstream i(input_fn);
@@ -150,7 +150,7 @@ void Reader::safe_create_group(hid_t file, const string &path)
     }
 }
 
-void Reader ::ReadMS(int hm)
+void Reader::ReadMS(int hm)
 {
     // Grid size, and whether the file is laid out [Z][Y][X] (the default) or [X][Y][Z]
     hid_t   file_id;

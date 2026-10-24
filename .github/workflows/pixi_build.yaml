@@ -31,6 +31,7 @@ jobs:
         run: pixi run test
 
       - name: Upload test logs
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.os }} test-logs
